@@ -182,8 +182,8 @@ const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
 
 // Two-axis quality model
-const OFF_CALIB = 12, OFF_SCALE = 0.20;   // (rat365 - 12) × 0.20 = offense contribution per player
-const DEF_CALIB = 10, DEF_SCALE = 0.15;   // (DEF_SCORE - 10) × 0.15 = defense contribution per player
+const OFF_CALIB = 12, OFF_SCALE = 0.25;   // (rat365 - 12) × 0.25 = offense contribution per player
+const DEF_CALIB = 10, DEF_SCALE = 0.18;   // (DEF_SCORE - 10) × 0.18 = defense contribution per player
 const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
 
 // Boost gate (gradual GP-based taper): only apply the asymmetric historical boost
@@ -675,8 +675,8 @@ function renderEditView() {
       <ul>
         <li><strong>Two-axis quality model:</strong> each player has separate offensive (rat365-based) and defensive (DEF_SCORE-based) contributions.
           <ul>
-            <li><em>Offense Δ</em> = (rat365 − 12) × 0.20 — from HoopsMatic Real Value</li>
-            <li><em>Defense Δ</em> = (DEF_SCORE − 10) × 0.15 — from your Defensive Rankings system</li>
+            <li><em>Offense Δ</em> = (rat365 − 12) × 0.25 — from HoopsMatic Real Value</li>
+            <li><em>Defense Δ</em> = (DEF_SCORE − 10) × 0.18 — from your Defensive Rankings system</li>
           </ul>
         </li>
         <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend boost is applied <em>gradually</em> based on current-season games played: full boost below 20 GP, no boost above 50 GP, linear taper in between. So Giannis (15 GP) gets full credit for his career level, while Nurkić (65+ GP) trusts his actual current value, and a load-managed vet at 35 GP gets a partial boost. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
