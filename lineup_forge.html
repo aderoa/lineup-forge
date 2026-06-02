@@ -1,1154 +1,513 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lineup Forge — HoopsMatic</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-:root {
-  --bg: #0c0f14; --surface: #141820; --surface2: #1a1f2b; --border: #252b38;
-  --text1: #e8eaed; --text2: #9aa0ad; --muted: #5e6577;
-  --accent: #3b82f6; --accent-dim: rgba(59,130,246,0.12);
-  --green: #22c55e; --red: #ef4444; --orange: #f59e0b; --gold: #f0b637; --purple: #a78bfa;
-}
-body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1); min-height:100vh; padding-bottom:4rem; }
-::-webkit-scrollbar { height:6px; width:6px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:#2a3142; border-radius:3px; }
-
-.header { background:linear-gradient(135deg,#1a1f2b 0%,#0c0f14 100%); border-bottom:1px solid var(--border); padding:1.25rem 2rem; display:flex; align-items:center; gap:1rem; }
-.header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; }
-.header .logo span { color:var(--accent); }
-.header .badge { font-size:0.6rem; padding:0.2rem 0.5rem; background:rgba(59,130,246,0.15); color:var(--accent); border-radius:4px; font-weight:600; letter-spacing:0.05em; }
-.header .sub { font-size:0.7rem; color:var(--muted); margin-left:auto; font-family:'JetBrains Mono',monospace; }
-
-#status { padding:0.6rem 2rem; background:rgba(245,158,11,0.08); color:var(--orange); font-size:0.78rem; border-bottom:1px solid var(--border); }
-#status.ready { background:rgba(34,197,94,0.06); color:var(--green); }
-#status.error { background:rgba(239,68,68,0.08); color:var(--red); }
-#status.hidden { display:none; }
-
-.wrap { max-width:1200px; margin:0 auto; padding:1.5rem 2rem; }
-
-.breadcrumb { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size:0.78rem; color:var(--text2); margin-bottom:1.25rem; }
-.breadcrumb .crumb { color:var(--text2); cursor:pointer; transition:color .15s; }
-.breadcrumb .crumb.active { color:var(--accent); font-weight:600; cursor:default; }
-.breadcrumb .crumb:hover:not(.active) { color:var(--text1); }
-.breadcrumb .sep { color:var(--muted); }
-.breadcrumb select { font-family:inherit; font-size:0.8rem; padding:0.3rem 0.5rem; margin-left:0.5rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; outline:none; }
-
-.team-grid { display:grid; grid-template-columns:repeat(6, 1fr); gap:0.6rem; }
-.team-tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.1rem 0.5rem; text-align:center; cursor:pointer; transition:border-color .15s, transform .1s, background .15s; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.05rem; letter-spacing:0.02em; }
-.team-tile:hover { border-color:var(--accent); background:var(--accent-dim); }
-.team-tile:active { transform:translateY(1px); }
-.team-tile .team-full { font-family:'DM Sans',sans-serif; font-weight:500; font-size:0.62rem; color:var(--muted); margin-top:0.3rem; }
-
-.lineup-list { display:flex; flex-direction:column; gap:0.5rem; }
-.lineup-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color .15s, background .15s; display:grid; grid-template-columns:1fr auto auto auto auto; gap:1rem; align-items:center; }
-.lineup-card:hover { border-color:var(--accent); background:rgba(59,130,246,0.04); }
-.lineup-card .names { font-size:0.84rem; font-weight:600; line-height:1.4; }
-.lineup-card .names .sep { color:var(--muted); margin:0 0.25rem; font-weight:400; }
-.lineup-card .stat { display:flex; flex-direction:column; gap:0.1rem; text-align:right; font-family:'JetBrains Mono',monospace; }
-.lineup-card .stat .lbl { font-size:0.56rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
-.lineup-card .stat .val { font-size:0.92rem; font-weight:700; }
-.lineup-card .stat.net .val.pos { color:var(--green); }
-.lineup-card .stat.net .val.neg { color:var(--red); }
-.lineup-card .stat.net .val.neutral { color:var(--orange); }
-
-.empty-state { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:0.85rem; background:var(--surface); border:1px dashed var(--border); border-radius:10px; }
-
-.proj-panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.25rem; }
-.proj-row { display:flex; gap:2rem; flex-wrap:wrap; align-items:baseline; }
-.proj-stat { display:flex; flex-direction:column; gap:0.15rem; min-width:90px; }
-.proj-stat .label { font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
-.proj-stat .value { font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:700; }
-.proj-stat.headline .value { font-size:2.4rem; color:var(--accent); line-height:1.1; }
-.proj-stat.headline.green .value { color:var(--green); }
-.proj-stat.headline.red .value { color:var(--red); }
-.proj-stat.headline.orange .value { color:var(--orange); }
-.proj-stat .delta { font-family:'JetBrains Mono',monospace; font-size:0.72rem; margin-top:0.15rem; }
-.proj-stat .delta.pos { color:var(--green); }
-.proj-stat .delta.neg { color:var(--red); }
-.proj-stat .delta.zero { color:var(--muted); }
-
-.proj-tier { font-size:0.74rem; color:var(--text2); font-style:italic; margin-top:1rem; padding:0.5rem 0.75rem; background:var(--surface2); border-radius:6px; border-left:3px solid var(--accent); }
-
-.lineup-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:0.6rem; margin-bottom:1.25rem; }
-.slot { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 0.75rem; position:relative; display:flex; flex-direction:column; gap:0.45rem; transition:border-color .15s; }
-.slot.swapped { border-color:var(--purple); background:rgba(167,139,250,0.04); }
-.slot .slot-num { font-size:0.55rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
-.slot .name { font-weight:700; font-size:0.85rem; line-height:1.2; }
-.slot .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.62rem; }
-.slot .stats { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text2); line-height:1.5; }
-.slot .swap-btn { margin-top:auto; padding:0.4rem 0.6rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; cursor:pointer; font-family:inherit; font-size:0.7rem; font-weight:600; transition:border-color .15s, color .15s; }
-.slot .swap-btn:hover { border-color:var(--accent); color:var(--accent); }
-.slot .from-tag { position:absolute; top:0.4rem; right:0.4rem; font-family:'JetBrains Mono',monospace; font-size:0.5rem; color:var(--purple); background:rgba(167,139,250,0.1); padding:0.15rem 0.35rem; border-radius:3px; letter-spacing:0.04em; font-weight:600; }
-
-.action-row { display:flex; gap:0.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
-.btn { font-family:inherit; font-size:0.82rem; font-weight:700; padding:0.6rem 1.2rem; border:none; border-radius:6px; cursor:pointer; transition:background .15s, transform .1s; background:var(--accent); color:#fff; }
-.btn:hover { background:#2563eb; }
-.btn:active { transform:translateY(1px); }
-.btn.secondary { background:var(--surface2); color:var(--text1); border:1px solid var(--border); }
-.btn.secondary:hover { border-color:var(--accent); color:var(--accent); }
-
-.breakdown { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; }
-.breakdown h3 { font-size:0.88rem; font-weight:700; margin-bottom:0.5rem; }
-.breakdown table { width:100%; font-size:0.76rem; border-collapse:collapse; }
-.breakdown td, .breakdown th { padding:0.35rem 0.5rem; border-bottom:1px solid var(--border); text-align:left; }
-.breakdown th { font-size:0.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
-.breakdown td.num { font-family:'JetBrains Mono',monospace; text-align:right; }
-.breakdown tr:last-child td { border-bottom:none; }
-.breakdown tr.total { font-weight:700; background:var(--surface2); }
-.breakdown td.adj-pos { color:var(--green); }
-.breakdown td.adj-neg { color:var(--red); }
-
-.notes { font-size:0.7rem; color:var(--text2); line-height:1.6; padding:0.8rem 1rem; background:var(--surface2); border-radius:8px; }
-.notes strong { color:var(--text1); }
-.notes ul { margin:0.3rem 0 0 1.2rem; }
-
-.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:none; align-items:flex-start; justify-content:center; padding:3rem 1rem; }
-.modal-bg.open { display:flex; }
-.modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:480px; padding:1.25rem; max-height:80vh; overflow-y:auto; }
-.modal h3 { font-size:1rem; margin-bottom:0.5rem; }
-.modal .swap-sub { font-size:0.74rem; color:var(--muted); margin-bottom:0.85rem; }
-.modal input[type=text] { width:100%; padding:0.6rem 0.75rem; font-family:inherit; font-size:0.9rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:6px; outline:none; margin-bottom:0.85rem; }
-.modal input[type=text]:focus { border-color:var(--accent); }
-.swap-results { display:flex; flex-direction:column; gap:0.3rem; }
-.swap-result-item { padding:0.55rem 0.7rem; cursor:pointer; border:1px solid var(--border); border-radius:6px; transition:border-color .15s, background .15s; }
-.swap-result-item:hover { border-color:var(--accent); background:var(--accent-dim); }
-.swap-result-item .name { font-weight:600; font-size:0.84rem; }
-.swap-result-item .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.66rem; margin-top:0.15rem; }
-.modal .close-btn { width:100%; margin-top:0.5rem; padding:0.5rem; background:var(--surface2); color:var(--text2); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-family:inherit; font-size:0.82rem; }
-.modal .close-btn:hover { color:var(--text1); border-color:var(--accent); }
-
-@media (max-width: 900px), (pointer: coarse) {
-  .header { padding:1rem; }
-  .wrap { padding:1rem; }
-  .team-grid { grid-template-columns:repeat(4, 1fr); gap:0.4rem; }
-  .team-tile { padding:0.8rem 0.4rem; font-size:0.92rem; }
-  .lineup-card { grid-template-columns:1fr auto; row-gap:0.4rem; padding:0.7rem; }
-  .lineup-card .stat { flex-direction:row; align-items:baseline; gap:0.3rem; }
-  .lineup-card .stat .lbl { font-size:0.6rem; }
-  .lineup-card .stat .val { font-size:0.78rem; }
-  .lineup-grid { grid-template-columns:repeat(2, 1fr); }
-  .slot { padding:0.7rem 0.55rem; }
-  .proj-stat .value { font-size:1.2rem; }
-  .proj-stat.headline .value { font-size:1.6rem; }
-  .proj-row { gap:1rem; }
-}
-</style>
-</head>
-<body>
-
-<div class="header">
-  <div class="logo">Lineup<span>Forge</span></div>
-  <div class="badge">HOOPSMATIC</div>
-  <div class="sub" id="meta">Loading...</div>
-</div>
-
-<div id="status">Initializing...</div>
-
-<div class="wrap">
-  <div class="breadcrumb" id="breadcrumb"><span class="crumb active">Choose team</span></div>
-  <div id="content"></div>
-</div>
-
-<div class="modal-bg" id="swapModal">
-  <div class="modal">
-    <h3 id="swapTitle">Swap player</h3>
-    <div class="swap-sub" id="swapSub"></div>
-    <input type="text" id="swapInput" placeholder="Type player name..." autocomplete="off">
-    <div class="swap-results" id="swapResults"></div>
-    <button class="close-btn" id="swapClose">Cancel</button>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
-<script>
-const PLAYER_DB_URL  = 'https://aderoa.github.io/lineup-forge/player_stats.db.gz';
-const LINEUPS_DB_URL = 'https://aderoa.github.io/lineup-forge/lineups.db.gz';
-const COEFS_URL      = 'https://aderoa.github.io/lineup-forge/fit_coefficients.json';
-const NAMES_URL      = 'https://aderoa.github.io/lineup-forge/name_dictionary.json';
-const QUALITY_URL    = 'https://aderoa.github.io/lineup-forge/player_quality.json';
-
-// Defensive Rankings — fetched live from the same sheet Defense page uses
-const DEF_SHEET_ID   = '1JH2FUBIyQ1zEHzZBxgP8vHBZ7d8EtP5-fSVG3zMgCgg';
-const DEF_API_KEY    = 'AIzaSyB9g7c6llswswuZQ2I5y2MwGk6BzYEtHsY';
-const DEF_URL        = `https://sheets.googleapis.com/v4/spreadsheets/${DEF_SHEET_ID}/values/Defensive_Rankings?key=${DEF_API_KEY}`;
-
-const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
-const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
-
-// Two-axis quality model
-const OFF_CALIB = 12, OFF_SCALE = 0.25;   // (rat365 - 12) × 0.25 = offense contribution per player
-const DEF_CALIB = 10, DEF_SCALE = 0.18;   // (DEF_SCORE - 10) × 0.18 = defense contribution per player
-const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
-
-// Boost gate (gradual GP-based taper): only apply the asymmetric historical boost
-// when current-season sample is limited. Linear taper between FULL and NONE:
-//   currentGP ≤ BOOST_GP_FULL: full boost (still ramping-up or injury-disrupted)
-//   currentGP ≥ BOOST_GP_NONE: no boost (full-season trust, healthy starter)
-//   in between: linearly tapered
-// Window centered on the "borderline" range (40-50 GP) where neither current nor
-// historical is fully right. Giannis at 36 GP still ramping up → full historical;
-// healthy starters at 60+ GP → trust their actual current performance.
-const BOOST_GP_FULL = 40;
-const BOOST_GP_NONE = 50;
-function boostFraction(currentGP) {
-  if (currentGP >= BOOST_GP_NONE) return 0;
-  if (currentGP <= BOOST_GP_FULL) return 1;
-  return (BOOST_GP_NONE - currentGP) / (BOOST_GP_NONE - BOOST_GP_FULL);
-}
-
-// Fit dampening: how much the learned lineup-composition coefficients are applied.
-// 1.0 = full strength (raw learned coefficients), 0.0 = ignore fit entirely (pure quality).
-// 0.5 means individual player quality is weighted ~2× more than empirical lineup effects.
-// Rationale: fit buckets average across all lineups with N high-USG players; they can't
-// distinguish a usage-stacking-with-Giannis from usage-stacking-with-three-iso-scorers.
-// Damping lets star talent override generic bucket penalties.
-const FIT_WEIGHT = 0.35;
-
-// Box-score composite weights (calibrated to roughly approximate DEF_SCORE scale)
-const COMP_BLK = 5, COMP_STL = 5, COMP_DREB = 40;
-
-let playerDb = null, lineupsDb = null, coefs = null;
-let NAME_DICT = {};
-let QUALITY = null;
-let DEFENSE = {};      // HH name → { def_score, team, gp }
-
-const STATE = {
-  page: 'team', season: null, season_type: 'Regular Season', team: null,
-  originalLineup: null,
-  currentSlots: [null, null, null, null, null],
-  swappedFrom: [null, null, null, null, null],
-};
-
-const $ = id => document.getElementById(id);
-const setStatus = (msg, cls = '') => {
-  const el = $('status');
-  if (cls === 'hidden') { el.className = 'hidden'; return; }
-  el.textContent = msg;
-  el.className = cls;
-};
-
-async function boot() {
-  try {
-    setStatus('Loading SQL engine...');
-    const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
-
-    setStatus('Downloading data...');
-    const [playerBuf, lineupsBuf, coefsJson, namesJson, qualityJson, defenseData] = await Promise.all([
-      fetchDb(PLAYER_DB_URL),
-      fetchDb(LINEUPS_DB_URL),
-      fetch(COEFS_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
-      fetch(NAMES_URL).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-      fetch(QUALITY_URL).then(r => r.ok ? r.json() : null).catch(() => null),
-      loadDefenseData().catch(e => { console.warn('Defense data failed:', e); return {}; }),
-    ]);
-
-    playerDb  = new SQL.Database(new Uint8Array(playerBuf));
-    lineupsDb = new SQL.Database(new Uint8Array(lineupsBuf));
-    coefs = coefsJson;
-    NAME_DICT = namesJson || {};
-    QUALITY = qualityJson;
-    DEFENSE = defenseData || {};
-
-    const commonSeasons = getCommonSeasons();
-    STATE.season = commonSeasons[0];
-
-    const totalMB = ((playerBuf.byteLength + lineupsBuf.byteLength) / 1024 / 1024).toFixed(1);
-    const qNote = QUALITY ? `${QUALITY._meta.n_players} quality scores` : 'NO QUALITY DATA — fix';
-    const dNote = Object.keys(DEFENSE).length > 0 ? `${Object.keys(DEFENSE).length} defense scores` : 'no defense data';
-    $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${qNote} · ${dNote} · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
-
-    setStatus('', 'hidden');
-    if (!QUALITY) {
-      setStatus('⚠ player_quality.json failed to load — projections falling back to watermark-only. Check that the file is deployed at the URL.', 'error');
-    } else if (Object.keys(NAME_DICT).length === 0) {
-      setStatus('⚠ name_dictionary.json failed to load — quality lookups may miss players with accent marks (Jokić, Dončić, etc.)', 'error');
-    }
-    renderTeamPicker();
-    wireModal();
-  } catch (err) {
-    console.error(err);
-    setStatus('Failed to load: ' + err.message, 'error');
-  }
-}
-
-async function fetchDb(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${url}`);
-  if (url.endsWith('.gz')) {
-    const ds = new DecompressionStream('gzip');
-    return await new Response(r.body.pipeThrough(ds)).arrayBuffer();
-  }
-  return await r.arrayBuffer();
-}
-
-// Fetch and parse the Defensive_Rankings sheet. Returns { HH_name: { def_score, team, gp } }.
-// The sheet has multiple sections (Season, Last 30D, Last 7D, Last Day) — we want the
-// Season section, which appears first. Sections are delimited by [LAST_30D] / [LAST_7D] /
-// [LAST_DAY] markers in column 0.
-async function loadDefenseData() {
-  const res = await fetch(DEF_URL);
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching defense sheet`);
-  const data = await res.json();
-  const rows = data.values || [];
-  if (!rows.length) return {};
-
-  // Find the header row (first row with "PLAYER" in column 0)
-  let headerIdx = -1;
-  for (let i = 0; i < Math.min(rows.length, 20); i++) {
-    if (((rows[i][0] || '').trim()) === 'PLAYER') { headerIdx = i; break; }
-  }
-  if (headerIdx === -1) return {};
-
-  const headers = rows[headerIdx];
-  const idx = {};
-  headers.forEach((h, i) => { idx[(h || '').trim()] = i; });
-  if (idx.PLAYER === undefined || idx.DEF_SCORE === undefined) return {};
-
-  const STOP_MARKERS = ['[LAST_DAY]', '[LAST_7D]', '[LAST_30D]'];
-  const result = {};
-  for (let i = headerIdx + 1; i < rows.length; i++) {
-    const row = rows[i];
-    const first = (row[0] || '').trim();
-    if (STOP_MARKERS.includes(first)) break;  // hit next section
-    const name = (row[idx.PLAYER] || '').trim();
-    if (!name) continue;
-    const score = parseFloat(row[idx.DEF_SCORE]);
-    if (isNaN(score)) continue;
-    result[name] = {
-      def_score: score,
-      team: (row[idx.TEAM] || '').trim(),
-      gp: parseInt(row[idx.GP]) || 0,
-    };
-  }
-  return result;
-}
-
-function getCommonSeasons() {
-  const p = playerDb.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC")[0].values.map(r => r[0]);
-  const l = lineupsDb.exec("SELECT DISTINCT SEASON FROM lineups_5man ORDER BY SEASON DESC")[0].values.map(r => r[0]);
-  return p.filter(s => l.includes(s));
-}
-
-function getAvailableSeasonTypes(season) {
-  const r = lineupsDb.exec(`
-    SELECT DISTINCT SEASON_TYPE, COUNT(*) AS n
-    FROM lineups_5man
-    WHERE SEASON = '${season}'
-    GROUP BY SEASON_TYPE
-    ORDER BY n DESC
-  `);
-  if (!r.length || !r[0].values.length) return [];
-  return r[0].values.map(([type, n]) => ({ type, n }));
-}
-
-function renderBreadcrumb() {
-  const commonSeasons = getCommonSeasons();
-  const seasonOpts = commonSeasons.map(s => `<option value="${s}" ${s === STATE.season ? 'selected' : ''}>${s}</option>`).join('');
-  const seasonSel = `<select id="seasonSelect">${seasonOpts}</select>`;
-
-  // Season type selector — only show types that have data in this season
-  const types = getAvailableSeasonTypes(STATE.season);
-  if (!types.find(t => t.type === STATE.season_type) && types.length > 0) {
-    STATE.season_type = types[0].type;  // fall back to whatever's available
-  }
-  let typeSel = '';
-  if (types.length > 1) {
-    const typeOpts = types.map(({type, n}) => `<option value="${type}" ${type === STATE.season_type ? 'selected' : ''}>${type} (${n.toLocaleString()})</option>`).join('');
-    typeSel = `<select id="typeSelect" style="margin-left:0.35rem">${typeOpts}</select>`;
-  } else if (types.length === 1) {
-    typeSel = `<span style="margin-left:0.35rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted)">${types[0].type}</span>`;
-  }
-
-  const crumbs = [];
-  if (STATE.page === 'team') {
-    crumbs.push(`<span class="crumb active">Choose team</span>`);
-    crumbs.push(`<span class="sep">·</span>${seasonSel}${typeSel}`);
-  } else if (STATE.page === 'lineup') {
-    crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
-    crumbs.push(`<span class="sep">›</span>`);
-    crumbs.push(`<span class="crumb active">Choose ${STATE.team}'s lineup</span>`);
-    crumbs.push(`<span class="sep">·</span>${seasonSel}${typeSel}`);
-  } else if (STATE.page === 'edit') {
-    crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
-    crumbs.push(`<span class="sep">›</span>`);
-    crumbs.push(`<span class="crumb" data-go="lineup">${STATE.team} lineups</span>`);
-    crumbs.push(`<span class="sep">›</span>`);
-    crumbs.push(`<span class="crumb active">Swap &amp; project</span>`);
-  }
-  $('breadcrumb').innerHTML = crumbs.join('');
-
-  const seasonEl = $('seasonSelect');
-  if (seasonEl) {
-    seasonEl.addEventListener('change', (e) => {
-      STATE.season = e.target.value;
-      if (STATE.page === 'team') renderTeamPicker();
-      else if (STATE.page === 'lineup') renderLineupPicker();
-    });
-  }
-  const typeEl = $('typeSelect');
-  if (typeEl) {
-    typeEl.addEventListener('change', (e) => {
-      STATE.season_type = e.target.value;
-      if (STATE.page === 'team') renderTeamPicker();
-      else if (STATE.page === 'lineup') renderLineupPicker();
-    });
-  }
-  document.querySelectorAll('.breadcrumb .crumb[data-go]').forEach(el => {
-    el.addEventListener('click', () => {
-      STATE.page = el.dataset.go;
-      if (STATE.page === 'team') renderTeamPicker();
-      else if (STATE.page === 'lineup') renderLineupPicker();
-    });
-  });
-}
-
-function renderTeamPicker() {
-  STATE.page = 'team';
-  renderBreadcrumb();
-
-  const teams = lineupsDb.exec(`
-    SELECT TEAM_ABBREVIATION, COUNT(*) AS n_lineups
-    FROM lineups_5man
-    WHERE SEASON = '${STATE.season}'
-      AND SEASON_TYPE = '${STATE.season_type}'
-    GROUP BY TEAM_ABBREVIATION
-    ORDER BY TEAM_ABBREVIATION
-  `);
-  if (!teams.length || !teams[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No ${STATE.season_type.toLowerCase()} lineup data for ${STATE.season}. Try another season or season type.</div>`;
-    return;
-  }
-
-  const tiles = teams[0].values.map(([abbr, n]) => `
-    <div class="team-tile" data-team="${abbr}">${abbr}<div class="team-full">${n} lineups</div></div>
-  `).join('');
-  $('content').innerHTML = `<div class="team-grid">${tiles}</div>`;
-  document.querySelectorAll('.team-tile').forEach(t => {
-    t.addEventListener('click', () => {
-      STATE.team = t.dataset.team;
-      renderLineupPicker();
-    });
-  });
-}
-
-function renderLineupPicker() {
-  STATE.page = 'lineup';
-  renderBreadcrumb();
-
-  const r = lineupsDb.exec(`
-    SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
-    FROM lineups_5man
-    WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
-      AND SEASON_TYPE = '${STATE.season_type}'
-    ORDER BY MIN DESC
-    LIMIT 20
-  `);
-
-  if (!r.length || !r[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No ${STATE.season_type.toLowerCase()} lineups for ${STATE.team} in ${STATE.season}.</div>`;
-    return;
-  }
-
-  const cards = r[0].values.map(([gid, gname, gp, min, ortg, drtg, netrtg, pace]) => {
-    const names = String(gname).split(' - ').map(n => n.trim()).filter(Boolean);
-    const namesHtml = names.map((n, i) => i === 0 ? n : `<span class="sep">·</span>${n}`).join('');
-    const netCls = netrtg >= 3 ? 'pos' : netrtg <= -3 ? 'neg' : 'neutral';
-    return `
-      <div class="lineup-card" data-gid="${gid}">
-        <div class="names">${namesHtml}</div>
-        <div class="stat"><div class="lbl">GP</div><div class="val">${Math.round(gp)}</div></div>
-        <div class="stat"><div class="lbl">MIN</div><div class="val">${Math.round(min)}</div></div>
-        <div class="stat net"><div class="lbl">NetRtg</div><div class="val ${netCls}">${netrtg >= 0 ? '+' : ''}${Number(netrtg).toFixed(1)}</div></div>
-        <div class="stat"><div class="lbl">→</div><div class="val">▸</div></div>
-      </div>
-    `;
-  }).join('');
-
-  $('content').innerHTML = `
-    <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
-      ${STATE.team} 5-man lineups — ${STATE.season} ${STATE.season_type} — sorted by minutes. Click any to start swapping.
-    </div>
-    <div class="lineup-list">${cards}</div>
-  `;
-  document.querySelectorAll('.lineup-card').forEach(card => {
-    card.addEventListener('click', () => loadOriginalLineup(card.dataset.gid));
-  });
-}
-
-function loadOriginalLineup(groupId) {
-  const r = lineupsDb.exec(`
-    SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
-    FROM lineups_5man
-    WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
-      AND SEASON_TYPE = '${STATE.season_type}'
-      AND GROUP_ID = '${groupId.replace(/'/g, "''")}'
-    LIMIT 1
-  `);
-  if (!r.length) return alert('Lineup row not found.');
-  const [gid, gname, gp, min, ortg, drtg, netrtg, pace] = r[0].values[0];
-
-  const playerIds = String(gid).replace(/^-|-$/g, '').split('-').filter(Boolean).map(Number);
-  if (playerIds.length !== 5) return alert(`Could not parse 5 player IDs (got ${playerIds.length}).`);
-
-  const players = playerIds.map(pid => loadPlayer(pid, STATE.season));
-  if (players.some(p => !p)) {
-    alert('Could not load full stats for all 5 players (low minutes or filter excluded). Try another lineup.');
-    return;
-  }
-
-  STATE.originalLineup = { players, gid, gname, stats: { ortg:+ortg, drtg:+drtg, netrtg:+netrtg, pace:+pace, gp:+gp, min:+min } };
-  STATE.currentSlots = [...players];
-  STATE.swappedFrom = [null, null, null, null, null];
-  renderEditView();
-}
-
-function loadPlayer(playerId, preferredSeason) {
-  // Try preferred season first; if no qualifying data (low minutes or
-  // injured), fall back to the player's most recent season with rotation
-  // minutes. This handles cases like Haliburton (out 2025-26 with Achilles)
-  // where we want to use his last healthy year.
-  const r = playerDb.exec(`
-    SELECT a.PLAYER_ID, a.PLAYER_NAME, a.TEAM_ABBREVIATION, a.SEASON,
-           a.OFF_RATING, a.DEF_RATING, a.NET_RATING, a.USG_PCT, a.TS_PCT,
-           a.AST_PCT, a.REB_PCT, a.PIE, a.PACE, a.MIN, a.GP,
-           b.FG3_PCT, b.FG3A, b.BLK
-    FROM player_advanced a
-    LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
-    WHERE a.PLAYER_ID = ${playerId}
-      AND a.SEASON_TYPE = 'Regular Season'
-      AND CAST(a.MIN AS FLOAT) >= 10
-      AND CAST(a.GP AS INTEGER) >= 5
-    ORDER BY
-      CASE WHEN a.SEASON = '${preferredSeason}' THEN 0 ELSE 1 END,
-      a.SEASON DESC
-    LIMIT 1
-  `);
-  if (!r.length || !r[0].values.length) return null;
-  const v = r[0].values[0];
-  return {
-    player_id: v[0], name: v[1], team: v[2], season: v[3],
-    ortg:+v[4], drtg:+v[5], netrtg:+v[6], usg:+v[7], ts:+v[8],
-    ast_pct:+v[9], reb_pct:+v[10], pie:+v[11], pace:+v[12], min:+v[13], gp:+v[14],
-    fg3p:+v[15], fg3a:+v[16], blk:+v[17],
-  };
-}
-
-function renderEditView() {
-  STATE.page = 'edit';
-  renderBreadcrumb();
-
-  const orig = STATE.originalLineup;
-  const projOrig = projectLineup(orig.players);
-  const projCurr = projectLineup(STATE.currentSlots);
-  const headlineCls = projCurr.netrtg >= 7 ? 'green' : projCurr.netrtg <= -3 ? 'red' : 'orange';
-  const delta = projCurr.netrtg - projOrig.netrtg;
-  const deltaCls = delta > 0.5 ? 'pos' : delta < -0.5 ? 'neg' : 'zero';
-
-  const slotsHtml = STATE.currentSlots.map((p, i) => {
-    const swapped = STATE.swappedFrom[i] !== null;
-    const fromName = swapped ? STATE.swappedFrom[i].name.split(' ').slice(-1)[0] : null;
-    const q = projCurr.quality_per_player[i];
-
-    // Offense line: rat365 + offense contribution
-    let offLine;
-    if (q.fallback) {
-      offLine = `<span style="color:var(--orange)">rat365 N/A</span>`;
-    } else if (q.off_blended) {
-      const curText = q.rat365_current !== null ? `cur ${q.rat365_current.toFixed(1)}` : `no current`;
-      const tip = q.rat365_current !== null
-        ? `Current ${q.rat365_current.toFixed(1)} below career; using ${q.off_n_seasons}-season weighted ${q.rat365.toFixed(1)}`
-        : `Using ${q.off_n_seasons}-season weighted history`;
-      offLine = `<span style="color:var(--purple)" title="${tip}">↺ rat365 ${q.rat365.toFixed(1)} <span style="color:${q.off_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(off ${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(1)})</span></span> <span style="color:var(--muted);font-size:0.6rem">(${curText})</span>`;
-    } else {
-      offLine = `rat365 ${q.rat365.toFixed(1)} <span style="color:${q.off_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(off ${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(1)})</span>`;
-    }
-
-    // Defense line: DEF_SCORE + defense contribution
-    let defLine;
-    if (q.def_score === null) {
-      defLine = `<span style="color:var(--muted)">DEF N/A</span>`;
-    } else if (q.def_blended) {
-      const curText = q.def_current !== null ? `cur ${q.def_current.toFixed(1)}` : `no current`;
-      defLine = `<span style="color:var(--purple)" title="Defensive history blended">↺ DEF ${q.def_score.toFixed(1)} <span style="color:${q.def_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(def ${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(1)})</span></span> <span style="color:var(--muted);font-size:0.6rem">(${curText})</span>`;
-    } else {
-      defLine = `DEF ${q.def_score.toFixed(1)} <span style="color:${q.def_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(def ${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(1)})</span>`;
-    }
-
-    return `
-      <div class="slot ${swapped ? 'swapped' : ''}">
-        ${swapped ? `<div class="from-tag">was ${fromName}</div>` : ''}
-        <div class="slot-num">Slot ${i + 1}</div>
-        <div class="name">${p.name}</div>
-        <div class="meta">${p.team || '—'} · ${p.season}</div>
-        <div class="stats">
-          ${offLine}<br>
-          ${defLine}<br>
-          USG ${(p.usg * 100).toFixed(1)}% · TS ${(p.ts * 100).toFixed(1)}%
-        </div>
-        <button class="swap-btn" data-slot="${i}">↔ Swap</button>
-      </div>
-    `;
-  }).join('');
-
-  const playersTable = STATE.currentSlots.map((p, i) => {
-    const q = projCurr.quality_per_player[i];
-    let rat365Cell, defCell, offContribCell, defContribCell;
-    if (q.fallback) {
-      rat365Cell = `<span style="color:var(--orange)">N/A</span>`;
-      defCell = q.def_score !== null ? q.def_score.toFixed(1) : `<span style="color:var(--muted)">—</span>`;
-      offContribCell = `<span style="color:var(--orange)">${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(2)}*</span>`;
-      defContribCell = `<span style="color:var(--muted)">${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(2)}</span>`;
-    } else {
-      rat365Cell = q.off_blended
-        ? `<span style="color:var(--purple);font-weight:700" title="↺ blended">${q.rat365.toFixed(1)}</span>`
-        : q.rat365.toFixed(1);
-      defCell = q.def_score === null
-        ? `<span style="color:var(--muted)">—</span>`
-        : (q.def_blended
-            ? `<span style="color:var(--purple);font-weight:700" title="↺ blended">${q.def_score.toFixed(1)}</span>`
-            : q.def_score.toFixed(1));
-      offContribCell = `<span class="${q.off_contrib > 0.1 ? 'adj-pos' : q.off_contrib < -0.1 ? 'adj-neg' : ''}">${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(2)}</span>`;
-      defContribCell = `<span class="${q.def_contrib > 0.1 ? 'adj-pos' : q.def_contrib < -0.1 ? 'adj-neg' : ''}">${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(2)}</span>`;
-    }
-    return `
-      <tr>
-        <td>${i + 1}. ${p.name}</td>
-        <td class="num">${rat365Cell}</td>
-        <td class="num">${defCell}</td>
-        <td class="num">${offContribCell}</td>
-        <td class="num">${defContribCell}</td>
-        <td class="num">${(q.off_contrib + q.def_contrib >= 0 ? '+' : '') + (q.off_contrib + q.def_contrib).toFixed(2)}</td>
-      </tr>
-    `;
-  }).join('');
-
-  const adjTable = projCurr.breakdown.map(a => {
-    const cls = v => v > 0.1 ? 'adj-pos' : v < -0.1 ? 'adj-neg' : '';
-    return `<tr>
-      <td>${a.label}</td>
-      <td class="num">${a.value}</td>
-      <td class="num ${cls(a.ortg_adj)}">${a.ortg_adj > 0 ? '+' : ''}${a.ortg_adj.toFixed(1)}</td>
-      <td class="num ${cls(-a.drtg_adj)}">${a.drtg_adj > 0 ? '+' : ''}${a.drtg_adj.toFixed(1)}</td>
-      <td>${a.note || `${a.n} similar`}</td>
-    </tr>`;
-  }).join('');
-
-  $('content').innerHTML = `
-    <div class="proj-panel">
-      <div class="proj-row">
-        <div class="proj-stat headline ${headlineCls}">
-          <div class="label">Projected Net Rtg</div>
-          <div class="value">${projCurr.netrtg >= 0 ? '+' : ''}${projCurr.netrtg.toFixed(1)}</div>
-          <div class="delta ${deltaCls}">${delta >= 0 ? '+' : ''}${delta.toFixed(1)} vs original</div>
-        </div>
-        <div class="proj-stat">
-          <div class="label">Proj ORtg</div>
-          <div class="value">${projCurr.ortg.toFixed(1)}</div>
-          <div class="delta ${cmpCls(projCurr.ortg - projOrig.ortg, true)}">${formatDelta(projCurr.ortg - projOrig.ortg)}</div>
-        </div>
-        <div class="proj-stat">
-          <div class="label">Proj DRtg</div>
-          <div class="value">${projCurr.drtg.toFixed(1)}</div>
-          <div class="delta ${cmpCls(projCurr.drtg - projOrig.drtg, false)}">${formatDelta(projCurr.drtg - projOrig.drtg)}</div>
-        </div>
-        <div class="proj-stat">
-          <div class="label">Pace</div>
-          <div class="value">${projCurr.pace.toFixed(1)}</div>
-        </div>
-      </div>
-      <div class="proj-tier">${classifyLineup(projCurr.netrtg)}</div>
-      <div class="proj-tier" style="border-left-color:var(--gold)">
-        <strong>Original lineup actual (${STATE.season} ${STATE.season_type}):</strong>
-        ORtg ${orig.stats.ortg.toFixed(1)} · DRtg ${orig.stats.drtg.toFixed(1)} ·
-        NetRtg ${orig.stats.netrtg >= 0 ? '+' : ''}${orig.stats.netrtg.toFixed(1)} ·
-        ${Math.round(orig.stats.min)} MIN in ${Math.round(orig.stats.gp)} games
-        (model projected this lineup at NetRtg ${projOrig.netrtg >= 0 ? '+' : ''}${projOrig.netrtg.toFixed(1)})
-      </div>
-    </div>
-
-    <div class="lineup-grid">${slotsHtml}</div>
-
-    <div class="action-row">
-      <button class="btn secondary" id="resetBtn">↻ Reset to Original</button>
-    </div>
-
-    <div class="breakdown">
-      <h3>Player ingredients (two-axis quality)</h3>
-      <table>
-        <thead><tr><th>Player</th><th class="num">rat365</th><th class="num">DEF</th><th class="num">Off Δ</th><th class="num">Def Δ</th><th class="num">Net Δ</th></tr></thead>
-        <tbody>
-          ${playersTable}
-          <tr class="total"><td>Lineup totals ${projCurr.n_off_blended > 0 || projCurr.n_def_blended > 0 ? `<span style="color:var(--purple);font-weight:normal">(↺ ${projCurr.n_off_blended} off / ${projCurr.n_def_blended} def blended)</span>` : ''} ${5 - projCurr.n_with_quality > 0 ? `<span style="color:var(--orange);font-weight:normal">(${5 - projCurr.n_with_quality} fallback*)</span>` : ''}</td>
-            <td class="num">—</td><td class="num">—</td>
-            <td class="num ${projCurr.total_off > 0 ? 'adj-pos' : projCurr.total_off < 0 ? 'adj-neg' : ''}">${projCurr.total_off >= 0 ? '+' : ''}${projCurr.total_off.toFixed(1)}</td>
-            <td class="num ${projCurr.total_def > 0 ? 'adj-pos' : projCurr.total_def < 0 ? 'adj-neg' : ''}">${projCurr.total_def >= 0 ? '+' : ''}${projCurr.total_def.toFixed(1)}</td>
-            <td class="num ${projCurr.quality_net_baseline > 0 ? 'adj-pos' : projCurr.quality_net_baseline < 0 ? 'adj-neg' : ''}">${projCurr.quality_net_baseline >= 0 ? '+' : ''}${projCurr.quality_net_baseline.toFixed(1)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="breakdown">
-      <h3>Fit adjustments (applied @ ${(FIT_WEIGHT * 100).toFixed(0)}% weight)</h3>
-      <table>
-        <thead><tr><th>Dimension</th><th class="num">Count</th><th class="num">ORtg Δ</th><th class="num">DRtg Δ</th><th>Sample</th></tr></thead>
-        <tbody>
-          ${adjTable}
-          <tr class="total"><td>Total fit adjustment</td><td class="num">—</td>
-            <td class="num ${projCurr.ortg_adj > 0 ? 'adj-pos' : projCurr.ortg_adj < 0 ? 'adj-neg' : ''}">${projCurr.ortg_adj > 0 ? '+' : ''}${projCurr.ortg_adj.toFixed(1)}</td>
-            <td class="num ${projCurr.drtg_adj < 0 ? 'adj-pos' : projCurr.drtg_adj > 0 ? 'adj-neg' : ''}">${projCurr.drtg_adj > 0 ? '+' : ''}${projCurr.drtg_adj.toFixed(1)}</td>
-            <td>—</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="notes">
-      <strong>How to read:</strong>
-      <ul>
-        <li><strong>Two-axis quality model:</strong> each player has separate offensive (rat365-based) and defensive (DEF_SCORE-based) contributions.
-          <ul>
-            <li><em>Offense Δ</em> = (rat365 − 12) × 0.25 — from HoopsMatic Real Value</li>
-            <li><em>Defense Δ</em> = (DEF_SCORE − 10) × 0.18 — from your Defensive Rankings system</li>
-          </ul>
-        </li>
-        <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend boost is applied <em>gradually</em> based on current-season games played: full boost below 40 GP, no boost above 50 GP, linear taper in between. So an injured/ramping-up star (Giannis at 36 GP) still gets full credit for his career level, while a healthy starter (60+ GP) trusts their actual current value. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
-        <li><strong>Projected ORtg</strong> = 115 + sum of offense Δs + fit ORtg adj. <strong>Projected DRtg</strong> = 115 − sum of defense Δs + fit DRtg adj. So elite defenders <em>lower</em> the projected DRtg directly.</li>
-        <li><strong>Fit adjustments</strong> are learned from real NBA lineups — they capture lineup-composition effects (spacing, usage stacking, rim protection, etc.) on top of the per-player quality. Currently applied at <strong>${(FIT_WEIGHT * 100).toFixed(0)}% weight</strong> so individual star talent has the bigger say (fit buckets average across all lineups in a category and can't distinguish exceptional individuals like Giannis from typical bucket members).</li>
-        <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
-      </ul>
-    </div>
-  `;
-
-  document.querySelectorAll('.swap-btn').forEach(btn => {
-    btn.addEventListener('click', () => openSwapModal(parseInt(btn.dataset.slot, 10)));
-  });
-  $('resetBtn').addEventListener('click', () => {
-    STATE.currentSlots = [...STATE.originalLineup.players];
-    STATE.swappedFrom = [null, null, null, null, null];
-    renderEditView();
-  });
-}
-
-function formatDelta(d) { return Math.abs(d) < 0.05 ? '±0.0' : (d >= 0 ? '+' : '') + d.toFixed(1); }
-function cmpCls(d, higherIsBetter) {
-  if (Math.abs(d) < 0.5) return 'zero';
-  const isPositive = higherIsBetter ? d > 0 : d < 0;
-  return isPositive ? 'pos' : 'neg';
-}
-
-let swapTargetSlot = -1;
-function openSwapModal(slotIdx) {
-  swapTargetSlot = slotIdx;
-  const current = STATE.currentSlots[slotIdx];
-  $('swapTitle').textContent = `Swap ${current.name}`;
-  $('swapSub').textContent = `Slot ${slotIdx + 1} — type any player name to find a replacement (loaded at their ${STATE.season} performance).`;
-  $('swapInput').value = '';
-  $('swapResults').innerHTML = '';
-  $('swapModal').classList.add('open');
-  setTimeout(() => $('swapInput').focus(), 50);
-}
-function closeSwapModal() { $('swapModal').classList.remove('open'); swapTargetSlot = -1; }
-function wireModal() {
-  $('swapClose').addEventListener('click', closeSwapModal);
-  $('swapModal').addEventListener('click', (e) => { if (e.target.id === 'swapModal') closeSwapModal(); });
-  $('swapInput').addEventListener('input', (e) => renderSwapResults(e.target.value.trim()));
-}
-function renderSwapResults(query) {
-  if (!query || query.length < 2) { $('swapResults').innerHTML = ''; return; }
-  // Search across ALL seasons — preference current, fall back to most recent
-  // healthy season per player. This is what lets you swap in a player who
-  // didn't play in the selected season (e.g., injured stars).
-  const r = playerDb.exec(`
-    SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION, SEASON, GP, MIN, OFF_RATING, USG_PCT
-    FROM player_advanced
-    WHERE PLAYER_NAME LIKE '%${query.replace(/'/g, "''")}%'
-      AND SEASON_TYPE = 'Regular Season'
-      AND CAST(MIN AS FLOAT) >= 10
-      AND CAST(GP AS INTEGER) >= 5
-    ORDER BY PLAYER_NAME,
-      CASE WHEN SEASON = '${STATE.season}' THEN 0 ELSE 1 END,
-      SEASON DESC
-  `);
-  if (!r.length || !r[0].values.length) {
-    $('swapResults').innerHTML = `<div class="empty-state" style="padding:1rem">No matches found</div>`;
-    return;
-  }
-  // Group by player — first row wins (we already sorted preferred season first)
-  const byPlayer = {};
-  for (const v of r[0].values) {
-    const pid = v[0];
-    if (!(pid in byPlayer)) byPlayer[pid] = v;
-  }
-  const top = Object.values(byPlayer).slice(0, 8);
-  const items = top.map(([pid, name, team, season, gp, min, ortg, usg]) => {
-    const seasonTag = season === STATE.season ? '' :
-      `<span style="color:var(--orange);margin-left:0.3rem">↶ ${season}</span>`;
-    return `
-      <div class="swap-result-item" data-pid="${pid}">
-        <div class="name">${name}${seasonTag}</div>
-        <div class="meta">${team || '—'} · ORtg ${Number(ortg).toFixed(0)} · USG ${(Number(usg) * 100).toFixed(1)}% · ${Number(gp).toFixed(0)}G ${Number(min).toFixed(0)} MIN</div>
-      </div>
-    `;
-  }).join('');
-  $('swapResults').innerHTML = items;
-  document.querySelectorAll('.swap-result-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const pid = parseInt(el.dataset.pid, 10);
-      const newPlayer = loadPlayer(pid, STATE.season);
-      if (!newPlayer) return alert('Could not load player.');
-      if (STATE.swappedFrom[swapTargetSlot] === null) {
-        STATE.swappedFrom[swapTargetSlot] = STATE.currentSlots[swapTargetSlot];
-      }
-      if (newPlayer.player_id === STATE.originalLineup.players[swapTargetSlot].player_id) {
-        STATE.swappedFrom[swapTargetSlot] = null;
-      }
-      STATE.currentSlots[swapTargetSlot] = newPlayer;
-      closeSwapModal();
-      renderEditView();
-    });
-  });
-}
-
-// Cache the weighted rat365 computation per (player_id, current_season).
-const _weightedRatCache = {};
-
-// Constants for the weighted historical model.
-const RECENCY_DECAY     = 0.65;  // each older season weight × this factor
-const MIN_SEASON_GP     = 5;     // skip seasons below this GP (too noisy)
-// PIE → rat365 conversion: rat365 ≈ (PIE_percent − SHIFT) × SCALE
-// Calibrated against two anchor points: league-avg PIE 10% → rat365 4.7,
-// elite PIE 21% → rat365 ~27. Players below PIE 7.68% map to rat365 0.
-const PIE_SHIFT = 7.68;
-const PIE_SCALE = 2.03;
-const PIE_DERIVED_CAP = 35;  // hard ceiling so a fluky high-PIE season doesn't dominate
-
-function seasonStartYear(s) { return parseInt(String(s).slice(0, 4), 10); }
-
-function pieToRat365(pieDecimal) {
-  const piePct = pieDecimal * 100;
-  return Math.min(PIE_DERIVED_CAP, Math.max(0, (piePct - PIE_SHIFT) * PIE_SCALE));
-}
-
-// Compute a player's effective rat365 by weighting all available seasons.
-// Returns: { effective, blended, current_rat365, seasons, n_seasons }
-//   effective = max(current_rat365, blended) — asymmetric, only boost
-//   blended   = weighted historical average (informational)
-function computeWeightedRat365(playerId, nbaName, currentSeason) {
-  if (!playerId || !playerDb) return null;
-  const cacheKey = `${playerId}_${currentSeason}`;
-  if (_weightedRatCache[cacheKey] !== undefined) return _weightedRatCache[cacheKey];
-
-  const r = playerDb.exec(`
-    SELECT SEASON, CAST(GP AS INTEGER) AS GP, CAST(MIN AS FLOAT) AS MIN, CAST(PIE AS REAL) AS PIE
-    FROM player_advanced
-    WHERE PLAYER_ID = ${playerId}
-      AND SEASON_TYPE = 'Regular Season'
-      AND CAST(GP AS INTEGER) >= ${MIN_SEASON_GP}
-    ORDER BY SEASON DESC
-  `);
-  if (!r.length || !r[0].values.length) {
-    _weightedRatCache[cacheKey] = null;
-    return null;
-  }
-
-  let current_rat365 = null;
-  if (QUALITY) {
-    const hh = NAME_DICT[nbaName] || nbaName;
-    if (QUALITY.players[hh]) current_rat365 = QUALITY.players[hh].rat365;
-  }
-
-  const currentYear = seasonStartYear(currentSeason);
-  let totalWeighted = 0;
-  let totalWeight = 0;
-  const seasons = [];
-
-  for (const [season, gp, min, pie] of r[0].values) {
-    const yearDelta = currentYear - seasonStartYear(season);
-    if (yearDelta < 0) continue;
-    const recencyWeight = Math.pow(RECENCY_DECAY, yearDelta);
-    const weight = gp * recencyWeight;
-
-    let seasonRat, source;
-    if (season === currentSeason && current_rat365 !== null) {
-      seasonRat = current_rat365;
-      source = 'rv';
-    } else {
-      seasonRat = pieToRat365(pie);
-      source = 'pie';
-    }
-    totalWeighted += seasonRat * weight;
-    totalWeight += weight;
-    seasons.push({ season, gp, rat: seasonRat, weight, source });
-  }
-
-  if (totalWeight === 0) {
-    _weightedRatCache[cacheKey] = null;
-    return null;
-  }
-  const blended = totalWeighted / totalWeight;
-
-  // Find current-season GP for the boost gate
-  const currentSeasonEntry = seasons.find(s => s.season === currentSeason);
-  const currentGP = currentSeasonEntry ? currentSeasonEntry.gp : 0;
-
-  // Asymmetric rule with gradual GP-based taper: boost is fractional based on currentGP.
-  //   - No current rat365 at all: use blend entirely.
-  //   - Current data + below BOOST_GP_FULL: full boost (effective = blended).
-  //   - Current data + above BOOST_GP_NONE: no boost (effective = current).
-  //   - In between: effective = current + fraction × (blended − current), clamped non-negative.
-  let effective;
-  if (current_rat365 === null) {
-    effective = blended;
-  } else if (blended > current_rat365) {
-    const f = boostFraction(currentGP);
-    effective = current_rat365 + f * (blended - current_rat365);
-  } else {
-    effective = current_rat365;
-  }
-  const result = { effective, blended, current_rat365, currentGP, seasons, n_seasons: seasons.length };
-  _weightedRatCache[cacheKey] = result;
-  return result;
-}
-
-// Quality lookup with asymmetric weighted-historical model.
-function getQuality(nbaName, playerId) {
-  const w = computeWeightedRat365(playerId, nbaName, STATE.season);
-  if (!w) return null;
-  const hh = NAME_DICT[nbaName] || nbaName;
-  // "Blended" = we actually used the historical boost (weighted > current).
-  // For players with no current rat365 at all, the blend is what we use.
-  const usingBlend = (w.current_rat365 === null) || (w.blended > w.current_rat365 + 1.0);
-  return {
-    hh_name: hh,
-    rat365: w.effective,
-    rat365_current: w.current_rat365,
-    rat365_blended: w.blended,
-    seasons: w.seasons,
-    n_seasons: w.n_seasons,
-    blended: usingBlend,
-    source: w.current_rat365 !== null ? (usingBlend ? 'boosted' : 'current') : 'history-only',
-  };
-}
-
-// ─── Defense quality: similar architecture, using DEF_SCORE + box-score composite ───
-
-const _defScoreCache = {};
-
-// Box-score derived defensive composite, calibrated to roughly approximate DEF_SCORE scale.
-// Inputs: BLK/game, STL/game, DREB_PCT (decimal 0-0.30).
-// Used as historical proxy when DEF_SCORE isn't available for older seasons.
-function boxScoreDefComposite(blk, stl, dreb_pct) {
-  return COMP_BLK * (blk || 0) + COMP_STL * (stl || 0) + COMP_DREB * (dreb_pct || 0);
-}
-
-function computeWeightedDefScore(playerId, nbaName, currentSeason) {
-  if (!playerId || !playerDb) return null;
-  const cacheKey = `${playerId}_${currentSeason}`;
-  if (_defScoreCache[cacheKey] !== undefined) return _defScoreCache[cacheKey];
-
-  const r = playerDb.exec(`
-    SELECT a.SEASON, CAST(a.GP AS INTEGER) AS GP,
-           CAST(a.DREB_PCT AS REAL) AS DREB_PCT,
-           CAST(b.BLK AS REAL) AS BLK, CAST(b.STL AS REAL) AS STL
-    FROM player_advanced a
-    LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
-    WHERE a.PLAYER_ID = ${playerId}
-      AND a.SEASON_TYPE = 'Regular Season'
-      AND CAST(a.GP AS INTEGER) >= ${MIN_SEASON_GP}
-    ORDER BY a.SEASON DESC
-  `);
-  if (!r.length || !r[0].values.length) {
-    _defScoreCache[cacheKey] = null;
-    return null;
-  }
-
-  // Get current DEF_SCORE from sheet if present
-  let current_def_score = null;
-  const hh = NAME_DICT[nbaName] || nbaName;
-  if (DEFENSE[hh]) current_def_score = DEFENSE[hh].def_score;
-
-  const currentYear = seasonStartYear(currentSeason);
-  let totalWeighted = 0;
-  let totalWeight = 0;
-  const seasons = [];
-
-  for (const [season, gp, dreb_pct, blk, stl] of r[0].values) {
-    const yearDelta = currentYear - seasonStartYear(season);
-    if (yearDelta < 0) continue;
-    const recencyWeight = Math.pow(RECENCY_DECAY, yearDelta);
-    const weight = gp * recencyWeight;
-    const composite = boxScoreDefComposite(+blk, +stl, +dreb_pct);
-    totalWeighted += composite * weight;
-    totalWeight += weight;
-    seasons.push({ season, gp, composite, weight });
-  }
-
-  if (totalWeight === 0) {
-    _defScoreCache[cacheKey] = null;
-    return null;
-  }
-  const blended = totalWeighted / totalWeight;
-
-  // Find current-season GP for boost gate (same logic as rat365)
-  const currentSeasonEntry = seasons.find(s => s.season === currentSeason);
-  const currentGP = currentSeasonEntry ? currentSeasonEntry.gp : 0;
-
-  let effective;
-  if (current_def_score === null) {
-    effective = blended;
-  } else if (blended > current_def_score) {
-    const f = boostFraction(currentGP);
-    effective = current_def_score + f * (blended - current_def_score);
-  } else {
-    effective = current_def_score;
-  }
-  const result = { effective, blended, current_def_score, currentGP, seasons, n_seasons: seasons.length };
-  _defScoreCache[cacheKey] = result;
-  return result;
-}
-
-function getDefenseQuality(nbaName, playerId) {
-  const d = computeWeightedDefScore(playerId, nbaName, STATE.season);
-  if (!d) return null;
-  const usingBlend = (d.current_def_score === null) || (d.blended > d.current_def_score + 1.5);
-  return {
-    def_score: d.effective,
-    def_score_current: d.current_def_score,
-    def_score_blended: d.blended,
-    seasons: d.seasons,
-    n_seasons: d.n_seasons,
-    blended: usingBlend,
-    source: d.current_def_score !== null ? (usingBlend ? 'boosted' : 'current') : 'history-only',
-  };
-}
-
-function projectLineup(players) {
-  // ── Layer 0: traditional additive (informational only) ──
-  const add_ortg = mean(players.map(p => p.ortg));
-  const add_drtg = mean(players.map(p => p.drtg));
-  const pace = mean(players.map(p => p.pace));
-
-  // ── Layer 1: two-axis quality ──
-  // Offense per player:  (rat365 − 10) × 0.20
-  // Defense per player:  (DEF_SCORE − 8) × 0.15
-  // Each uses asymmetric weighted historical (peak boost for injured players).
-  const quality_per_player = players.map(p => {
-    const q = getQuality(p.name, p.player_id);
-    const d = getDefenseQuality(p.name, p.player_id);
-
-    // Offense contribution from rat365
-    let rat365 = null, rat365_current = null, off_blended = false, off_n_seasons = 0;
-    let off_contrib;
-    if (q) {
-      rat365 = q.rat365;
-      rat365_current = q.rat365_current;
-      off_blended = q.blended;
-      off_n_seasons = q.n_seasons;
-      off_contrib = (rat365 - OFF_CALIB) * OFF_SCALE;
-    } else {
-      off_contrib = (p.netrtg || 0) / 12;
-    }
-
-    // Defense contribution from DEF_SCORE
-    let def_score = null, def_current = null, def_blended = false, def_n_seasons = 0;
-    let def_contrib = 0;
-    if (d) {
-      def_score = d.def_score;
-      def_current = d.def_score_current;
-      def_blended = d.blended;
-      def_n_seasons = d.n_seasons;
-      def_contrib = (def_score - DEF_CALIB) * DEF_SCALE;
-    }
-
+#!/usr/bin/env python3
+"""
+nba_player_lineups.py — Player-centric lineup bulk fetcher for Lineup Forge.
+
+REPLACES the team-centric extraction in nba_lineups_bulk.py with a player-anchored
+approach. Instead of "top 250 lineups per team-season", this fetches "top 250
+lineups featuring each notable player". This produces:
+
+  - Comprehensive coverage of star-player lineups (across team changes / trades)
+  - Better fit-model training data (lineups that matter are featured-player ones)
+  - No coverage of garbage-time bench combos (which we don't need)
+
+Player eligibility (must satisfy BOTH):
+  • Currently relevant: played in 2025-26 OR on a 2025-26 roster (from spreadsheet)
+  • Volume: 500+ MIN in at least one season in window
+
+Output: lineups.db (+ lineups.db.gz) — SAME SCHEMA as nba_lineups_bulk.py output,
+so the app needs zero changes. Lineups are deduplicated by
+(GROUP_ID, SEASON, SEASON_TYPE, TEAM_ABBREVIATION).
+
+Usage:
+    python nba_player_lineups.py                          # full fetch, default seasons
+    python nba_player_lineups.py --refresh-seasons 2024 2025  # force-refresh
+    python nba_player_lineups.py --consolidate-only       # rebuild DB from cache
+    python nba_player_lineups.py --limit-players 10       # quick smoke test
+"""
+
+import argparse
+import gzip
+import json
+import shutil
+import sqlite3
+import sys
+import time
+from pathlib import Path
+from datetime import datetime
+from json.decoder import JSONDecodeError
+
+import pandas as pd
+import requests
+from nba_api.stats.library.http import NBAStatsHTTP
+from requests.exceptions import ConnectionError as ReqConnectionError, ReadTimeout, Timeout
+
+# ── Configuration ──────────────────────────────────────────────────
+DEFAULT_START_SEASON = 2021  # 2021-22
+DEFAULT_END_SEASON   = 2025  # 2025-26 — bump each new season
+
+SEASON_TYPES = ['Regular Season', 'Playoffs']
+
+# Eligibility thresholds
+MIN_VOLUME_THRESHOLD = 500    # at least one season ≥ this many MIN in player_stats.db
+CURRENT_SEASON = '2025-26'    # for the "currently relevant" gate
+
+# Spreadsheet roster (Sheet1 = roster)
+ROSTER_SHEET_ID  = '11llk0icQqoi0JwJXat5KO8y2RQeBMN5rS9FhAY56Idc'
+ROSTER_TAB       = 'Sheet1'
+SHEETS_API_KEY   = 'AIzaSyB9g7c6llswswuZQ2I5y2MwGk6BzYEtHsY'
+
+# Name dictionary (NBA → HH) — read in reverse for roster matching
+NAME_DICT_PATH   = Path('name_dictionary.json')
+
+# Local paths
+PLAYER_STATS_DB  = Path('player_stats.db')
+CACHE_DIR        = Path('player_lineups_cache')
+
+
+def season_str(year):
+    """2024 → '2024-25'"""
+    return f"{year}-{str(year + 1)[-2:]}"
+
+
+# ── Eligibility: determine which players to fetch ───────────────────────
+
+def load_name_dict():
+    """Load NBA-name → HH-name mapping, build reverse map (HH → NBA) for roster lookups."""
+    if not NAME_DICT_PATH.exists():
+        print(f"⚠ {NAME_DICT_PATH} not found — roster name matching will be approximate")
+        return {}, {}
+    with open(NAME_DICT_PATH, 'r', encoding='utf-8') as f:
+        nba_to_hh = json.load(f)
+    hh_to_nba = {hh: nba for nba, hh in nba_to_hh.items()}
+    return nba_to_hh, hh_to_nba
+
+
+def fetch_roster_names():
+    """Live-fetch the 2025-26 roster from the main spreadsheet. Returns a set of
+    HH-style names from column A (player names)."""
+    url = (f"https://sheets.googleapis.com/v4/spreadsheets/{ROSTER_SHEET_ID}"
+           f"/values/{ROSTER_TAB}?key={SHEETS_API_KEY}")
+    print(f"📥 Fetching roster sheet ({ROSTER_TAB})...")
+    try:
+        r = requests.get(url, timeout=30)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        print(f"  ⚠ Roster fetch failed: {e}")
+        print("  → Continuing without roster gate (only players with 2025-26 MIN will qualify)")
+        return set()
+
+    rows = data.get('values', [])
+    if not rows:
+        print("  ⚠ Empty roster sheet")
+        return set()
+
+    # Column A = player name (HH-style). Skip header rows that don't look like names.
+    names = set()
+    for row in rows:
+        if not row:
+            continue
+        name = (row[0] or '').strip()
+        # Skip headers like "PLAYER", "TEAM", section dividers, etc.
+        if not name or name.isupper() or len(name) < 3:
+            continue
+        names.add(name)
+    print(f"  ✓ Loaded {len(names)} roster names")
+    return names
+
+
+def find_eligible_players(start, end, roster_hh_names, hh_to_nba):
+    """Return list of (player_id, player_name) tuples for players who qualify.
+
+    Eligibility: (had 2025-26 MIN OR on 2025-26 roster) AND has any season ≥ 500 MIN.
+    """
+    if not PLAYER_STATS_DB.exists():
+        print(f"❌ {PLAYER_STATS_DB} not found — run nba_player_advanced.py first")
+        sys.exit(1)
+
+    conn = sqlite3.connect(str(PLAYER_STATS_DB))
+
+    # 1. Players with ANY minutes in 2025-26 (Regular Season or Playoffs)
+    df_current = pd.read_sql_query(f"""
+        SELECT DISTINCT PLAYER_ID, PLAYER_NAME
+        FROM player_advanced
+        WHERE SEASON = '{CURRENT_SEASON}'
+          AND CAST(MIN AS FLOAT) > 0
+    """, conn)
+    current_pids = set(df_current['PLAYER_ID'].astype(int))
+    print(f"  • {len(current_pids)} players with 2025-26 MIN")
+
+    # 2. Players on the 2025-26 roster (by name, even if no 2025-26 MIN — e.g., Haliburton)
+    #    Convert HH names → NBA names for matching against player_stats.db
+    roster_pids = set()
+    if roster_hh_names and hh_to_nba:
+        roster_nba_names = {hh_to_nba.get(hh, hh) for hh in roster_hh_names}
+        # Look up player_ids for these names — pick most recent occurrence
+        if roster_nba_names:
+            placeholders = ','.join(['?'] * len(roster_nba_names))
+            df_roster = pd.read_sql_query(f"""
+                SELECT PLAYER_ID, PLAYER_NAME, MAX(SEASON) AS last_season
+                FROM player_advanced
+                WHERE PLAYER_NAME IN ({placeholders})
+                GROUP BY PLAYER_ID, PLAYER_NAME
+            """, conn, params=list(roster_nba_names))
+            roster_pids = set(df_roster['PLAYER_ID'].astype(int))
+        print(f"  • {len(roster_pids)} roster names resolved to player_ids "
+              f"(of {len(roster_hh_names)} roster entries)")
+
+    # 3. Union: "currently relevant" pool
+    relevant_pids = current_pids | roster_pids
+    print(f"  • {len(relevant_pids)} currently-relevant players (union)")
+
+    # 4. Apply volume gate — at least one season in window with ≥ 500 MIN
+    seasons = [season_str(y) for y in range(start, end + 1)]
+    season_filter = "','".join(seasons)
+    placeholders = ','.join(['?'] * len(relevant_pids))
+    df_vol = pd.read_sql_query(f"""
+        SELECT PLAYER_ID, PLAYER_NAME, MAX(CAST(MIN AS FLOAT) * CAST(GP AS INTEGER)) AS max_total_min
+        FROM player_advanced
+        WHERE PLAYER_ID IN ({placeholders})
+          AND SEASON IN ('{season_filter}')
+          AND SEASON_TYPE = 'Regular Season'
+        GROUP BY PLAYER_ID, PLAYER_NAME
+        HAVING max_total_min >= {MIN_VOLUME_THRESHOLD}
+    """, conn, params=[int(p) for p in relevant_pids])
+
+    conn.close()
+
+    eligible = list(df_vol[['PLAYER_ID', 'PLAYER_NAME']].itertuples(index=False, name=None))
+    eligible = [(int(pid), name) for pid, name in eligible]
+    eligible.sort(key=lambda x: x[1])  # alphabetize for stable order
+    print(f"  ✓ {len(eligible)} players pass volume gate (≥ {MIN_VOLUME_THRESHOLD} MIN in any window season)")
+    return eligible
+
+
+# ── Lineup fetching ─────────────────────────────────────────────────────
+
+def _lineup_api_params(player_id, season, season_type):
+    """Build the full parameter set for leaguedashlineups. NBA Stats requires ALL
+    parameters present (even empty), and uses raw API names (MeasureType, PerMode, etc.)
+    not the Python-style names that nba_api's class wrapper exposes."""
     return {
-      hh_name: q ? q.hh_name : (NAME_DICT[p.name] || p.name),
-      rat365, rat365_current, off_blended, off_n_seasons,
-      def_score, def_current, def_blended, def_n_seasons,
-      off_contrib, def_contrib,
-      net_contrib: off_contrib + def_contrib,
-      fallback: !q,
-    };
-  });
+        'GroupQuantity': 5,
+        'LastNGames': 0,
+        'LeagueID': '00',
+        'MeasureType': 'Advanced',
+        'Month': 0,
+        'OpponentTeamID': 0,
+        'PaceAdjust': 'N',
+        'PerMode': 'Per100Possessions',
+        'Period': 0,
+        'PlusMinus': 'N',
+        'Rank': 'N',
+        'Season': season,
+        'SeasonType': season_type,
+        'PlayerID': player_id,    # <-- the filter that nba_api's wrapper doesn't expose
+        'TeamID': 0,
+        'GameSegment': '',
+        'DateFrom': '',
+        'DateTo': '',
+        'GameID': '',
+        'Outcome': '',
+        'SeasonSegment': '',
+        'VsConference': '',
+        'VsDivision': '',
+        'Location': '',
+        'ShotClockRange': '',
+        'PORound': 0,
+        'Conference': '',
+        'Division': '',
+    }
 
-  const total_off = quality_per_player.reduce((s, q) => s + q.off_contrib, 0);
-  const total_def = quality_per_player.reduce((s, q) => s + q.def_contrib, 0);
-  const quality_net_baseline = total_off + total_def;
 
-  // ── Layer 2: fit coefficients (existing) ──
-  const n_high_usg    = players.filter(p => p.usg >= USG_HIGH).length;
-  const n_shooters    = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
-  const n_rim_protect = players.filter(p => p.blk >= BLK_HIGH).length;
-  const n_playmakers  = players.filter(p => p.ast_pct >= AST_HIGH).length;
-  const n_rebounders  = players.filter(p => p.reb_pct >= REB_HIGH).length;
-  const oBase = coefs.meta.baseline_ortg_resid_mean || 0;
-  const dBase = coefs.meta.baseline_drtg_resid_mean || 0;
-  const dims = [
-    ['n_high_usg', n_high_usg, 'Usage stacking'],
-    ['n_shooters', n_shooters, 'Spacing (shooters)'],
-    ['n_rim_protect', n_rim_protect, 'Rim protection'],
-    ['n_playmakers', n_playmakers, 'Playmaking depth'],
-    ['n_rebounders', n_rebounders, 'Rebound depth'],
-  ];
-  let ortg_adj = 0, drtg_adj = 0;
-  const breakdown = [];
-  for (const [key, value, label] of dims) {
-    const dim = coefs.dimensions[key];
-    if (!dim) continue;
-    const bucket = dim.buckets[String(value)];
-    if (!bucket) { breakdown.push({ label, value, ortg_adj: 0, drtg_adj: 0, note: 'no data' }); continue; }
-    const o = (bucket.ortg_adj - oBase) * FIT_WEIGHT;
-    const d = (bucket.drtg_adj - dBase) * FIT_WEIGHT;
-    ortg_adj += o; drtg_adj += d;
-    breakdown.push({ label, value, ortg_adj: o, drtg_adj: d, n: bucket.n_samples });
-  }
-  const fit_net = ortg_adj - drtg_adj;
+def fetch_player_lineups(player_id, player_name, season, season_type,
+                         max_retries=4, retry_delay=10):
+    """Fetch up to 250 lineups featuring a specific player for (season, season_type).
+    Uses NBA Stats' leaguedashlineups endpoint with PlayerID filter, called via nba_api's
+    NBAStatsHTTP transport (so we get the right headers + retry behavior without depending
+    on the LeagueDashLineups class wrapper which doesn't expose player_id)."""
+    safe_name = ''.join(c for c in player_name if c.isalnum() or c in '_-').strip()
+    cache_file = (CACHE_DIR /
+                  f"{player_id}__{safe_name}__{season}__{season_type.replace(' ', '-')}.csv")
+    if cache_file.exists() and cache_file.stat().st_size > 100:
+        return pd.read_csv(cache_file), True
 
-  // ── Combine: ORtg / DRtg / NetRtg ──
-  // ORtg = LEAGUE_BASE + sum(offense contributions) + fit_ortg_adj
-  // DRtg = LEAGUE_BASE − sum(defense contributions) + fit_drtg_adj
-  //   (higher def_contrib → lower DRtg → better defense)
-  // NetRtg = ORtg − DRtg = (total_off + total_def) + fit_net
-  const display_ortg = LEAGUE_BASE + total_off + ortg_adj;
-  const display_drtg = LEAGUE_BASE - total_def + drtg_adj;
+    parameters = _lineup_api_params(player_id, season, season_type)
 
-  return {
-    add_ortg, add_drtg, pace,
-    quality_per_player,
-    total_off, total_def,
-    quality_net_baseline,
-    n_with_quality: quality_per_player.filter(q => !q.fallback).length,
-    n_off_blended: quality_per_player.filter(q => q.off_blended).length,
-    n_def_blended: quality_per_player.filter(q => q.def_blended).length,
-    ortg_adj, drtg_adj, fit_net,
-    ortg: display_ortg,
-    drtg: display_drtg,
-    netrtg: quality_net_baseline + fit_net,
-    breakdown,
-  };
-}
+    for attempt in range(max_retries):
+        try:
+            response = NBAStatsHTTP().send_api_request(
+                endpoint='leaguedashlineups',
+                parameters=parameters,
+                timeout=90,
+            )
+            data = response.get_dict()
+            result_sets = data.get('resultSets', [])
+            if not result_sets:
+                empty = pd.DataFrame()
+                empty.to_csv(cache_file, index=False)
+                return empty, False
 
-function classifyLineup(netrtg) {
-  if (netrtg >= 12) return '🏆 Championship-tier — elite both ways';
-  if (netrtg >= 7)  return '⭐ Top-tier lineup — strong outlier expected';
-  if (netrtg >= 3)  return '✓ Above-average lineup — solid net positive';
-  if (netrtg >= -3) return '○ Average lineup — near league mean';
-  if (netrtg >= -7) return '⚠ Below-average lineup — likely gets outscored';
-  return '✗ Weak lineup — projects well below average';
-}
+            # leaguedashlineups returns exactly one result set ('Lineups')
+            first_set = result_sets[0]
+            headers = first_set.get('headers', [])
+            rows = first_set.get('rowSet', [])
 
-function mean(arr) {
-  const valid = arr.filter(v => isFinite(v));
-  return valid.reduce((s, v) => s + v, 0) / valid.length;
-}
+            if not rows:
+                empty = pd.DataFrame()
+                empty.to_csv(cache_file, index=False)
+                return empty, False
 
-boot();
-</script>
-</body>
-</html>
+            df = pd.DataFrame(rows, columns=headers)
+
+            # Annotate provenance so dedupe can drop multi-player duplicates later
+            df.insert(0, 'SOURCE_PLAYER_NAME', player_name)
+            df.insert(0, 'SOURCE_PLAYER_ID', player_id)
+            df.insert(0, 'SEASON_TYPE', season_type)
+            df.insert(0, 'SEASON', season)
+
+            df.to_csv(cache_file, index=False)
+            return df, False
+
+        except (ReqConnectionError, ReadTimeout, Timeout) as e:
+            wait = (attempt + 1) * retry_delay
+            print(f"      ⚠ {type(e).__name__} — retry {attempt+1}/{max_retries} in {wait}s")
+            time.sleep(wait)
+        except JSONDecodeError:
+            wait = (attempt + 1) * retry_delay * 2
+            print(f"      ⚠ JSON error (throttle) — retry {attempt+1}/{max_retries} in {wait}s")
+            time.sleep(wait)
+        except Exception as e:
+            wait = (attempt + 1) * retry_delay
+            print(f"      ⚠ {type(e).__name__}: {str(e)[:80]} — retry {attempt+1}/{max_retries} in {wait}s")
+            time.sleep(wait)
+
+    print(f"      ✗ Terminal failure after {max_retries} retries")
+    return None, False
+
+
+def fetch_all(args):
+    """Iterate over (player × season × season_type) and cache each slice."""
+    CACHE_DIR.mkdir(exist_ok=True)
+
+    # Refresh-seasons: delete stale cache files for specified years
+    refresh_years = getattr(args, 'refresh_seasons', None) or []
+    if refresh_years:
+        print(f"🗑  Refreshing caches for seasons: {[season_str(y) for y in refresh_years]}")
+        n_deleted = 0
+        for year in refresh_years:
+            pattern = f"*__{season_str(year)}__*.csv"
+            for f in CACHE_DIR.glob(pattern):
+                f.unlink()
+                n_deleted += 1
+        print(f"   {n_deleted} stale cache file(s) deleted\n")
+
+    # 1. Determine eligible players
+    print("🔎 Determining eligible players...")
+    nba_to_hh, hh_to_nba = load_name_dict()
+    roster_hh = fetch_roster_names()
+    eligible = find_eligible_players(args.start, args.end, roster_hh, hh_to_nba)
+
+    if args.limit_players:
+        eligible = eligible[:args.limit_players]
+        print(f"  → Limited to first {len(eligible)} players for smoke test")
+
+    if not eligible:
+        print("⚠ No eligible players — aborting")
+        return
+
+    # 2. Plan the fetch
+    seasons = list(range(args.start, args.end + 1))
+    season_types = [args.season_type] if args.season_type != 'both' else SEASON_TYPES
+    total_slices = len(eligible) * len(seasons) * len(season_types)
+    print(f"\n📋 Plan: {total_slices:,} slices "
+          f"({len(eligible)} players × {len(seasons)} seasons × {len(season_types)} types)")
+    print(f"   Estimated runtime: ~{total_slices * 2 // 60}–{total_slices * 4 // 60} minutes")
+    print(f"   (Cached slices skip the API; only first run is slow.)\n")
+
+    # 3. Execute
+    fetched, cached, failed, empty = 0, 0, 0, 0
+    i = 0
+    for pid, pname in eligible:
+        for season in seasons:
+            for season_type in season_types:
+                i += 1
+                tag = f"{pname:<28} {season_str(season)} {season_type:<14}"
+                print(f"[{i}/{total_slices}] {tag}", end=' ', flush=True)
+                df, was_cached = fetch_player_lineups(pid, pname, season_str(season), season_type)
+                if was_cached:
+                    n = len(df) if df is not None else 0
+                    print(f"(cached, {n} lineups)")
+                    cached += 1
+                elif df is None:
+                    print("✗ failed")
+                    failed += 1
+                elif len(df) == 0:
+                    print("○ no lineups (e.g., missed playoffs)")
+                    empty += 1
+                else:
+                    print(f"✓ {len(df)} lineups")
+                    fetched += 1
+                    time.sleep(args.delay)
+
+    print(f"\n✅ Fetch done. fetched: {fetched}, cached: {cached}, empty: {empty}, failed: {failed}")
+
+
+# ── Consolidate + write SQLite ──────────────────────────────────────────
+
+def consolidate():
+    """Combine all cached slices into one big DataFrame, dedupe by lineup identity."""
+    files = sorted(CACHE_DIR.glob('*.csv'))
+    if not files:
+        print("⚠ Cache is empty — nothing to consolidate.")
+        return None
+
+    print("\n🔗 Consolidating cached lineup slices...")
+    dfs = []
+    for f in files:
+        try:
+            df = pd.read_csv(f)
+        except pd.errors.EmptyDataError:
+            continue
+        if len(df) == 0:
+            continue
+        dfs.append(df)
+
+    if not dfs:
+        print("⚠ No non-empty slices found.")
+        return None
+
+    merged = pd.concat(dfs, ignore_index=True)
+    pre_dedupe = len(merged)
+
+    # Dedupe by (GROUP_ID, SEASON, SEASON_TYPE, TEAM_ABBREVIATION)
+    # The same lineup may be fetched once per featured player (e.g., Harden+SGA appears in both Harden's and SGA's pulls).
+    if 'TEAM_ABBREVIATION' in merged.columns:
+        dedupe_cols = ['GROUP_ID', 'SEASON', 'SEASON_TYPE', 'TEAM_ABBREVIATION']
+    else:
+        dedupe_cols = ['GROUP_ID', 'SEASON', 'SEASON_TYPE']
+    merged = merged.drop_duplicates(subset=dedupe_cols, keep='first').reset_index(drop=True)
+    post_dedupe = len(merged)
+    print(f"  📉 Deduplicated: {pre_dedupe:,} → {post_dedupe:,} rows "
+          f"({pre_dedupe - post_dedupe:,} duplicates removed)")
+
+    # Drop the source-player provenance columns — they're per-fetch metadata, not lineup attributes
+    drop_cols = [c for c in ('SOURCE_PLAYER_ID', 'SOURCE_PLAYER_NAME') if c in merged.columns]
+    if drop_cols:
+        merged = merged.drop(columns=drop_cols)
+
+    # Reorder: meta columns first
+    meta_order = ['TEAM_ABBREVIATION', 'SEASON', 'SEASON_TYPE']
+    meta_present = [c for c in meta_order if c in merged.columns]
+    rest = [c for c in merged.columns if c not in meta_present]
+    merged = merged[meta_present + rest]
+
+    print(f"  📊 lineups_5man   {len(merged):>7,} rows × {len(merged.columns):>3} cols")
+    return merged
+
+
+def write_sqlite(df, path, gzip_output=True):
+    """Write the consolidated lineups into SQLite with indexes. Same schema as
+    nba_lineups_bulk.py so the app needs no changes."""
+    p = Path(path)
+    if p.exists():
+        p.unlink()
+
+    INDEX_SINGLE = ['TEAM_ABBREVIATION', 'SEASON', 'SEASON_TYPE', 'GROUP_ID', 'GROUP_NAME']
+    INDEX_COMPOUND = [
+        ('TEAM_ABBREVIATION', 'SEASON'),
+        ('SEASON', 'SEASON_TYPE'),
+    ]
+
+    print(f"\n🗄️  Writing SQLite database to {path}...")
+    conn = sqlite3.connect(str(p))
+
+    df_clean = df.fillna('').replace([float('inf'), float('-inf')], '')
+    df_clean.to_sql('lineups_5man', conn, if_exists='replace', index=False)
+    print(f"   • lineups_5man  {len(df_clean):,} rows × {len(df_clean.columns)} cols")
+
+    cursor = conn.cursor()
+    n_idx = 0
+    for col in INDEX_SINGLE:
+        if col in df_clean.columns:
+            cursor.execute(f'CREATE INDEX "idx_lineups_5man_{col.lower()}" ON "lineups_5man"("{col}")')
+            n_idx += 1
+    for cols in INDEX_COMPOUND:
+        if all(c in df_clean.columns for c in cols):
+            idx_name = f"idx_lineups_5man_{'_'.join(c.lower() for c in cols)}"
+            cols_sql = ', '.join(f'"{c}"' for c in cols)
+            cursor.execute(f'CREATE INDEX "{idx_name}" ON "lineups_5man"({cols_sql})')
+            n_idx += 1
+    conn.commit()
+    print(f"   • {n_idx} indexes built")
+
+    meta_df = pd.DataFrame([
+        ('built_at', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+        ('script', 'nba_player_lineups.py'),
+        ('extraction_mode', 'player-centric'),
+        ('volume_threshold_min', str(MIN_VOLUME_THRESHOLD)),
+        ('current_season', CURRENT_SEASON),
+        ('total_rows', str(len(df_clean))),
+    ], columns=['key', 'value'])
+    meta_df.to_sql('_meta', conn, if_exists='replace', index=False)
+
+    print("   • running VACUUM...", end=' ', flush=True)
+    conn.execute("VACUUM")
+    conn.close()
+    print('✓')
+
+    raw_mb = p.stat().st_size / (1024 * 1024)
+    print(f"\n✅ {path} — {len(df_clean):,} rows, {raw_mb:.1f} MB on disk")
+
+    if gzip_output:
+        gz_path = str(p) + '.gz'
+        with open(p, 'rb') as f_in, gzip.open(gz_path, 'wb', compresslevel=9) as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        gz_mb = Path(gz_path).stat().st_size / (1024 * 1024)
+        print(f"✅ {gz_path} — {gz_mb:.1f} MB gzipped ({raw_mb/gz_mb:.1f}x compression)")
+
+    return True
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument('--start', type=int, default=DEFAULT_START_SEASON,
+                   help=f'Start season year (default: {DEFAULT_START_SEASON} = {season_str(DEFAULT_START_SEASON)})')
+    p.add_argument('--end', type=int, default=DEFAULT_END_SEASON,
+                   help=f'End season year (default: {DEFAULT_END_SEASON} = {season_str(DEFAULT_END_SEASON)})')
+    p.add_argument('--season-type', choices=SEASON_TYPES + ['both'], default='Regular Season',
+                   help='Which season type(s) to fetch (default: Regular Season only)')
+    p.add_argument('--delay', type=float, default=1.5,
+                   help='Seconds between API calls (default: 1.5)')
+    p.add_argument('--limit-players', type=int, default=0,
+                   help='Limit to first N eligible players (for smoke testing). Default 0 = no limit.')
+    p.add_argument('--sqlite', metavar='PATH', nargs='?', const='lineups.db',
+                   help='Write SQLite database (default path: lineups.db). Always produces .gz alongside.')
+    p.add_argument('--no-gzip', action='store_true',
+                   help='Skip creating the .gz alongside the .db when using --sqlite')
+    p.add_argument('--consolidate-only', action='store_true',
+                   help='Skip fetching, just consolidate cache → SQLite')
+    p.add_argument('--refresh-seasons', nargs='+', type=int, default=[], metavar='YEAR',
+                   help='Force-refresh cache for these start years before fetching '
+                        '(e.g., --refresh-seasons 2024 2025)')
+    args = p.parse_args()
+
+    if not args.consolidate_only:
+        fetch_all(args)
+
+    df = consolidate()
+    if df is None:
+        return
+
+    if args.sqlite:
+        write_sqlite(df, args.sqlite, gzip_output=not args.no_gzip)
+    else:
+        out = Path('lineups_consolidated')
+        out.mkdir(exist_ok=True)
+        df.to_csv(out / 'lineups_5man.csv', index=False)
+        print(f"\n💾 CSV written to {out}/")
+        print("   Pass --sqlite to also write a SQLite database for app use")
+
+
+if __name__ == '__main__':
+    main()
