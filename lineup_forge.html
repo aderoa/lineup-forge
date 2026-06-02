@@ -170,11 +170,15 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 const PLAYER_DB_URL  = 'https://aderoa.github.io/lineup-forge/player_stats.db.gz';
 const LINEUPS_DB_URL = 'https://aderoa.github.io/lineup-forge/lineups.db.gz';
 const COEFS_URL      = 'https://aderoa.github.io/lineup-forge/fit_coefficients.json';
+const NAMES_URL      = 'https://aderoa.github.io/lineup-forge/name_dictionary.json';
+const QUALITY_URL    = 'https://aderoa.github.io/lineup-forge/player_quality.json';
 
 const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
 
 let playerDb = null, lineupsDb = null, coefs = null;
+let NAME_DICT = {};    // NBA name → HH name
+let QUALITY = null;    // { _meta: {...}, players: { HH_name: { rat365, team } } }
 
 const STATE = {
   page: 'team', season: null, team: null,
@@ -197,21 +201,26 @@ async function boot() {
     const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
 
     setStatus('Downloading data...');
-    const [playerBuf, lineupsBuf, coefsJson] = await Promise.all([
+    const [playerBuf, lineupsBuf, coefsJson, namesJson, qualityJson] = await Promise.all([
       fetchDb(PLAYER_DB_URL),
       fetchDb(LINEUPS_DB_URL),
       fetch(COEFS_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch(NAMES_URL).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch(QUALITY_URL).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
 
     playerDb  = new SQL.Database(new Uint8Array(playerBuf));
     lineupsDb = new SQL.Database(new Uint8Array(lineupsBuf));
     coefs = coefsJson;
+    NAME_DICT = namesJson || {};
+    QUALITY = qualityJson;
 
     const commonSeasons = getCommonSeasons();
     STATE.season = commonSeasons[0];
 
     const totalMB = ((playerBuf.byteLength + lineupsBuf.byteLength) / 1024 / 1024).toFixed(1);
-    $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
+    const qNote = QUALITY ? `${QUALITY._meta.n_players} quality scores` : 'no quality data';
+    $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${qNote} · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
 
     setStatus('', 'hidden');
     renderTeamPicker();
@@ -420,6 +429,17 @@ function renderEditView() {
   const slotsHtml = STATE.currentSlots.map((p, i) => {
     const swapped = STATE.swappedFrom[i] !== null;
     const fromName = swapped ? STATE.swappedFrom[i].name.split(' ').slice(-1)[0] : null;
+    const q = projCurr.quality_per_player[i];
+    let ratLine;
+    if (q.fallback) {
+      ratLine = `<span style="color:var(--orange)">rat365 N/A</span>`;
+    } else if (q.protected) {
+      // Watermark protection active — show the floor in purple
+      const rawText = q.rat365_raw !== null ? `${q.rat365_raw.toFixed(1)}` : 'N/A';
+      ratLine = `<span style="color:var(--purple)" title="Current ${rawText} far below career watermark — using watermark as floor">⛨ wm ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span></span>`;
+    } else {
+      ratLine = `rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span>`;
+    }
     return `
       <div class="slot ${swapped ? 'swapped' : ''}">
         ${swapped ? `<div class="from-tag">was ${fromName}</div>` : ''}
@@ -427,25 +447,45 @@ function renderEditView() {
         <div class="name">${p.name}</div>
         <div class="meta">${p.team || '—'} · ${p.season}</div>
         <div class="stats">
+          ${ratLine}<br>
           ORtg ${p.ortg.toFixed(0)} / DRtg ${p.drtg.toFixed(0)}<br>
-          USG ${(p.usg * 100).toFixed(1)}% · TS ${(p.ts * 100).toFixed(1)}%<br>
-          PIE ${(p.pie * 100).toFixed(1)}
+          USG ${(p.usg * 100).toFixed(1)}% · TS ${(p.ts * 100).toFixed(1)}%
         </div>
         <button class="swap-btn" data-slot="${i}">↔ Swap</button>
       </div>
     `;
   }).join('');
 
-  const playersTable = STATE.currentSlots.map((p, i) => `
-    <tr>
-      <td>${i + 1}. ${p.name}</td>
-      <td class="num">${p.ortg.toFixed(1)}</td>
-      <td class="num">${p.drtg.toFixed(1)}</td>
-      <td class="num">${(p.usg * 100).toFixed(1)}%</td>
-      <td class="num">${(p.ts * 100).toFixed(1)}%</td>
-      <td class="num">${(p.pie * 100).toFixed(1)}</td>
-    </tr>
-  `).join('');
+  const playersTable = STATE.currentSlots.map((p, i) => {
+    const q = projCurr.quality_per_player[i];
+    let ratCell, wmCell, contribCell;
+    if (q.fallback) {
+      ratCell = `<span style="color:var(--orange)">N/A</span>`;
+      wmCell = `<span style="color:var(--muted)">—</span>`;
+      contribCell = `<span style="color:var(--orange)">${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(2)}*</span>`;
+    } else {
+      const rawDisplay = q.rat365_raw !== null ? q.rat365_raw.toFixed(2) : '—';
+      ratCell = q.protected
+        ? `<span style="color:var(--muted)">${rawDisplay}</span>`
+        : rawDisplay;
+      wmCell = q.watermark !== null
+        ? (q.protected
+            ? `<span style="color:var(--purple);font-weight:700" title="Used as floor">⛨ ${q.watermark.toFixed(2)}</span>`
+            : q.watermark.toFixed(2))
+        : `<span style="color:var(--muted)">—</span>`;
+      contribCell = `<span class="${q.contrib > 0.1 ? 'adj-pos' : q.contrib < -0.1 ? 'adj-neg' : ''}">${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(2)}</span>`;
+    }
+    return `
+      <tr>
+        <td>${i + 1}. ${p.name}</td>
+        <td class="num">${ratCell}</td>
+        <td class="num">${wmCell}</td>
+        <td class="num">${contribCell}</td>
+        <td class="num">${p.ortg.toFixed(1)}</td>
+        <td class="num">${p.drtg.toFixed(1)}</td>
+      </tr>
+    `;
+  }).join('');
 
   const adjTable = projCurr.breakdown.map(a => {
     const cls = v => v > 0.1 ? 'adj-pos' : v < -0.1 ? 'adj-neg' : '';
@@ -500,13 +540,14 @@ function renderEditView() {
     <div class="breakdown">
       <h3>Player ingredients</h3>
       <table>
-        <thead><tr><th>Player</th><th class="num">ORtg</th><th class="num">DRtg</th><th class="num">USG</th><th class="num">TS</th><th class="num">PIE</th></tr></thead>
+        <thead><tr><th>Player</th><th class="num">rat365</th><th class="num">Watermark</th><th class="num">Quality Δ</th><th class="num">ORtg</th><th class="num">DRtg</th></tr></thead>
         <tbody>
           ${playersTable}
-          <tr class="total"><td>Additive baseline (avg)</td>
-            <td class="num">${projCurr.add_ortg.toFixed(1)}</td>
-            <td class="num">${projCurr.add_drtg.toFixed(1)}</td>
-            <td class="num">—</td><td class="num">—</td><td class="num">—</td>
+          <tr class="total"><td>Quality NetRtg baseline ${projCurr.n_protected > 0 ? `<span style="color:var(--purple);font-weight:normal">(⛨ ${projCurr.n_protected} watermark-protected)</span>` : ''} ${5 - projCurr.n_with_quality > 0 ? `<span style="color:var(--orange);font-weight:normal">(${5 - projCurr.n_with_quality} fallback*)</span>` : ''}</td>
+            <td class="num">—</td><td class="num">—</td>
+            <td class="num ${projCurr.quality_net_baseline > 0 ? 'adj-pos' : projCurr.quality_net_baseline < 0 ? 'adj-neg' : ''}">${projCurr.quality_net_baseline >= 0 ? '+' : ''}${projCurr.quality_net_baseline.toFixed(1)}</td>
+            <td class="num">avg ${projCurr.add_ortg.toFixed(1)}</td>
+            <td class="num">avg ${projCurr.add_drtg.toFixed(1)}</td>
           </tr>
         </tbody>
       </table>
@@ -530,9 +571,11 @@ function renderEditView() {
     <div class="notes">
       <strong>How to read:</strong>
       <ul>
-        <li><strong>Projected NetRtg</strong> = additive baseline (average player ratings) + fit adjustments learned from real lineups</li>
-        <li><strong>Delta vs original</strong> = how much your swaps shifted the projection vs. the unmodified lineup</li>
-        <li><strong>Original lineup actual</strong> shows what the unmodified lineup did. The gap between actual and projected gives a sense of model error for this specific lineup (±3-4 points typical)</li>
+        <li><strong>Projected NetRtg</strong> uses <em>player quality</em> (rat365 from HoopsMatic Real Value, stripped of age/draft factors) as the baseline — independent of team context. Each player's "Quality Δ" is their NetRtg contribution above an average rotation player.</li>
+        <li><strong>Watermark</strong> is the player's career-peak skill level (derived from peak PIE × 1.4). When current rat365 falls below 50% of watermark (typically due to injury or limited games), the projection uses watermark as a floor — so injured stars like Giannis or Haliburton are recognized at their healthy level. <span style="color:var(--purple)">⛨</span> indicates watermark protection is active.</li>
+        <li><strong>ORtg / DRtg</strong> shown above are additive averages of individual player ratings + fit adjustments. They <em>carry team-context bias</em> — use NetRtg as the trusted headline.</li>
+        <li><strong>Fit adjustments</strong> are learned from real NBA lineups and apply on top of the quality baseline — they capture spacing, usage overlap, rim protection, etc.</li>
+        <li><strong>Original lineup actual</strong> shows what the unmodified lineup actually did. The gap between actual and projected gives a sense of model error.</li>
         <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
       </ul>
     </div>
@@ -628,10 +671,113 @@ function renderSwapResults(query) {
   });
 }
 
+// Cache watermark queries per player_id (since they don't change within a session)
+const _watermarkCache = {};
+
+// PIE → rat365 scale factor. Calibrated so peak PIE ~21% maps to watermark ~29
+// (rat365 scale, ~equivalent to top-5 players' historical levels).
+const PIE_TO_RAT365 = 1.4;
+const PROTECT_THRESHOLD = 0.5;  // if current_rat365 < watermark * this, use watermark
+
+function computeWatermark(playerId) {
+  if (!playerId || !playerDb) return null;
+  if (_watermarkCache[playerId] !== undefined) return _watermarkCache[playerId];
+  const r = playerDb.exec(`
+    SELECT MAX(CAST(PIE AS REAL)) AS max_pie
+    FROM player_advanced
+    WHERE PLAYER_ID = ${playerId}
+      AND SEASON_TYPE = 'Regular Season'
+      AND CAST(MIN AS FLOAT) >= 20
+      AND CAST(GP AS INTEGER) >= 30
+  `);
+  let wm = null;
+  if (r.length && r[0].values.length && r[0].values[0][0] !== null) {
+    const max_pie_decimal = +r[0].values[0][0];  // 0.0-0.25 typical
+    wm = max_pie_decimal * 100 * PIE_TO_RAT365;  // convert to rat365 scale
+  }
+  _watermarkCache[playerId] = wm;
+  return wm;
+}
+
+// Look up a player's quality data with watermark injury protection.
+// Returns: { hh_name, rat365 (effective), rat365_raw, watermark, protected, source }
+function getQuality(nbaName, playerId) {
+  let current_rat365 = null;
+  let hh_name = null;
+  if (QUALITY) {
+    const hh = NAME_DICT[nbaName] || nbaName;
+    if (QUALITY.players[hh]) {
+      current_rat365 = QUALITY.players[hh].rat365;
+      hh_name = hh;
+    }
+  }
+  const watermark = computeWatermark(playerId);
+
+  // Decide the effective rat365:
+  //  - If both exist: use watermark as floor when current is anomalously low.
+  //  - If only current exists: use it as-is.
+  //  - If only watermark exists (e.g., Hali — not in current RV pool): use watermark
+  //    with a small uncertainty discount.
+  //  - Neither: signal fallback to caller.
+  let effective = null;
+  let protected_ = false;
+  let source = 'none';
+  if (current_rat365 !== null && watermark !== null) {
+    if (current_rat365 < watermark * PROTECT_THRESHOLD) {
+      effective = watermark;
+      protected_ = true;
+      source = 'watermark';
+    } else {
+      effective = current_rat365;
+      source = 'current';
+    }
+  } else if (current_rat365 !== null) {
+    effective = current_rat365;
+    source = 'current';
+  } else if (watermark !== null) {
+    effective = watermark * 0.85;  // 15% uncertainty discount for no current data
+    protected_ = true;
+    source = 'watermark_only';
+  }
+
+  if (effective === null) return null;
+  return {
+    hh_name, rat365: effective,
+    rat365_raw: current_rat365, watermark,
+    protected: protected_, source,
+  };
+}
+
 function projectLineup(players) {
+  // ── Layer 0: traditional additive baseline (still useful for ORtg/DRtg display) ──
   const add_ortg = mean(players.map(p => p.ortg));
   const add_drtg = mean(players.map(p => p.drtg));
   const pace = mean(players.map(p => p.pace));
+
+  // ── Layer 1: player quality (rat365-based, team-context-independent) ──
+  const qMeta = QUALITY ? QUALITY._meta : { calibration_constant: 10, scale_factor: 0.25 };
+  const CALIB = qMeta.calibration_constant;
+  const SCALE = qMeta.scale_factor;
+
+  const quality_per_player = players.map(p => {
+    const q = getQuality(p.name, p.player_id);
+    if (q) {
+      return {
+        hh_name: q.hh_name, rat365: q.rat365, rat365_raw: q.rat365_raw,
+        watermark: q.watermark, protected: q.protected, source: q.source,
+        contrib: (q.rat365 - CALIB) * SCALE,
+        fallback: false,
+      };
+    }
+    // Last-resort fallback: derive from individual NetRtg
+    return { hh_name: null, rat365: null, rat365_raw: null, watermark: null,
+             protected: false, source: 'netrtg',
+             contrib: (p.netrtg || 0) / 10, fallback: true };
+  });
+
+  const quality_net_baseline = quality_per_player.reduce((s, q) => s + q.contrib, 0);
+
+  // ── Layer 2: fit coefficients (existing) ──
   const n_high_usg    = players.filter(p => p.usg >= USG_HIGH).length;
   const n_shooters    = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
   const n_rim_protect = players.filter(p => p.blk >= BLK_HIGH).length;
@@ -658,11 +804,18 @@ function projectLineup(players) {
     ortg_adj += o; drtg_adj += d;
     breakdown.push({ label, value, ortg_adj: o, drtg_adj: d, n: bucket.n_samples });
   }
+  const fit_net = ortg_adj - drtg_adj;
+
   return {
-    add_ortg, add_drtg, pace, ortg_adj, drtg_adj,
+    add_ortg, add_drtg, pace,
+    quality_per_player,
+    quality_net_baseline,
+    n_with_quality: quality_per_player.filter(q => !q.fallback).length,
+    n_protected: quality_per_player.filter(q => q.protected).length,
+    ortg_adj, drtg_adj, fit_net,
     ortg: add_ortg + ortg_adj,
     drtg: add_drtg + drtg_adj,
-    netrtg: (add_ortg + ortg_adj) - (add_drtg + drtg_adj),
+    netrtg: quality_net_baseline + fit_net,
     breakdown,
   };
 }
