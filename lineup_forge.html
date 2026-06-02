@@ -186,6 +186,14 @@ const OFF_CALIB = 10, OFF_SCALE = 0.20;   // (rat365 - 10) × 0.20 = offense con
 const DEF_CALIB = 8,  DEF_SCALE = 0.15;   // (DEF_SCORE - 8) × 0.15 = defense contribution per player
 const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
 
+// Fit dampening: how much the learned lineup-composition coefficients are applied.
+// 1.0 = full strength (raw learned coefficients), 0.0 = ignore fit entirely (pure quality).
+// 0.5 means individual player quality is weighted ~2× more than empirical lineup effects.
+// Rationale: fit buckets average across all lineups with N high-USG players; they can't
+// distinguish a usage-stacking-with-Giannis from usage-stacking-with-three-iso-scorers.
+// Damping lets star talent override generic bucket penalties.
+const FIT_WEIGHT = 0.5;
+
 // Box-score composite weights (calibrated to roughly approximate DEF_SCORE scale)
 const COMP_BLK = 5, COMP_STL = 5, COMP_DREB = 40;
 
@@ -635,7 +643,7 @@ function renderEditView() {
     </div>
 
     <div class="breakdown">
-      <h3>Fit adjustments</h3>
+      <h3>Fit adjustments (applied @ ${(FIT_WEIGHT * 100).toFixed(0)}% weight)</h3>
       <table>
         <thead><tr><th>Dimension</th><th class="num">Count</th><th class="num">ORtg Δ</th><th class="num">DRtg Δ</th><th>Sample</th></tr></thead>
         <tbody>
@@ -660,7 +668,7 @@ function renderEditView() {
         </li>
         <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend only <em>boosts</em> a player when their current is anomalously depressed: <code>effective = max(current, weighted)</code>. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
         <li><strong>Projected ORtg</strong> = 115 + sum of offense Δs + fit ORtg adj. <strong>Projected DRtg</strong> = 115 − sum of defense Δs + fit DRtg adj. So elite defenders <em>lower</em> the projected DRtg directly.</li>
-        <li><strong>Fit adjustments</strong> are learned from real NBA lineups — they capture lineup-composition effects (spacing, usage stacking, rim protection, etc.) on top of the per-player quality.</li>
+        <li><strong>Fit adjustments</strong> are learned from real NBA lineups — they capture lineup-composition effects (spacing, usage stacking, rim protection, etc.) on top of the per-player quality. Currently applied at <strong>${(FIT_WEIGHT * 100).toFixed(0)}% weight</strong> so individual star talent has the bigger say (fit buckets average across all lineups in a category and can't distinguish exceptional individuals like Giannis from typical bucket members).</li>
         <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
       </ul>
     </div>
@@ -1016,8 +1024,8 @@ function projectLineup(players) {
     if (!dim) continue;
     const bucket = dim.buckets[String(value)];
     if (!bucket) { breakdown.push({ label, value, ortg_adj: 0, drtg_adj: 0, note: 'no data' }); continue; }
-    const o = bucket.ortg_adj - oBase;
-    const d = bucket.drtg_adj - dBase;
+    const o = (bucket.ortg_adj - oBase) * FIT_WEIGHT;
+    const d = (bucket.drtg_adj - dBase) * FIT_WEIGHT;
     ortg_adj += o; drtg_adj += d;
     breakdown.push({ label, value, ortg_adj: o, drtg_adj: d, n: bucket.n_samples });
   }
