@@ -1,0 +1,159 @@
+{
+  "meta": {
+    "built_at": "2026-06-01 16:59:39",
+    "min_lineup_min": 50,
+    "n_lineups": 1342,
+    "usg_high_threshold": 25.0,
+    "shoot_ok_threshold": 35.0,
+    "shoot_min_3pa": 1.5,
+    "baseline_ortg_resid_mean": 0.3137043778615759,
+    "baseline_drtg_resid_mean": -1.7272500916325517
+  },
+  "dimensions": {
+    "n_high_usg": {
+      "label": "Number of high-usage (USG>=25%) players",
+      "buckets": {
+        "0": {
+          "ortg_adj": -0.65,
+          "drtg_adj": -2.46,
+          "n_samples": 221,
+          "sum_min": 19709.0
+        },
+        "1": {
+          "ortg_adj": -0.09,
+          "drtg_adj": -1.92,
+          "n_samples": 662,
+          "sum_min": 78501.0
+        },
+        "2": {
+          "ortg_adj": 1.21,
+          "drtg_adj": -1.46,
+          "n_samples": 424,
+          "sum_min": 58264.0
+        },
+        "3": {
+          "ortg_adj": -0.05,
+          "drtg_adj": 1.44,
+          "n_samples": 35,
+          "sum_min": 4495.0
+        }
+      }
+    },
+    "n_shooters": {
+      "label": "Number of shooters (3P>=35%, >=1.5 3PA)",
+      "buckets": {
+        "0": {
+          "ortg_adj": -2.19,
+          "drtg_adj": -0.12,
+          "n_samples": 31,
+          "sum_min": 2579.0
+        },
+        "1": {
+          "ortg_adj": -0.75,
+          "drtg_adj": -1.87,
+          "n_samples": 148,
+          "sum_min": 17063.0
+        },
+        "2": {
+          "ortg_adj": 0.14,
+          "drtg_adj": -1.59,
+          "n_samples": 353,
+          "sum_min": 40447.0
+        },
+        "3": {
+          "ortg_adj": 0.57,
+          "drtg_adj": -1.49,
+          "n_samples": 464,
+          "sum_min": 54821.0
+        },
+        "4": {
+          "ortg_adj": 0.52,
+          "drtg_adj": -2.28,
+          "n_samples": 298,
+          "sum_min": 38862.0
+        },
+        "5": {
+          "ortg_adj": 1.64,
+          "drtg_adj": -1.52,
+          "n_samples": 48,
+          "sum_min": 7197.0
+        }
+      }
+    },
+    "n_rim_protect": {
+      "label": "Number of rim protectors (BLK>=1.0/game)",
+      "buckets": {
+        "0": {
+          "ortg_adj": 0.35,
+          "drtg_adj": -1.1,
+          "n_samples": 516,
+          "sum_min": 61673.0
+        },
+        "1": {
+          "ortg_adj": 0.27,
+          "drtg_adj": -1.93,
+          "n_samples": 667,
+          "sum_min": 77442.0
+        },
+        "2": {
+          "ortg_adj": 0.4,
+          "drtg_adj": -2.68,
+          "n_samples": 151,
+          "sum_min": 21130.0
+        }
+      }
+    },
+    "n_playmakers": {
+      "label": "Number of playmakers (AST_PCT>=20)",
+      "buckets": {
+        "0": {
+          "ortg_adj": -1.07,
+          "drtg_adj": -2.71,
+          "n_samples": 50,
+          "sum_min": 3783.0
+        },
+        "1": {
+          "ortg_adj": 0.13,
+          "drtg_adj": -1.87,
+          "n_samples": 558,
+          "sum_min": 58948.0
+        },
+        "2": {
+          "ortg_adj": 0.55,
+          "drtg_adj": -1.79,
+          "n_samples": 621,
+          "sum_min": 81912.0
+        },
+        "3": {
+          "ortg_adj": 0.08,
+          "drtg_adj": -0.6,
+          "n_samples": 112,
+          "sum_min": 16276.0
+        }
+      }
+    },
+    "n_rebounders": {
+      "label": "Number of plus rebounders (REB_PCT>=10)",
+      "buckets": {
+        "1": {
+          "ortg_adj": 0.75,
+          "drtg_adj": -1.6,
+          "n_samples": 617,
+          "sum_min": 70025.0
+        },
+        "2": {
+          "ortg_adj": 0.04,
+          "drtg_adj": -1.84,
+          "n_samples": 609,
+          "sum_min": 77929.0
+        },
+        "3": {
+          "ortg_adj": -0.24,
+          "drtg_adj": -1.73,
+          "n_samples": 97,
+          "sum_min": 11548.0
+        }
+      }
+    }
+  }
+}
