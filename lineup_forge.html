@@ -438,10 +438,10 @@ function renderEditView() {
     let ratLine;
     if (q.fallback) {
       ratLine = `<span style="color:var(--orange)">rat365 N/A</span>`;
-    } else if (q.protected) {
-      // Watermark protection active — show the floor in purple
-      const rawText = q.rat365_raw !== null ? `${q.rat365_raw.toFixed(1)}` : 'N/A';
-      ratLine = `<span style="color:var(--purple)" title="Current ${rawText} far below career watermark — using watermark as floor">⛨ wm ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span></span>`;
+    } else if (q.blended) {
+      // Effective rat365 differs meaningfully from current — show blended badge + current
+      const curText = q.rat365_current !== null ? `cur ${q.rat365_current.toFixed(1)}` : `${q.n_seasons}-season blend`;
+      ratLine = `<span style="color:var(--purple)" title="Weighted across ${q.n_seasons} seasons; current ${q.rat365_current !== null ? q.rat365_current.toFixed(1) : 'N/A'}">↺ rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span></span><br><span style="color:var(--muted);font-size:0.62rem">${curText} · weighted ${q.n_seasons}y</span>`;
     } else {
       ratLine = `rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span>`;
     }
@@ -463,28 +463,26 @@ function renderEditView() {
 
   const playersTable = STATE.currentSlots.map((p, i) => {
     const q = projCurr.quality_per_player[i];
-    let ratCell, wmCell, contribCell;
+    let curCell, wtCell, contribCell;
     if (q.fallback) {
-      ratCell = `<span style="color:var(--orange)">N/A</span>`;
-      wmCell = `<span style="color:var(--muted)">—</span>`;
+      curCell = `<span style="color:var(--orange)">N/A</span>`;
+      wtCell = `<span style="color:var(--muted)">—</span>`;
       contribCell = `<span style="color:var(--orange)">${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(2)}*</span>`;
     } else {
-      const rawDisplay = q.rat365_raw !== null ? q.rat365_raw.toFixed(2) : '—';
-      ratCell = q.protected
-        ? `<span style="color:var(--muted)">${rawDisplay}</span>`
-        : rawDisplay;
-      wmCell = q.watermark !== null
-        ? (q.protected
-            ? `<span style="color:var(--purple);font-weight:700" title="Used as floor">⛨ ${q.watermark.toFixed(2)}</span>`
-            : q.watermark.toFixed(2))
-        : `<span style="color:var(--muted)">—</span>`;
+      const curDisplay = q.rat365_current !== null ? q.rat365_current.toFixed(2) : '—';
+      curCell = q.blended
+        ? `<span style="color:var(--muted)">${curDisplay}</span>`
+        : curDisplay;
+      wtCell = q.blended
+        ? `<span style="color:var(--purple);font-weight:700" title="Weighted across ${q.n_seasons} seasons (recency-decayed)">↺ ${q.rat365.toFixed(2)}</span>`
+        : q.rat365.toFixed(2);
       contribCell = `<span class="${q.contrib > 0.1 ? 'adj-pos' : q.contrib < -0.1 ? 'adj-neg' : ''}">${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(2)}</span>`;
     }
     return `
       <tr>
         <td>${i + 1}. ${p.name}</td>
-        <td class="num">${ratCell}</td>
-        <td class="num">${wmCell}</td>
+        <td class="num">${curCell}</td>
+        <td class="num">${wtCell}</td>
         <td class="num">${contribCell}</td>
         <td class="num">${p.ortg.toFixed(1)}</td>
         <td class="num">${p.drtg.toFixed(1)}</td>
@@ -545,10 +543,10 @@ function renderEditView() {
     <div class="breakdown">
       <h3>Player ingredients</h3>
       <table>
-        <thead><tr><th>Player</th><th class="num">rat365</th><th class="num">Watermark</th><th class="num">Quality Δ</th><th class="num">ORtg</th><th class="num">DRtg</th></tr></thead>
+        <thead><tr><th>Player</th><th class="num">Current rat365</th><th class="num">Weighted rat365</th><th class="num">Quality Δ</th><th class="num">ORtg</th><th class="num">DRtg</th></tr></thead>
         <tbody>
           ${playersTable}
-          <tr class="total"><td>Quality NetRtg baseline ${projCurr.n_protected > 0 ? `<span style="color:var(--purple);font-weight:normal">(⛨ ${projCurr.n_protected} watermark-protected)</span>` : ''} ${5 - projCurr.n_with_quality > 0 ? `<span style="color:var(--orange);font-weight:normal">(${5 - projCurr.n_with_quality} fallback*)</span>` : ''}</td>
+          <tr class="total"><td>Quality NetRtg baseline ${projCurr.n_blended > 0 ? `<span style="color:var(--purple);font-weight:normal">(↺ ${projCurr.n_blended} weighted-blended)</span>` : ''} ${5 - projCurr.n_with_quality > 0 ? `<span style="color:var(--orange);font-weight:normal">(${5 - projCurr.n_with_quality} fallback*)</span>` : ''}</td>
             <td class="num">—</td><td class="num">—</td>
             <td class="num ${projCurr.quality_net_baseline > 0 ? 'adj-pos' : projCurr.quality_net_baseline < 0 ? 'adj-neg' : ''}">${projCurr.quality_net_baseline >= 0 ? '+' : ''}${projCurr.quality_net_baseline.toFixed(1)}</td>
             <td class="num">avg ${projCurr.add_ortg.toFixed(1)}</td>
@@ -577,7 +575,7 @@ function renderEditView() {
       <strong>How to read:</strong>
       <ul>
         <li><strong>Projected NetRtg</strong> uses <em>player quality</em> (rat365 from HoopsMatic Real Value, stripped of age/draft factors) as the baseline — independent of team context. Each player's "Quality Δ" is their NetRtg contribution above an average rotation player.</li>
-        <li><strong>Watermark</strong> is the player's career-peak skill level (derived from peak PIE × 1.4). When current rat365 falls below 50% of watermark (typically due to injury or limited games), the projection uses watermark as a floor — so injured stars like Giannis or Haliburton are recognized at their healthy level. <span style="color:var(--purple)">⛨</span> indicates watermark protection is active.</li>
+        <li><strong>Weighted rat365</strong> blends each player's rat365 across all available seasons, weighted by <em>games played × recency</em> (each older season multiplied by 0.65). Current rat365 from HoopsMatic Real Value drives the current season; historical seasons are estimated from PIE × 1.4 from <code>player_stats.db</code>. <span style="color:var(--purple)">↺</span> indicates a player whose effective rat365 differs materially from their current — typically due to injury (Giannis, Haliburton) or a career trend (rookie improvement, veteran decline).</li>
         <li><strong>ORtg / DRtg</strong> are derived from the quality baseline (split 50/50 between offense and defense, anchored at league avg 115) plus the fit adjustments. They're consistent with NetRtg and free of team-context bias. The "avg" values shown in the breakdown are the OLD team-context-biased additive — kept for reference only.</li>
         <li><strong>Fit adjustments</strong> are learned from real NBA lineups and apply on top of the quality baseline — they capture spacing, usage overlap, rim protection, etc.</li>
         <li><strong>Original lineup actual</strong> shows what the unmodified lineup actually did. The gap between actual and projected gives a sense of model error.</li>
@@ -676,80 +674,100 @@ function renderSwapResults(query) {
   });
 }
 
-// Cache watermark queries per player_id (since they don't change within a session)
-const _watermarkCache = {};
+// Cache the weighted rat365 computation per (player_id, current_season).
+const _weightedRatCache = {};
 
-// PIE → rat365 scale factor. Calibrated so peak PIE ~21% maps to watermark ~29
-// (rat365 scale, ~equivalent to top-5 players' historical levels).
-const PIE_TO_RAT365 = 1.4;
-const PROTECT_THRESHOLD = 0.5;  // if current_rat365 < watermark * this, use watermark
+// Constants for the weighted historical model.
+const RECENCY_DECAY     = 0.65;  // each older season weight × this factor
+const PIE_TO_RAT365     = 1.4;   // PIE * 100 * this = rat365-equivalent (calibration)
+const MIN_SEASON_GP     = 5;     // skip seasons below this GP (too noisy)
 
-function computeWatermark(playerId) {
+function seasonStartYear(s) { return parseInt(String(s).slice(0, 4), 10); }
+
+// Compute a player's effective rat365 by weighting all available seasons.
+// Returns: { effective, current_rat365, seasons: [{season, gp, rat, weight, source}], n_seasons }
+function computeWeightedRat365(playerId, nbaName, currentSeason) {
   if (!playerId || !playerDb) return null;
-  if (_watermarkCache[playerId] !== undefined) return _watermarkCache[playerId];
+  const cacheKey = `${playerId}_${currentSeason}`;
+  if (_weightedRatCache[cacheKey] !== undefined) return _weightedRatCache[cacheKey];
+
+  // Pull every season this player has data in
   const r = playerDb.exec(`
-    SELECT MAX(CAST(PIE AS REAL)) AS max_pie
+    SELECT SEASON, CAST(GP AS INTEGER) AS GP, CAST(MIN AS FLOAT) AS MIN, CAST(PIE AS REAL) AS PIE
     FROM player_advanced
     WHERE PLAYER_ID = ${playerId}
       AND SEASON_TYPE = 'Regular Season'
-      AND CAST(MIN AS FLOAT) >= 20
-      AND CAST(GP AS INTEGER) >= 30
+      AND CAST(GP AS INTEGER) >= ${MIN_SEASON_GP}
+    ORDER BY SEASON DESC
   `);
-  let wm = null;
-  if (r.length && r[0].values.length && r[0].values[0][0] !== null) {
-    const max_pie_decimal = +r[0].values[0][0];  // 0.0-0.25 typical
-    wm = max_pie_decimal * 100 * PIE_TO_RAT365;  // convert to rat365 scale
+  if (!r.length || !r[0].values.length) {
+    _weightedRatCache[cacheKey] = null;
+    return null;
   }
-  _watermarkCache[playerId] = wm;
-  return wm;
-}
 
-// Look up a player's quality data with watermark injury protection.
-// Returns: { hh_name, rat365 (effective), rat365_raw, watermark, protected, source }
-function getQuality(nbaName, playerId) {
+  // Pull current rat365 from RV (if present)
   let current_rat365 = null;
-  let hh_name = null;
   if (QUALITY) {
     const hh = NAME_DICT[nbaName] || nbaName;
-    if (QUALITY.players[hh]) {
-      current_rat365 = QUALITY.players[hh].rat365;
-      hh_name = hh;
-    }
+    if (QUALITY.players[hh]) current_rat365 = QUALITY.players[hh].rat365;
   }
-  const watermark = computeWatermark(playerId);
 
-  // Decide the effective rat365:
-  //  - If both exist: use watermark as floor when current is anomalously low.
-  //  - If only current exists: use it as-is.
-  //  - If only watermark exists (e.g., Hali — not in current RV pool): use watermark
-  //    with a small uncertainty discount.
-  //  - Neither: signal fallback to caller.
-  let effective = null;
-  let protected_ = false;
-  let source = 'none';
-  if (current_rat365 !== null && watermark !== null) {
-    if (current_rat365 < watermark * PROTECT_THRESHOLD) {
-      effective = watermark;
-      protected_ = true;
-      source = 'watermark';
+  const currentYear = seasonStartYear(currentSeason);
+  let totalWeighted = 0;
+  let totalWeight = 0;
+  const seasons = [];
+
+  for (const [season, gp, min, pie] of r[0].values) {
+    const yearDelta = currentYear - seasonStartYear(season);
+    if (yearDelta < 0) continue;
+    const recencyWeight = Math.pow(RECENCY_DECAY, yearDelta);
+    const weight = gp * recencyWeight;
+
+    let seasonRat, source;
+    if (season === currentSeason && current_rat365 !== null) {
+      // Use real Real Value rat365 for the current season when available
+      seasonRat = current_rat365;
+      source = 'rv';
     } else {
-      effective = current_rat365;
-      source = 'current';
+      // Historical or current-without-RV: use PIE-derived equivalent
+      seasonRat = pie * 100 * PIE_TO_RAT365;
+      source = 'pie';
     }
-  } else if (current_rat365 !== null) {
-    effective = current_rat365;
-    source = 'current';
-  } else if (watermark !== null) {
-    effective = watermark * 0.85;  // 15% uncertainty discount for no current data
-    protected_ = true;
-    source = 'watermark_only';
+    totalWeighted += seasonRat * weight;
+    totalWeight += weight;
+    seasons.push({ season, gp, rat: seasonRat, weight, source });
   }
 
-  if (effective === null) return null;
+  if (totalWeight === 0) {
+    _weightedRatCache[cacheKey] = null;
+    return null;
+  }
+  const result = {
+    effective: totalWeighted / totalWeight,
+    current_rat365,
+    seasons,
+    n_seasons: seasons.length,
+  };
+  _weightedRatCache[cacheKey] = result;
+  return result;
+}
+
+// Quality lookup using weighted historical model.
+function getQuality(nbaName, playerId) {
+  const weighted = computeWeightedRat365(playerId, nbaName, STATE.season);
+  if (!weighted) return null;
+  const hh = NAME_DICT[nbaName] || nbaName;
+  // "Blended" = effective notably different from current (≥ 2 rat365 points or no current data)
+  const blended = (weighted.current_rat365 === null) ||
+                  (Math.abs(weighted.effective - weighted.current_rat365) >= 2.0);
   return {
-    hh_name, rat365: effective,
-    rat365_raw: current_rat365, watermark,
-    protected: protected_, source,
+    hh_name: hh,
+    rat365: weighted.effective,
+    rat365_current: weighted.current_rat365,
+    seasons: weighted.seasons,
+    n_seasons: weighted.n_seasons,
+    blended,
+    source: weighted.current_rat365 !== null ? 'rv+history' : 'history',
   };
 }
 
@@ -768,15 +786,15 @@ function projectLineup(players) {
     const q = getQuality(p.name, p.player_id);
     if (q) {
       return {
-        hh_name: q.hh_name, rat365: q.rat365, rat365_raw: q.rat365_raw,
-        watermark: q.watermark, protected: q.protected, source: q.source,
+        hh_name: q.hh_name, rat365: q.rat365, rat365_current: q.rat365_current,
+        seasons: q.seasons, n_seasons: q.n_seasons, blended: q.blended,
         contrib: (q.rat365 - CALIB) * SCALE,
         fallback: false,
       };
     }
     // Last-resort fallback: derive from individual NetRtg
-    return { hh_name: null, rat365: null, rat365_raw: null, watermark: null,
-             protected: false, source: 'netrtg',
+    return { hh_name: null, rat365: null, rat365_current: null,
+             seasons: [], n_seasons: 0, blended: false,
              contrib: (p.netrtg || 0) / 10, fallback: true };
   });
 
@@ -832,7 +850,7 @@ function projectLineup(players) {
     quality_per_player,
     quality_net_baseline,
     n_with_quality: quality_per_player.filter(q => !q.fallback).length,
-    n_protected: quality_per_player.filter(q => q.protected).length,
+    n_blended: quality_per_player.filter(q => q.blended).length,
     ortg_adj, drtg_adj, fit_net,
     ortg: display_ortg,              // headline display (quality-derived, unbiased)
     drtg: display_drtg,              // headline display (quality-derived, unbiased)
