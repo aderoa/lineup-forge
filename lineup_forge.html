@@ -219,7 +219,7 @@ let QUALITY = null;
 let DEFENSE = {};      // HH name → { def_score, team, gp }
 
 const STATE = {
-  page: 'team', season: null, team: null,
+  page: 'team', season: null, season_type: 'Regular Season', team: null,
   originalLineup: null,
   currentSlots: [null, null, null, null, null],
   swappedFrom: [null, null, null, null, null],
@@ -335,19 +335,45 @@ function getCommonSeasons() {
   return p.filter(s => l.includes(s));
 }
 
+function getAvailableSeasonTypes(season) {
+  const r = lineupsDb.exec(`
+    SELECT DISTINCT SEASON_TYPE, COUNT(*) AS n
+    FROM lineups_5man
+    WHERE SEASON = '${season}'
+    GROUP BY SEASON_TYPE
+    ORDER BY n DESC
+  `);
+  if (!r.length || !r[0].values.length) return [];
+  return r[0].values.map(([type, n]) => ({ type, n }));
+}
+
 function renderBreadcrumb() {
   const commonSeasons = getCommonSeasons();
   const seasonOpts = commonSeasons.map(s => `<option value="${s}" ${s === STATE.season ? 'selected' : ''}>${s}</option>`).join('');
-  const sel = `<select id="seasonSelect">${seasonOpts}</select>`;
+  const seasonSel = `<select id="seasonSelect">${seasonOpts}</select>`;
+
+  // Season type selector — only show types that have data in this season
+  const types = getAvailableSeasonTypes(STATE.season);
+  if (!types.find(t => t.type === STATE.season_type) && types.length > 0) {
+    STATE.season_type = types[0].type;  // fall back to whatever's available
+  }
+  let typeSel = '';
+  if (types.length > 1) {
+    const typeOpts = types.map(({type, n}) => `<option value="${type}" ${type === STATE.season_type ? 'selected' : ''}>${type} (${n.toLocaleString()})</option>`).join('');
+    typeSel = `<select id="typeSelect" style="margin-left:0.35rem">${typeOpts}</select>`;
+  } else if (types.length === 1) {
+    typeSel = `<span style="margin-left:0.35rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted)">${types[0].type}</span>`;
+  }
+
   const crumbs = [];
   if (STATE.page === 'team') {
     crumbs.push(`<span class="crumb active">Choose team</span>`);
-    crumbs.push(`<span class="sep">·</span>${sel}`);
+    crumbs.push(`<span class="sep">·</span>${seasonSel}${typeSel}`);
   } else if (STATE.page === 'lineup') {
     crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
     crumbs.push(`<span class="sep">›</span>`);
     crumbs.push(`<span class="crumb active">Choose ${STATE.team}'s lineup</span>`);
-    crumbs.push(`<span class="sep">·</span>${sel}`);
+    crumbs.push(`<span class="sep">·</span>${seasonSel}${typeSel}`);
   } else if (STATE.page === 'edit') {
     crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
     crumbs.push(`<span class="sep">›</span>`);
@@ -361,6 +387,14 @@ function renderBreadcrumb() {
   if (seasonEl) {
     seasonEl.addEventListener('change', (e) => {
       STATE.season = e.target.value;
+      if (STATE.page === 'team') renderTeamPicker();
+      else if (STATE.page === 'lineup') renderLineupPicker();
+    });
+  }
+  const typeEl = $('typeSelect');
+  if (typeEl) {
+    typeEl.addEventListener('change', (e) => {
+      STATE.season_type = e.target.value;
       if (STATE.page === 'team') renderTeamPicker();
       else if (STATE.page === 'lineup') renderLineupPicker();
     });
@@ -382,11 +416,12 @@ function renderTeamPicker() {
     SELECT TEAM_ABBREVIATION, COUNT(*) AS n_lineups
     FROM lineups_5man
     WHERE SEASON = '${STATE.season}'
+      AND SEASON_TYPE = '${STATE.season_type}'
     GROUP BY TEAM_ABBREVIATION
     ORDER BY TEAM_ABBREVIATION
   `);
   if (!teams.length || !teams[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No lineup data for ${STATE.season}. Try another season.</div>`;
+    $('content').innerHTML = `<div class="empty-state">No ${STATE.season_type.toLowerCase()} lineup data for ${STATE.season}. Try another season or season type.</div>`;
     return;
   }
 
@@ -410,13 +445,13 @@ function renderLineupPicker() {
     SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
     FROM lineups_5man
     WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
-      AND SEASON_TYPE = 'Regular Season'
+      AND SEASON_TYPE = '${STATE.season_type}'
     ORDER BY MIN DESC
     LIMIT 20
   `);
 
   if (!r.length || !r[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No qualifying lineups (50+ min) for ${STATE.team} in ${STATE.season}.</div>`;
+    $('content').innerHTML = `<div class="empty-state">No ${STATE.season_type.toLowerCase()} lineups for ${STATE.team} in ${STATE.season}.</div>`;
     return;
   }
 
@@ -437,7 +472,7 @@ function renderLineupPicker() {
 
   $('content').innerHTML = `
     <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
-      ${STATE.team} 5-man lineups for ${STATE.season} — sorted by minutes. Click any to start swapping.
+      ${STATE.team} 5-man lineups — ${STATE.season} ${STATE.season_type} — sorted by minutes. Click any to start swapping.
     </div>
     <div class="lineup-list">${cards}</div>
   `;
@@ -451,6 +486,7 @@ function loadOriginalLineup(groupId) {
     SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
     FROM lineups_5man
     WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
+      AND SEASON_TYPE = '${STATE.season_type}'
       AND GROUP_ID = '${groupId.replace(/'/g, "''")}'
     LIMIT 1
   `);
@@ -628,7 +664,7 @@ function renderEditView() {
       </div>
       <div class="proj-tier">${classifyLineup(projCurr.netrtg)}</div>
       <div class="proj-tier" style="border-left-color:var(--gold)">
-        <strong>Original lineup actual:</strong>
+        <strong>Original lineup actual (${STATE.season} ${STATE.season_type}):</strong>
         ORtg ${orig.stats.ortg.toFixed(1)} · DRtg ${orig.stats.drtg.toFixed(1)} ·
         NetRtg ${orig.stats.netrtg >= 0 ? '+' : ''}${orig.stats.netrtg.toFixed(1)} ·
         ${Math.round(orig.stats.min)} MIN in ${Math.round(orig.stats.gp)} games
