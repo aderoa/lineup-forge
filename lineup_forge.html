@@ -578,7 +578,7 @@ function renderEditView() {
       <ul>
         <li><strong>Projected NetRtg</strong> uses <em>player quality</em> (rat365 from HoopsMatic Real Value, stripped of age/draft factors) as the baseline — independent of team context. Each player's "Quality Δ" is their NetRtg contribution above an average rotation player.</li>
         <li><strong>Watermark</strong> is the player's career-peak skill level (derived from peak PIE × 1.4). When current rat365 falls below 50% of watermark (typically due to injury or limited games), the projection uses watermark as a floor — so injured stars like Giannis or Haliburton are recognized at their healthy level. <span style="color:var(--purple)">⛨</span> indicates watermark protection is active.</li>
-        <li><strong>ORtg / DRtg</strong> shown above are additive averages of individual player ratings + fit adjustments. They <em>carry team-context bias</em> — use NetRtg as the trusted headline.</li>
+        <li><strong>ORtg / DRtg</strong> are derived from the quality baseline (split 50/50 between offense and defense, anchored at league avg 115) plus the fit adjustments. They're consistent with NetRtg and free of team-context bias. The "avg" values shown in the breakdown are the OLD team-context-biased additive — kept for reference only.</li>
         <li><strong>Fit adjustments</strong> are learned from real NBA lineups and apply on top of the quality baseline — they capture spacing, usage overlap, rim protection, etc.</li>
         <li><strong>Original lineup actual</strong> shows what the unmodified lineup actually did. The gap between actual and projected gives a sense of model error.</li>
         <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
@@ -811,15 +811,31 @@ function projectLineup(players) {
   }
   const fit_net = ortg_adj - drtg_adj;
 
+  // ── ORtg / DRtg display derivation ───────────────────────────────────────
+  // The OLD additive (mean of player.ortg / player.drtg) carries team-context
+  // bias: a player from a bad-defense team will look bad defensively just
+  // because of his team. Instead, derive ORtg/DRtg from the quality baseline
+  // (which is team-context-independent), splitting it 50/50 between O and D.
+  // Anchor at league baseline 115 (modern NBA approximation).
+  //
+  // This is imperfect (doesn't distinguish offensive vs defensive specialists),
+  // but it removes the misleading "+6.4 DRtg when adding Giannis" effect from
+  // additive averaging. A proper fix using Defensive Rankings DEF_SCORE is
+  // the next iteration.
+  const LEAGUE_BASE = 115;
+  const half_quality = quality_net_baseline / 2;
+  const display_ortg = LEAGUE_BASE + half_quality + ortg_adj;
+  const display_drtg = LEAGUE_BASE - half_quality + drtg_adj;
+
   return {
-    add_ortg, add_drtg, pace,
+    add_ortg, add_drtg, pace,        // kept for breakdown table (informational, biased)
     quality_per_player,
     quality_net_baseline,
     n_with_quality: quality_per_player.filter(q => !q.fallback).length,
     n_protected: quality_per_player.filter(q => q.protected).length,
     ortg_adj, drtg_adj, fit_net,
-    ortg: add_ortg + ortg_adj,
-    drtg: add_drtg + drtg_adj,
+    ortg: display_ortg,              // headline display (quality-derived, unbiased)
+    drtg: display_drtg,              // headline display (quality-derived, unbiased)
     netrtg: quality_net_baseline + fit_net,
     breakdown,
   };
