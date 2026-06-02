@@ -188,10 +188,13 @@ const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
 
 // Boost gate (gradual GP-based taper): only apply the asymmetric historical boost
 // when current-season sample is limited. Linear taper between FULL and NONE:
-//   currentGP ≤ BOOST_GP_FULL: full boost (clearly limited sample, e.g., Giannis 15 GP)
-//   currentGP ≥ BOOST_GP_NONE: no boost (full-season trust, e.g., Nurkić 65+ GP)
-//   in between: linearly tapered (e.g., 30 GP → 67% boost; 40 GP → 33% boost)
-const BOOST_GP_FULL = 20;
+//   currentGP ≤ BOOST_GP_FULL: full boost (still ramping-up or injury-disrupted)
+//   currentGP ≥ BOOST_GP_NONE: no boost (full-season trust, healthy starter)
+//   in between: linearly tapered
+// Window centered on the "borderline" range (40-50 GP) where neither current nor
+// historical is fully right. Giannis at 36 GP still ramping up → full historical;
+// healthy starters at 60+ GP → trust their actual current performance.
+const BOOST_GP_FULL = 40;
 const BOOST_GP_NONE = 50;
 function boostFraction(currentGP) {
   if (currentGP >= BOOST_GP_NONE) return 0;
@@ -679,7 +682,7 @@ function renderEditView() {
             <li><em>Defense Δ</em> = (DEF_SCORE − 10) × 0.18 — from your Defensive Rankings system</li>
           </ul>
         </li>
-        <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend boost is applied <em>gradually</em> based on current-season games played: full boost below 20 GP, no boost above 50 GP, linear taper in between. So Giannis (15 GP) gets full credit for his career level, while Nurkić (65+ GP) trusts his actual current value, and a load-managed vet at 35 GP gets a partial boost. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
+        <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend boost is applied <em>gradually</em> based on current-season games played: full boost below 40 GP, no boost above 50 GP, linear taper in between. So an injured/ramping-up star (Giannis at 36 GP) still gets full credit for his career level, while a healthy starter (60+ GP) trusts their actual current value. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
         <li><strong>Projected ORtg</strong> = 115 + sum of offense Δs + fit ORtg adj. <strong>Projected DRtg</strong> = 115 − sum of defense Δs + fit DRtg adj. So elite defenders <em>lower</em> the projected DRtg directly.</li>
         <li><strong>Fit adjustments</strong> are learned from real NBA lineups — they capture lineup-composition effects (spacing, usage stacking, rim protection, etc.) on top of the per-player quality. Currently applied at <strong>${(FIT_WEIGHT * 100).toFixed(0)}% weight</strong> so individual star talent has the bigger say (fit buckets average across all lineups in a category and can't distinguish exceptional individuals like Giannis from typical bucket members).</li>
         <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
