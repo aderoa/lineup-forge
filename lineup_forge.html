@@ -375,24 +375,34 @@ function loadOriginalLineup(groupId) {
   renderEditView();
 }
 
-function loadPlayer(playerId, season) {
+function loadPlayer(playerId, preferredSeason) {
+  // Try preferred season first; if no qualifying data (low minutes or
+  // injured), fall back to the player's most recent season with rotation
+  // minutes. This handles cases like Haliburton (out 2025-26 with Achilles)
+  // where we want to use his last healthy year.
   const r = playerDb.exec(`
-    SELECT a.PLAYER_ID, a.PLAYER_NAME, a.TEAM_ABBREVIATION,
+    SELECT a.PLAYER_ID, a.PLAYER_NAME, a.TEAM_ABBREVIATION, a.SEASON,
            a.OFF_RATING, a.DEF_RATING, a.NET_RATING, a.USG_PCT, a.TS_PCT,
-           a.AST_PCT, a.REB_PCT, a.PIE, a.PACE, a.MIN,
+           a.AST_PCT, a.REB_PCT, a.PIE, a.PACE, a.MIN, a.GP,
            b.FG3_PCT, b.FG3A, b.BLK
     FROM player_advanced a
     LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
-    WHERE a.PLAYER_ID = ${playerId} AND a.SEASON = '${season}' AND a.SEASON_TYPE = 'Regular Season'
+    WHERE a.PLAYER_ID = ${playerId}
+      AND a.SEASON_TYPE = 'Regular Season'
+      AND CAST(a.MIN AS FLOAT) >= 10
+      AND CAST(a.GP AS INTEGER) >= 5
+    ORDER BY
+      CASE WHEN a.SEASON = '${preferredSeason}' THEN 0 ELSE 1 END,
+      a.SEASON DESC
     LIMIT 1
   `);
-  if (!r.length) return null;
+  if (!r.length || !r[0].values.length) return null;
   const v = r[0].values[0];
   return {
-    player_id: v[0], name: v[1], team: v[2], season,
-    ortg:+v[3], drtg:+v[4], netrtg:+v[5], usg:+v[6], ts:+v[7],
-    ast_pct:+v[8], reb_pct:+v[9], pie:+v[10], pace:+v[11], min:+v[12],
-    fg3p:+v[13], fg3a:+v[14], blk:+v[15],
+    player_id: v[0], name: v[1], team: v[2], season: v[3],
+    ortg:+v[4], drtg:+v[5], netrtg:+v[6], usg:+v[7], ts:+v[8],
+    ast_pct:+v[9], reb_pct:+v[10], pie:+v[11], pace:+v[12], min:+v[13], gp:+v[14],
+    fg3p:+v[15], fg3a:+v[16], blk:+v[17],
   };
 }
 
@@ -564,23 +574,41 @@ function wireModal() {
 }
 function renderSwapResults(query) {
   if (!query || query.length < 2) { $('swapResults').innerHTML = ''; return; }
+  // Search across ALL seasons — preference current, fall back to most recent
+  // healthy season per player. This is what lets you swap in a player who
+  // didn't play in the selected season (e.g., injured stars).
   const r = playerDb.exec(`
-    SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION, MIN, OFF_RATING, USG_PCT
+    SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION, SEASON, GP, MIN, OFF_RATING, USG_PCT
     FROM player_advanced
     WHERE PLAYER_NAME LIKE '%${query.replace(/'/g, "''")}%'
-      AND SEASON = '${STATE.season}'
       AND SEASON_TYPE = 'Regular Season'
-      AND MIN >= 10
-    ORDER BY MIN DESC
-    LIMIT 8
+      AND CAST(MIN AS FLOAT) >= 10
+      AND CAST(GP AS INTEGER) >= 5
+    ORDER BY PLAYER_NAME,
+      CASE WHEN SEASON = '${STATE.season}' THEN 0 ELSE 1 END,
+      SEASON DESC
   `);
-  if (!r.length) { $('swapResults').innerHTML = `<div class="empty-state" style="padding:1rem">No matches in ${STATE.season}</div>`; return; }
-  const items = r[0].values.map(([pid, name, team, min, ortg, usg]) => `
-    <div class="swap-result-item" data-pid="${pid}">
-      <div class="name">${name}</div>
-      <div class="meta">${team || '—'} · ORtg ${Number(ortg).toFixed(0)} · USG ${(Number(usg) * 100).toFixed(1)}% · ${Number(min).toFixed(0)} MIN</div>
-    </div>
-  `).join('');
+  if (!r.length || !r[0].values.length) {
+    $('swapResults').innerHTML = `<div class="empty-state" style="padding:1rem">No matches found</div>`;
+    return;
+  }
+  // Group by player — first row wins (we already sorted preferred season first)
+  const byPlayer = {};
+  for (const v of r[0].values) {
+    const pid = v[0];
+    if (!(pid in byPlayer)) byPlayer[pid] = v;
+  }
+  const top = Object.values(byPlayer).slice(0, 8);
+  const items = top.map(([pid, name, team, season, gp, min, ortg, usg]) => {
+    const seasonTag = season === STATE.season ? '' :
+      `<span style="color:var(--orange);margin-left:0.3rem">↶ ${season}</span>`;
+    return `
+      <div class="swap-result-item" data-pid="${pid}">
+        <div class="name">${name}${seasonTag}</div>
+        <div class="meta">${team || '—'} · ORtg ${Number(ortg).toFixed(0)} · USG ${(Number(usg) * 100).toFixed(1)}% · ${Number(gp).toFixed(0)}G ${Number(min).toFixed(0)} MIN</div>
+      </div>
+    `;
+  }).join('');
   $('swapResults').innerHTML = items;
   document.querySelectorAll('.swap-result-item').forEach(el => {
     el.addEventListener('click', () => {
