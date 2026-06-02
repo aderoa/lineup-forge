@@ -9,175 +9,134 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 :root {
-  --bg: #0c0f14;
-  --surface: #141820;
-  --surface2: #1a1f2b;
-  --border: #252b38;
-  --text1: #e8eaed;
-  --text2: #9aa0ad;
-  --muted: #5e6577;
-  --accent: #3b82f6;
-  --accent-dim: rgba(59,130,246,0.12);
-  --green: #22c55e;
-  --red: #ef4444;
-  --orange: #f59e0b;
-  --gold: #f0b637;
+  --bg: #0c0f14; --surface: #141820; --surface2: #1a1f2b; --border: #252b38;
+  --text1: #e8eaed; --text2: #9aa0ad; --muted: #5e6577;
+  --accent: #3b82f6; --accent-dim: rgba(59,130,246,0.12);
+  --green: #22c55e; --red: #ef4444; --orange: #f59e0b; --gold: #f0b637; --purple: #a78bfa;
 }
 body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1); min-height:100vh; padding-bottom:4rem; }
 ::-webkit-scrollbar { height:6px; width:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:#2a3142; border-radius:3px; }
 
-.header {
-  background:linear-gradient(135deg, #1a1f2b 0%, #0c0f14 100%);
-  border-bottom:1px solid var(--border);
-  padding:1.25rem 2rem;
-  display:flex; align-items:center; gap:1rem;
-}
+.header { background:linear-gradient(135deg,#1a1f2b 0%,#0c0f14 100%); border-bottom:1px solid var(--border); padding:1.25rem 2rem; display:flex; align-items:center; gap:1rem; }
 .header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; }
 .header .logo span { color:var(--accent); }
-.header .badge {
-  font-size:0.6rem; padding:0.2rem 0.5rem; background:rgba(59,130,246,0.15);
-  color:var(--accent); border-radius:4px; font-weight:600; letter-spacing:0.05em;
-}
+.header .badge { font-size:0.6rem; padding:0.2rem 0.5rem; background:rgba(59,130,246,0.15); color:var(--accent); border-radius:4px; font-weight:600; letter-spacing:0.05em; }
 .header .sub { font-size:0.7rem; color:var(--muted); margin-left:auto; font-family:'JetBrains Mono',monospace; }
 
-#status {
-  padding:0.6rem 2rem; background:rgba(245,158,11,0.08); color:var(--orange);
-  font-size:0.8rem; border-bottom:1px solid var(--border);
-}
+#status { padding:0.6rem 2rem; background:rgba(245,158,11,0.08); color:var(--orange); font-size:0.78rem; border-bottom:1px solid var(--border); }
 #status.ready { background:rgba(34,197,94,0.06); color:var(--green); }
 #status.error { background:rgba(239,68,68,0.08); color:var(--red); }
+#status.hidden { display:none; }
 
 .wrap { max-width:1200px; margin:0 auto; padding:1.5rem 2rem; }
 
-/* Season + opponent controls */
-.controls {
-  display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;
-  padding:1rem 1.25rem; background:var(--surface); border:1px solid var(--border);
-  border-radius:10px;
-}
-.ctrl { display:flex; flex-direction:column; gap:0.3rem; }
-.ctrl label { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
-.ctrl select, .ctrl input {
-  font-family:inherit; font-size:0.85rem; padding:0.5rem 0.65rem;
-  background:var(--surface2); color:var(--text1); border:1px solid var(--border);
-  border-radius:6px; outline:none; min-width:140px;
-}
-.ctrl select:focus, .ctrl input:focus { border-color:var(--accent); }
+.breadcrumb { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size:0.78rem; color:var(--text2); margin-bottom:1.25rem; }
+.breadcrumb .crumb { color:var(--text2); cursor:pointer; transition:color .15s; }
+.breadcrumb .crumb.active { color:var(--accent); font-weight:600; cursor:default; }
+.breadcrumb .crumb:hover:not(.active) { color:var(--text1); }
+.breadcrumb .sep { color:var(--muted); }
+.breadcrumb select { font-family:inherit; font-size:0.8rem; padding:0.3rem 0.5rem; margin-left:0.5rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; outline:none; }
 
-/* Lineup slots */
-.lineup-grid {
-  display:grid; grid-template-columns:repeat(5, 1fr); gap:0.75rem;
-  margin-bottom:1.5rem;
-}
-.slot {
-  background:var(--surface); border:1px solid var(--border); border-radius:10px;
-  padding:1rem; min-height:140px; display:flex; flex-direction:column; gap:0.5rem;
-  position:relative;
-}
-.slot.filled { border-color:var(--accent); }
-.slot .slot-label {
-  font-size:0.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-weight:600;
-}
-.slot input[type=text] {
-  font-family:inherit; font-size:0.85rem; padding:0.5rem 0.65rem;
-  background:var(--surface2); color:var(--text1); border:1px solid var(--border);
-  border-radius:6px; outline:none; width:100%;
-}
-.slot input[type=text]:focus { border-color:var(--accent); }
-.slot .player-info { margin-top:0.4rem; font-size:0.72rem; line-height:1.5; }
-.slot .player-info .name { font-weight:700; color:var(--text1); font-size:0.86rem; margin-bottom:0.3rem; }
-.slot .player-info .team { color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:0.65rem; margin-left:0.4rem; }
-.slot .player-info .stats { color:var(--text2); font-family:'JetBrains Mono',monospace; font-size:0.68rem; }
-.slot .clear-btn {
-  position:absolute; top:0.4rem; right:0.4rem; font-size:0.7rem; color:var(--muted);
-  background:none; border:none; cursor:pointer; padding:0.2rem 0.4rem;
-}
-.slot .clear-btn:hover { color:var(--red); }
+.team-grid { display:grid; grid-template-columns:repeat(6, 1fr); gap:0.6rem; }
+.team-tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.1rem 0.5rem; text-align:center; cursor:pointer; transition:border-color .15s, transform .1s, background .15s; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.05rem; letter-spacing:0.02em; }
+.team-tile:hover { border-color:var(--accent); background:var(--accent-dim); }
+.team-tile:active { transform:translateY(1px); }
+.team-tile .team-full { font-family:'DM Sans',sans-serif; font-weight:500; font-size:0.62rem; color:var(--muted); margin-top:0.3rem; }
 
-/* Autocomplete dropdown */
-.autocomplete {
-  position:absolute; top:100%; left:0; right:0; z-index:50;
-  background:var(--surface2); border:1px solid var(--border); border-radius:6px;
-  margin-top:0.25rem; max-height:280px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.4);
-}
-.autocomplete-item {
-  padding:0.5rem 0.65rem; cursor:pointer; border-bottom:1px solid var(--border);
-  font-size:0.78rem; line-height:1.3;
-}
-.autocomplete-item:last-child { border-bottom:none; }
-.autocomplete-item:hover, .autocomplete-item.active { background:var(--accent-dim); }
-.autocomplete-item .name { font-weight:600; }
-.autocomplete-item .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.66rem; margin-top:0.15rem; }
+.lineup-list { display:flex; flex-direction:column; gap:0.5rem; }
+.lineup-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color .15s, background .15s; display:grid; grid-template-columns:1fr auto auto auto auto; gap:1rem; align-items:center; }
+.lineup-card:hover { border-color:var(--accent); background:rgba(59,130,246,0.04); }
+.lineup-card .names { font-size:0.84rem; font-weight:600; line-height:1.4; }
+.lineup-card .names .sep { color:var(--muted); margin:0 0.25rem; font-weight:400; }
+.lineup-card .stat { display:flex; flex-direction:column; gap:0.1rem; text-align:right; font-family:'JetBrains Mono',monospace; }
+.lineup-card .stat .lbl { font-size:0.56rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+.lineup-card .stat .val { font-size:0.92rem; font-weight:700; }
+.lineup-card .stat.net .val.pos { color:var(--green); }
+.lineup-card .stat.net .val.neg { color:var(--red); }
+.lineup-card .stat.net .val.neutral { color:var(--orange); }
 
-.btn {
-  font-family:inherit; font-size:0.85rem; font-weight:700;
-  padding:0.65rem 1.5rem; border:none; border-radius:6px; cursor:pointer;
-  transition:background .15s, transform .1s;
-  background:var(--accent); color:#fff;
-}
-.btn:hover { background:#2563eb; }
-.btn:active { transform:translateY(1px); }
-.btn:disabled { background:var(--surface2); color:var(--muted); cursor:not-allowed; }
-.btn.secondary { background:var(--surface2); color:var(--text1); border:1px solid var(--border); }
-.btn.secondary:hover { border-color:var(--accent); color:var(--accent); }
+.empty-state { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:0.85rem; background:var(--surface); border:1px dashed var(--border); border-radius:10px; }
 
-.action-row { display:flex; gap:0.6rem; margin-bottom:1.5rem; }
-
-/* Projection results */
-.projection {
-  background:var(--surface); border:1px solid var(--border); border-radius:12px;
-  padding:1.5rem; margin-bottom:1rem;
-}
-.proj-headline { display:flex; align-items:baseline; gap:1.5rem; margin-bottom:1rem; flex-wrap:wrap; }
-.proj-stat { display:flex; flex-direction:column; gap:0.15rem; }
-.proj-stat .label { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; font-weight:600; }
-.proj-stat .value { font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:700; }
-.proj-stat.headline .value { font-size:2rem; color:var(--accent); }
+.proj-panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.25rem; }
+.proj-row { display:flex; gap:2rem; flex-wrap:wrap; align-items:baseline; }
+.proj-stat { display:flex; flex-direction:column; gap:0.15rem; min-width:90px; }
+.proj-stat .label { font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
+.proj-stat .value { font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:700; }
+.proj-stat.headline .value { font-size:2.4rem; color:var(--accent); line-height:1.1; }
 .proj-stat.headline.green .value { color:var(--green); }
 .proj-stat.headline.red .value { color:var(--red); }
 .proj-stat.headline.orange .value { color:var(--orange); }
-.proj-tier {
-  font-size:0.72rem; color:var(--text2); font-style:italic; margin-bottom:1rem;
-  padding:0.5rem 0.75rem; background:var(--surface2); border-radius:6px;
-  border-left:3px solid var(--accent);
-}
+.proj-stat .delta { font-family:'JetBrains Mono',monospace; font-size:0.72rem; margin-top:0.15rem; }
+.proj-stat .delta.pos { color:var(--green); }
+.proj-stat .delta.neg { color:var(--red); }
+.proj-stat .delta.zero { color:var(--muted); }
 
-.breakdown { margin-top:1rem; }
-.breakdown h3 { font-size:0.95rem; font-weight:700; margin-bottom:0.6rem; }
-.breakdown table { width:100%; font-size:0.78rem; border-collapse:collapse; }
-.breakdown td, .breakdown th {
-  padding:0.4rem 0.65rem; border-bottom:1px solid var(--border); text-align:left;
-}
-.breakdown th { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; background:var(--surface2); }
+.proj-tier { font-size:0.74rem; color:var(--text2); font-style:italic; margin-top:1rem; padding:0.5rem 0.75rem; background:var(--surface2); border-radius:6px; border-left:3px solid var(--accent); }
+
+.lineup-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:0.6rem; margin-bottom:1.25rem; }
+.slot { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 0.75rem; position:relative; display:flex; flex-direction:column; gap:0.45rem; transition:border-color .15s; }
+.slot.swapped { border-color:var(--purple); background:rgba(167,139,250,0.04); }
+.slot .slot-num { font-size:0.55rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
+.slot .name { font-weight:700; font-size:0.85rem; line-height:1.2; }
+.slot .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.62rem; }
+.slot .stats { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text2); line-height:1.5; }
+.slot .swap-btn { margin-top:auto; padding:0.4rem 0.6rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; cursor:pointer; font-family:inherit; font-size:0.7rem; font-weight:600; transition:border-color .15s, color .15s; }
+.slot .swap-btn:hover { border-color:var(--accent); color:var(--accent); }
+.slot .from-tag { position:absolute; top:0.4rem; right:0.4rem; font-family:'JetBrains Mono',monospace; font-size:0.5rem; color:var(--purple); background:rgba(167,139,250,0.1); padding:0.15rem 0.35rem; border-radius:3px; letter-spacing:0.04em; font-weight:600; }
+
+.action-row { display:flex; gap:0.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+.btn { font-family:inherit; font-size:0.82rem; font-weight:700; padding:0.6rem 1.2rem; border:none; border-radius:6px; cursor:pointer; transition:background .15s, transform .1s; background:var(--accent); color:#fff; }
+.btn:hover { background:#2563eb; }
+.btn:active { transform:translateY(1px); }
+.btn.secondary { background:var(--surface2); color:var(--text1); border:1px solid var(--border); }
+.btn.secondary:hover { border-color:var(--accent); color:var(--accent); }
+
+.breakdown { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; }
+.breakdown h3 { font-size:0.88rem; font-weight:700; margin-bottom:0.5rem; }
+.breakdown table { width:100%; font-size:0.76rem; border-collapse:collapse; }
+.breakdown td, .breakdown th { padding:0.35rem 0.5rem; border-bottom:1px solid var(--border); text-align:left; }
+.breakdown th { font-size:0.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
 .breakdown td.num { font-family:'JetBrains Mono',monospace; text-align:right; }
 .breakdown tr:last-child td { border-bottom:none; }
 .breakdown tr.total { font-weight:700; background:var(--surface2); }
 .breakdown td.adj-pos { color:var(--green); }
 .breakdown td.adj-neg { color:var(--red); }
-.breakdown td.adj-zero { color:var(--muted); }
 
-.notes {
-  font-size:0.72rem; color:var(--text2); line-height:1.6; margin-top:1rem;
-  padding:0.8rem 1rem; background:var(--surface2); border-radius:8px;
-}
+.notes { font-size:0.7rem; color:var(--text2); line-height:1.6; padding:0.8rem 1rem; background:var(--surface2); border-radius:8px; }
 .notes strong { color:var(--text1); }
-.notes ul { margin:0.4rem 0 0 1.2rem; }
+.notes ul { margin:0.3rem 0 0 1.2rem; }
 
-.empty-state {
-  text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:0.85rem;
-  background:var(--surface); border:1px dashed var(--border); border-radius:10px;
-}
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:none; align-items:flex-start; justify-content:center; padding:3rem 1rem; }
+.modal-bg.open { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:480px; padding:1.25rem; max-height:80vh; overflow-y:auto; }
+.modal h3 { font-size:1rem; margin-bottom:0.5rem; }
+.modal .swap-sub { font-size:0.74rem; color:var(--muted); margin-bottom:0.85rem; }
+.modal input[type=text] { width:100%; padding:0.6rem 0.75rem; font-family:inherit; font-size:0.9rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:6px; outline:none; margin-bottom:0.85rem; }
+.modal input[type=text]:focus { border-color:var(--accent); }
+.swap-results { display:flex; flex-direction:column; gap:0.3rem; }
+.swap-result-item { padding:0.55rem 0.7rem; cursor:pointer; border:1px solid var(--border); border-radius:6px; transition:border-color .15s, background .15s; }
+.swap-result-item:hover { border-color:var(--accent); background:var(--accent-dim); }
+.swap-result-item .name { font-weight:600; font-size:0.84rem; }
+.swap-result-item .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.66rem; margin-top:0.15rem; }
+.modal .close-btn { width:100%; margin-top:0.5rem; padding:0.5rem; background:var(--surface2); color:var(--text2); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-family:inherit; font-size:0.82rem; }
+.modal .close-btn:hover { color:var(--text1); border-color:var(--accent); }
 
 @media (max-width: 900px), (pointer: coarse) {
   .header { padding:1rem; }
   .wrap { padding:1rem; }
+  .team-grid { grid-template-columns:repeat(4, 1fr); gap:0.4rem; }
+  .team-tile { padding:0.8rem 0.4rem; font-size:0.92rem; }
+  .lineup-card { grid-template-columns:1fr auto; row-gap:0.4rem; padding:0.7rem; }
+  .lineup-card .stat { flex-direction:row; align-items:baseline; gap:0.3rem; }
+  .lineup-card .stat .lbl { font-size:0.6rem; }
+  .lineup-card .stat .val { font-size:0.78rem; }
   .lineup-grid { grid-template-columns:repeat(2, 1fr); }
-  .slot { min-height:120px; }
-  .controls { padding:0.7rem; gap:0.5rem; }
-  .ctrl select, .ctrl input { min-width:auto; width:100%; }
-  .proj-stat.headline .value { font-size:1.5rem; }
+  .slot { padding:0.7rem 0.55rem; }
+  .proj-stat .value { font-size:1.2rem; }
+  .proj-stat.headline .value { font-size:1.6rem; }
+  .proj-row { gap:1rem; }
 }
 </style>
 </head>
@@ -192,75 +151,71 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 <div id="status">Initializing...</div>
 
 <div class="wrap">
+  <div class="breadcrumb" id="breadcrumb"><span class="crumb active">Choose team</span></div>
+  <div id="content"></div>
+</div>
 
-  <div class="controls">
-    <div class="ctrl">
-      <label>Player Pool Season</label>
-      <select id="seasonSelect"></select>
-    </div>
-    <div class="ctrl">
-      <label>Compare vs. Team Baseline</label>
-      <select id="baselineTeam">
-        <option value="">— None —</option>
-      </select>
-    </div>
+<div class="modal-bg" id="swapModal">
+  <div class="modal">
+    <h3 id="swapTitle">Swap player</h3>
+    <div class="swap-sub" id="swapSub"></div>
+    <input type="text" id="swapInput" placeholder="Type player name..." autocomplete="off">
+    <div class="swap-results" id="swapResults"></div>
+    <button class="close-btn" id="swapClose">Cancel</button>
   </div>
-
-  <div class="lineup-grid" id="lineupGrid">
-    <!-- 5 slots dynamically inserted -->
-  </div>
-
-  <div class="action-row">
-    <button class="btn" id="projectBtn" disabled>Project Lineup</button>
-    <button class="btn secondary" id="clearBtn">Clear All</button>
-    <button class="btn secondary" id="demoBtn">Try Demo (Giannis → OKC)</button>
-  </div>
-
-  <div id="result"></div>
-
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
 <script>
-// ────────────────────────────────────────────────────────────────────
-// CONFIG — set these to wherever you publish player_stats.db.gz and fit_coefficients.json
-// ────────────────────────────────────────────────────────────────────
-const PLAYER_DB_URL = 'https://aderoa.github.io/lineup-forge/player_stats.db.gz';
-const COEFS_URL     = 'https://aderoa.github.io/lineup-forge/fit_coefficients.json';
+const PLAYER_DB_URL  = 'https://aderoa.github.io/lineup-forge/player_stats.db.gz';
+const LINEUPS_DB_URL = 'https://aderoa.github.io/lineup-forge/lineups.db.gz';
+const COEFS_URL      = 'https://aderoa.github.io/lineup-forge/fit_coefficients.json';
 
-let db = null;
-let coefs = null;
-const slots = [null, null, null, null, null]; // each holds {player_id, name, season, ...}
+const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
+const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
+
+let playerDb = null, lineupsDb = null, coefs = null;
+
+const STATE = {
+  page: 'team', season: null, team: null,
+  originalLineup: null,
+  currentSlots: [null, null, null, null, null],
+  swappedFrom: [null, null, null, null, null],
+};
 
 const $ = id => document.getElementById(id);
-const setStatus = (msg, cls = '') => { $('status').textContent = msg; $('status').className = cls; };
+const setStatus = (msg, cls = '') => {
+  const el = $('status');
+  if (cls === 'hidden') { el.className = 'hidden'; return; }
+  el.textContent = msg;
+  el.className = cls;
+};
 
-// ────────────────────────────────────────────────────────────────────
-// Boot
-// ────────────────────────────────────────────────────────────────────
 async function boot() {
   try {
     setStatus('Loading SQL engine...');
-    const SQL = await initSqlJs({
-      locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}`
-    });
+    const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
 
-    setStatus('Downloading player stats database...');
-    const [dbBuf, coefsJson] = await Promise.all([
+    setStatus('Downloading data...');
+    const [playerBuf, lineupsBuf, coefsJson] = await Promise.all([
       fetchDb(PLAYER_DB_URL),
+      fetchDb(LINEUPS_DB_URL),
       fetch(COEFS_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
     ]);
 
-    db = new SQL.Database(new Uint8Array(dbBuf));
+    playerDb  = new SQL.Database(new Uint8Array(playerBuf));
+    lineupsDb = new SQL.Database(new Uint8Array(lineupsBuf));
     coefs = coefsJson;
 
-    const meta = db.exec("SELECT key, value FROM _meta")[0];
-    const metaMap = Object.fromEntries(meta.values);
-    $('meta').textContent = `${Number(metaMap.total_rows).toLocaleString()} rows · ${(dbBuf.byteLength / 1024 / 1024).toFixed(1)}MB`;
+    const commonSeasons = getCommonSeasons();
+    STATE.season = commonSeasons[0];
 
-    initControls();
-    renderSlots();
-    setStatus(`✓ Ready · ${coefs.meta.n_lineups.toLocaleString()} lineups trained the fit model · most recent season: ${getMostRecentSeason()}`, 'ready');
+    const totalMB = ((playerBuf.byteLength + lineupsBuf.byteLength) / 1024 / 1024).toFixed(1);
+    $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
+
+    setStatus('', 'hidden');
+    renderTeamPicker();
+    wireModal();
   } catch (err) {
     console.error(err);
     setStatus('Failed to load: ' + err.message, 'error');
@@ -277,326 +232,201 @@ async function fetchDb(url) {
   return await r.arrayBuffer();
 }
 
-function getMostRecentSeason() {
-  const r = db.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC LIMIT 1");
-  return r[0]?.values?.[0]?.[0] || '';
+function getCommonSeasons() {
+  const p = playerDb.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC")[0].values.map(r => r[0]);
+  const l = lineupsDb.exec("SELECT DISTINCT SEASON FROM lineups_5man ORDER BY SEASON DESC")[0].values.map(r => r[0]);
+  return p.filter(s => l.includes(s));
 }
 
-function initControls() {
-  // Populate seasons
-  const seasons = db.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC")[0].values.map(r => r[0]);
-  const sel = $('seasonSelect');
-  seasons.forEach(s => sel.add(new Option(s, s)));
-  sel.value = seasons[0]; // most recent
-  sel.addEventListener('change', () => {
-    // Clear slots when season changes — players are season-keyed
-    for (let i = 0; i < 5; i++) slots[i] = null;
-    renderSlots();
-    updateProjectBtn();
-  });
-
-  // Populate teams for baseline comparison
-  const teams = db.exec(`SELECT DISTINCT TEAM_ABBREVIATION FROM player_advanced WHERE TEAM_ABBREVIATION <> '' ORDER BY TEAM_ABBREVIATION`)[0].values.map(r => r[0]);
-  const tsel = $('baselineTeam');
-  teams.forEach(t => tsel.add(new Option(t, t)));
-
-  $('projectBtn').addEventListener('click', projectLineup);
-  $('clearBtn').addEventListener('click', () => {
-    for (let i = 0; i < 5; i++) slots[i] = null;
-    $('result').innerHTML = '';
-    renderSlots();
-    updateProjectBtn();
-  });
-  $('demoBtn').addEventListener('click', loadDemo);
-}
-
-function loadDemo() {
-  // Giannis → OKC: SGA, Dort, JDub, Giannis, Holmgren
-  const demoNames = [
-    'Shai Gilgeous-Alexander',
-    'Luguentz Dort',
-    'Jalen Williams',
-    'Giannis Antetokounmpo',
-    'Chet Holmgren',
-  ];
-  const season = $('seasonSelect').value;
-  for (let i = 0; i < 5; i++) {
-    const r = db.exec(`SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION FROM player_advanced WHERE PLAYER_NAME = '${demoNames[i].replace(/'/g, "''")}' AND SEASON = '${season}' AND SEASON_TYPE = 'Regular Season' LIMIT 1`);
-    if (r.length && r[0].values.length) {
-      const [pid, name, team] = r[0].values[0];
-      slots[i] = { player_id: pid, name, team, season };
-    } else {
-      slots[i] = null;
-      console.warn(`Demo: ${demoNames[i]} not found for season ${season}`);
-    }
+function renderBreadcrumb() {
+  const commonSeasons = getCommonSeasons();
+  const seasonOpts = commonSeasons.map(s => `<option value="${s}" ${s === STATE.season ? 'selected' : ''}>${s}</option>`).join('');
+  const sel = `<select id="seasonSelect">${seasonOpts}</select>`;
+  const crumbs = [];
+  if (STATE.page === 'team') {
+    crumbs.push(`<span class="crumb active">Choose team</span>`);
+    crumbs.push(`<span class="sep">·</span>${sel}`);
+  } else if (STATE.page === 'lineup') {
+    crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
+    crumbs.push(`<span class="sep">›</span>`);
+    crumbs.push(`<span class="crumb active">Choose ${STATE.team}'s lineup</span>`);
+    crumbs.push(`<span class="sep">·</span>${sel}`);
+  } else if (STATE.page === 'edit') {
+    crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
+    crumbs.push(`<span class="sep">›</span>`);
+    crumbs.push(`<span class="crumb" data-go="lineup">${STATE.team} lineups</span>`);
+    crumbs.push(`<span class="sep">›</span>`);
+    crumbs.push(`<span class="crumb active">Swap &amp; project</span>`);
   }
-  $('baselineTeam').value = 'OKC';
-  renderSlots();
-  updateProjectBtn();
-  projectLineup();
-}
+  $('breadcrumb').innerHTML = crumbs.join('');
 
-// ────────────────────────────────────────────────────────────────────
-// Slots / autocomplete
-// ────────────────────────────────────────────────────────────────────
-function renderSlots() {
-  const grid = $('lineupGrid');
-  grid.innerHTML = '';
-  for (let i = 0; i < 5; i++) {
-    const s = document.createElement('div');
-    s.className = 'slot' + (slots[i] ? ' filled' : '');
-    s.innerHTML = renderSlotContent(i);
-    grid.appendChild(s);
-  }
-  // Wire up autocomplete for empty slots
-  for (let i = 0; i < 5; i++) {
-    if (!slots[i]) {
-      const input = grid.children[i].querySelector('input');
-      if (input) wireAutocomplete(input, i);
-    } else {
-      const clearBtn = grid.children[i].querySelector('.clear-btn');
-      if (clearBtn) clearBtn.addEventListener('click', () => { slots[i] = null; renderSlots(); updateProjectBtn(); });
-    }
-  }
-}
-
-function renderSlotContent(i) {
-  const p = slots[i];
-  if (!p) {
-    return `
-      <div class="slot-label">Player ${i + 1}</div>
-      <input type="text" placeholder="Type player name..." autocomplete="off" data-slot="${i}">
-    `;
-  }
-  // Fetch the per-player stats for display
-  const r = db.exec(`
-    SELECT OFF_RATING, DEF_RATING, USG_PCT, TS_PCT, PIE
-    FROM player_advanced
-    WHERE PLAYER_ID = ${p.player_id} AND SEASON = '${p.season}' AND SEASON_TYPE = 'Regular Season'
-    LIMIT 1
-  `);
-  if (!r.length) return `<div class="player-info">No stats found</div>`;
-  const [ortg, drtg, usg, ts, pie] = r[0].values[0];
-  return `
-    <button class="clear-btn">✕</button>
-    <div class="slot-label">Player ${i + 1}</div>
-    <div class="player-info">
-      <div class="name">${p.name}<span class="team">${p.team || ''}</span></div>
-      <div class="stats">
-        ORtg ${Number(ortg).toFixed(0)} / DRtg ${Number(drtg).toFixed(0)}<br>
-        USG ${(Number(usg) * 100).toFixed(1)}% · TS ${(Number(ts) * 100).toFixed(1)}%<br>
-        PIE ${(Number(pie) * 100).toFixed(1)}
-      </div>
-    </div>
-  `;
-}
-
-function wireAutocomplete(input, slotIdx) {
-  let dropdown = null;
-  let activeIdx = -1;
-  let lastResults = [];
-
-  const search = (q) => {
-    if (!q || q.length < 2) return [];
-    const season = $('seasonSelect').value;
-    // Match against PLAYER_NAME with LIKE; constrain to season; favor higher minutes
-    const r = db.exec(`
-      SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION, MIN, OFF_RATING, USG_PCT
-      FROM player_advanced
-      WHERE PLAYER_NAME LIKE '%${q.replace(/'/g, "''")}%'
-        AND SEASON = '${season}'
-        AND SEASON_TYPE = 'Regular Season'
-      ORDER BY MIN DESC
-      LIMIT 8
-    `);
-    if (!r.length) return [];
-    return r[0].values.map(v => ({
-      player_id: v[0], name: v[1], team: v[2], min: v[3], ortg: v[4], usg: v[5]
-    }));
-  };
-
-  const removeDropdown = () => { if (dropdown) { dropdown.remove(); dropdown = null; } activeIdx = -1; };
-
-  const showResults = (results) => {
-    removeDropdown();
-    if (!results.length) return;
-    lastResults = results;
-    dropdown = document.createElement('div');
-    dropdown.className = 'autocomplete';
-    dropdown.innerHTML = results.map((r, idx) => `
-      <div class="autocomplete-item" data-idx="${idx}">
-        <span class="name">${r.name}</span>
-        <div class="meta">${r.team || '—'} · ORtg ${Number(r.ortg).toFixed(0)} · USG ${(Number(r.usg) * 100).toFixed(1)}% · ${Number(r.min).toFixed(0)} MIN</div>
-      </div>
-    `).join('');
-    input.parentNode.style.position = 'relative';
-    input.parentNode.appendChild(dropdown);
-    dropdown.querySelectorAll('.autocomplete-item').forEach((el, idx) => {
-      el.addEventListener('mousedown', (e) => { e.preventDefault(); pickResult(idx); });
+  const seasonEl = $('seasonSelect');
+  if (seasonEl) {
+    seasonEl.addEventListener('change', (e) => {
+      STATE.season = e.target.value;
+      if (STATE.page === 'team') renderTeamPicker();
+      else if (STATE.page === 'lineup') renderLineupPicker();
     });
-  };
-
-  const pickResult = (idx) => {
-    const r = lastResults[idx];
-    if (!r) return;
-    slots[slotIdx] = { player_id: r.player_id, name: r.name, team: r.team, season: $('seasonSelect').value };
-    removeDropdown();
-    renderSlots();
-    updateProjectBtn();
-  };
-
-  input.addEventListener('input', (e) => {
-    const results = search(e.target.value.trim());
-    showResults(results);
+  }
+  document.querySelectorAll('.breadcrumb .crumb[data-go]').forEach(el => {
+    el.addEventListener('click', () => {
+      STATE.page = el.dataset.go;
+      if (STATE.page === 'team') renderTeamPicker();
+      else if (STATE.page === 'lineup') renderLineupPicker();
+    });
   });
-  input.addEventListener('keydown', (e) => {
-    if (!dropdown) return;
-    const items = dropdown.querySelectorAll('.autocomplete-item');
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      activeIdx = Math.min(items.length - 1, activeIdx + 1);
-      items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      activeIdx = Math.max(0, activeIdx - 1);
-      items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeIdx >= 0) pickResult(activeIdx);
-      else if (lastResults.length) pickResult(0);
-    } else if (e.key === 'Escape') {
-      removeDropdown();
-    }
-  });
-  input.addEventListener('blur', () => setTimeout(removeDropdown, 200));
 }
 
-function updateProjectBtn() {
-  const filled = slots.filter(Boolean).length;
-  $('projectBtn').disabled = filled !== 5;
-  $('projectBtn').textContent = filled === 5 ? 'Project Lineup' : `Project Lineup (need ${5 - filled} more)`;
-}
+function renderTeamPicker() {
+  STATE.page = 'team';
+  renderBreadcrumb();
 
-// ────────────────────────────────────────────────────────────────────
-// Projection math
-// ────────────────────────────────────────────────────────────────────
-const USG_HIGH = 0.25;     // USG_PCT decimal threshold
-const SHOOT_OK = 0.35;     // 3P% threshold
-const SHOOT_MIN_3PA = 1.5; // minimum 3PA/g to qualify as shooter
-const AST_HIGH = 0.20;     // AST_PCT threshold for playmakers
-const REB_HIGH = 0.10;     // REB_PCT threshold for plus rebounders
-const BLK_HIGH = 1.0;      // BLK/g threshold for rim protectors
-
-function projectLineup() {
-  // Pull full Advanced + Base for each slot
-  const players = slots.map(s => {
-    const r = db.exec(`
-      SELECT a.PLAYER_NAME, a.TEAM_ABBREVIATION,
-             a.OFF_RATING, a.DEF_RATING, a.NET_RATING, a.USG_PCT, a.TS_PCT,
-             a.AST_PCT, a.REB_PCT, a.PIE, a.PACE,
-             b.FG3_PCT, b.FG3A, b.BLK
-      FROM player_advanced a
-      LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID
-        AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
-      WHERE a.PLAYER_ID = ${s.player_id}
-        AND a.SEASON = '${s.season}'
-        AND a.SEASON_TYPE = 'Regular Season'
-      LIMIT 1
-    `);
-    if (!r.length) return null;
-    const [name, team, ortg, drtg, netrtg, usg, ts, ast_pct, reb_pct, pie, pace, fg3p, fg3a, blk] = r[0].values[0];
-    return { name, team, ortg: +ortg, drtg: +drtg, netrtg: +netrtg, usg: +usg, ts: +ts,
-             ast_pct: +ast_pct, reb_pct: +reb_pct, pie: +pie, pace: +pace,
-             fg3p: +fg3p, fg3a: +fg3a, blk: +blk };
-  });
-  if (players.some(p => !p)) {
-    setStatus('Could not load all player stats — try refreshing.', 'error');
+  const teams = lineupsDb.exec(`
+    SELECT TEAM_ABBREVIATION, COUNT(*) AS n_lineups
+    FROM lineups_5man
+    WHERE SEASON = '${STATE.season}'
+    GROUP BY TEAM_ABBREVIATION
+    ORDER BY TEAM_ABBREVIATION
+  `);
+  if (!teams.length || !teams[0].values.length) {
+    $('content').innerHTML = `<div class="empty-state">No lineup data for ${STATE.season}. Try another season.</div>`;
     return;
   }
 
-  // Additive baseline — simple equal-weighted mean across the 5 players
-  const add_ortg = mean(players.map(p => p.ortg));
-  const add_drtg = mean(players.map(p => p.drtg));
-  const avg_pace = mean(players.map(p => p.pace));
+  const tiles = teams[0].values.map(([abbr, n]) => `
+    <div class="team-tile" data-team="${abbr}">${abbr}<div class="team-full">${n} lineups</div></div>
+  `).join('');
+  $('content').innerHTML = `<div class="team-grid">${tiles}</div>`;
+  document.querySelectorAll('.team-tile').forEach(t => {
+    t.addEventListener('click', () => {
+      STATE.team = t.dataset.team;
+      renderLineupPicker();
+    });
+  });
+}
 
-  // Lineup features
-  const n_high_usg    = players.filter(p => p.usg >= USG_HIGH).length;
-  const n_shooters    = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
-  const n_rim_protect = players.filter(p => p.blk >= BLK_HIGH).length;
-  const n_playmakers  = players.filter(p => p.ast_pct >= AST_HIGH).length;
-  const n_rebounders  = players.filter(p => p.reb_pct >= REB_HIGH).length;
+function renderLineupPicker() {
+  STATE.page = 'lineup';
+  renderBreadcrumb();
 
-  // Apply fit adjustments
-  // Center each dimension's adjustment around the global residual mean so
-  // the systematic baseline bias washes out and only the relative effects remain.
-  const ortg_baseline_resid = coefs.meta.baseline_ortg_resid_mean || 0;
-  const drtg_baseline_resid = coefs.meta.baseline_drtg_resid_mean || 0;
+  const r = lineupsDb.exec(`
+    SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
+    FROM lineups_5man
+    WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
+      AND SEASON_TYPE = 'Regular Season'
+    ORDER BY MIN DESC
+    LIMIT 20
+  `);
 
-  const dims = [
-    ['n_high_usg',    n_high_usg,    'Usage stacking'],
-    ['n_shooters',    n_shooters,    'Spacing (shooters)'],
-    ['n_rim_protect', n_rim_protect, 'Rim protection'],
-    ['n_playmakers',  n_playmakers,  'Playmaking depth'],
-    ['n_rebounders',  n_rebounders,  'Rebound depth'],
-  ];
-
-  let ortg_adj_total = 0;
-  let drtg_adj_total = 0;
-  const adj_breakdown = [];
-
-  for (const [key, value, label] of dims) {
-    const dim = coefs.dimensions[key];
-    if (!dim) continue;
-    const bucket = dim.buckets[String(value)];
-    if (!bucket) {
-      // Out-of-range bucket (e.g., n=3 rim protectors which we excluded for low sample).
-      // Skip — no adjustment.
-      adj_breakdown.push({ label, value, ortg_adj: 0, drtg_adj: 0, note: 'no data — skipped' });
-      continue;
-    }
-    // Subtract the global baseline residual so we measure deviation, not absolute residual
-    const o = bucket.ortg_adj - ortg_baseline_resid;
-    const d = bucket.drtg_adj - drtg_baseline_resid;
-    ortg_adj_total += o;
-    drtg_adj_total += d;
-    adj_breakdown.push({ label, value, ortg_adj: o, drtg_adj: d, n: bucket.n_samples });
+  if (!r.length || !r[0].values.length) {
+    $('content').innerHTML = `<div class="empty-state">No qualifying lineups (50+ min) for ${STATE.team} in ${STATE.season}.</div>`;
+    return;
   }
 
-  const proj_ortg = add_ortg + ortg_adj_total;
-  const proj_drtg = add_drtg + drtg_adj_total;
-  const proj_netrtg = proj_ortg - proj_drtg;
+  const cards = r[0].values.map(([gid, gname, gp, min, ortg, drtg, netrtg, pace]) => {
+    const names = String(gname).split(' - ').map(n => n.trim()).filter(Boolean);
+    const namesHtml = names.map((n, i) => i === 0 ? n : `<span class="sep">·</span>${n}`).join('');
+    const netCls = netrtg >= 3 ? 'pos' : netrtg <= -3 ? 'neg' : 'neutral';
+    return `
+      <div class="lineup-card" data-gid="${gid}">
+        <div class="names">${namesHtml}</div>
+        <div class="stat"><div class="lbl">GP</div><div class="val">${Math.round(gp)}</div></div>
+        <div class="stat"><div class="lbl">MIN</div><div class="val">${Math.round(min)}</div></div>
+        <div class="stat net"><div class="lbl">NetRtg</div><div class="val ${netCls}">${netrtg >= 0 ? '+' : ''}${Number(netrtg).toFixed(1)}</div></div>
+        <div class="stat"><div class="lbl">→</div><div class="val">▸</div></div>
+      </div>
+    `;
+  }).join('');
 
-  // Baseline team comparison (if selected)
-  let baseline_text = '';
-  const baseTeam = $('baselineTeam').value;
-  if (baseTeam) {
-    // Get team's actual ORtg/DRtg for the season
-    const season = $('seasonSelect').value;
-    const r = db.exec(`
-      SELECT AVG(OFF_RATING), AVG(DEF_RATING), AVG(NET_RATING)
-      FROM player_advanced
-      WHERE TEAM_ABBREVIATION = '${baseTeam}' AND SEASON = '${season}'
-        AND SEASON_TYPE = 'Regular Season' AND MIN >= 15
-    `);
-    if (r.length && r[0].values[0][0] != null) {
-      const [team_o, team_d, team_net] = r[0].values[0];
-      const delta_o = proj_ortg - team_o;
-      const delta_d = proj_drtg - team_d;
-      const delta_n = proj_netrtg - team_net;
-      baseline_text = `
-        <div class="proj-tier"><strong>${baseTeam} ${season} baseline:</strong>
-          ORtg ${Number(team_o).toFixed(1)} (proj ${delta_o >= 0 ? '+' : ''}${delta_o.toFixed(1)}) ·
-          DRtg ${Number(team_d).toFixed(1)} (proj ${delta_d >= 0 ? '+' : ''}${delta_d.toFixed(1)}) ·
-          NetRtg ${Number(team_net).toFixed(1)} (proj ${delta_n >= 0 ? '+' : ''}${delta_n.toFixed(1)})
-        </div>`;
-    }
+  $('content').innerHTML = `
+    <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
+      ${STATE.team} 5-man lineups for ${STATE.season} — sorted by minutes. Click any to start swapping.
+    </div>
+    <div class="lineup-list">${cards}</div>
+  `;
+  document.querySelectorAll('.lineup-card').forEach(card => {
+    card.addEventListener('click', () => loadOriginalLineup(card.dataset.gid));
+  });
+}
+
+function loadOriginalLineup(groupId) {
+  const r = lineupsDb.exec(`
+    SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
+    FROM lineups_5man
+    WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
+      AND GROUP_ID = '${groupId.replace(/'/g, "''")}'
+    LIMIT 1
+  `);
+  if (!r.length) return alert('Lineup row not found.');
+  const [gid, gname, gp, min, ortg, drtg, netrtg, pace] = r[0].values[0];
+
+  const playerIds = String(gid).replace(/^-|-$/g, '').split('-').filter(Boolean).map(Number);
+  if (playerIds.length !== 5) return alert(`Could not parse 5 player IDs (got ${playerIds.length}).`);
+
+  const players = playerIds.map(pid => loadPlayer(pid, STATE.season));
+  if (players.some(p => !p)) {
+    alert('Could not load full stats for all 5 players (low minutes or filter excluded). Try another lineup.');
+    return;
   }
 
-  // Tier classification — gives the user a quick read on quality
-  const tierText = classifyLineup(proj_netrtg);
+  STATE.originalLineup = { players, gid, gname, stats: { ortg:+ortg, drtg:+drtg, netrtg:+netrtg, pace:+pace, gp:+gp, min:+min } };
+  STATE.currentSlots = [...players];
+  STATE.swappedFrom = [null, null, null, null, null];
+  renderEditView();
+}
 
-  // Render
-  const players_table = players.map((p, i) => `
+function loadPlayer(playerId, season) {
+  const r = playerDb.exec(`
+    SELECT a.PLAYER_ID, a.PLAYER_NAME, a.TEAM_ABBREVIATION,
+           a.OFF_RATING, a.DEF_RATING, a.NET_RATING, a.USG_PCT, a.TS_PCT,
+           a.AST_PCT, a.REB_PCT, a.PIE, a.PACE, a.MIN,
+           b.FG3_PCT, b.FG3A, b.BLK
+    FROM player_advanced a
+    LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
+    WHERE a.PLAYER_ID = ${playerId} AND a.SEASON = '${season}' AND a.SEASON_TYPE = 'Regular Season'
+    LIMIT 1
+  `);
+  if (!r.length) return null;
+  const v = r[0].values[0];
+  return {
+    player_id: v[0], name: v[1], team: v[2], season,
+    ortg:+v[3], drtg:+v[4], netrtg:+v[5], usg:+v[6], ts:+v[7],
+    ast_pct:+v[8], reb_pct:+v[9], pie:+v[10], pace:+v[11], min:+v[12],
+    fg3p:+v[13], fg3a:+v[14], blk:+v[15],
+  };
+}
+
+function renderEditView() {
+  STATE.page = 'edit';
+  renderBreadcrumb();
+
+  const orig = STATE.originalLineup;
+  const projOrig = projectLineup(orig.players);
+  const projCurr = projectLineup(STATE.currentSlots);
+  const headlineCls = projCurr.netrtg >= 7 ? 'green' : projCurr.netrtg <= -3 ? 'red' : 'orange';
+  const delta = projCurr.netrtg - projOrig.netrtg;
+  const deltaCls = delta > 0.5 ? 'pos' : delta < -0.5 ? 'neg' : 'zero';
+
+  const slotsHtml = STATE.currentSlots.map((p, i) => {
+    const swapped = STATE.swappedFrom[i] !== null;
+    const fromName = swapped ? STATE.swappedFrom[i].name.split(' ').slice(-1)[0] : null;
+    return `
+      <div class="slot ${swapped ? 'swapped' : ''}">
+        ${swapped ? `<div class="from-tag">was ${fromName}</div>` : ''}
+        <div class="slot-num">Slot ${i + 1}</div>
+        <div class="name">${p.name}</div>
+        <div class="meta">${p.team || '—'} · ${p.season}</div>
+        <div class="stats">
+          ORtg ${p.ortg.toFixed(0)} / DRtg ${p.drtg.toFixed(0)}<br>
+          USG ${(p.usg * 100).toFixed(1)}% · TS ${(p.ts * 100).toFixed(1)}%<br>
+          PIE ${(p.pie * 100).toFixed(1)}
+        </div>
+        <button class="swap-btn" data-slot="${i}">↔ Swap</button>
+      </div>
+    `;
+  }).join('');
+
+  const playersTable = STATE.currentSlots.map((p, i) => `
     <tr>
       <td>${i + 1}. ${p.name}</td>
       <td class="num">${p.ortg.toFixed(1)}</td>
@@ -607,90 +437,215 @@ function projectLineup() {
     </tr>
   `).join('');
 
-  const adj_table = adj_breakdown.map(a => {
-    const cls = (v) => v > 0.1 ? 'adj-pos' : v < -0.1 ? 'adj-neg' : 'adj-zero';
+  const adjTable = projCurr.breakdown.map(a => {
+    const cls = v => v > 0.1 ? 'adj-pos' : v < -0.1 ? 'adj-neg' : '';
     return `<tr>
       <td>${a.label}</td>
       <td class="num">${a.value}</td>
       <td class="num ${cls(a.ortg_adj)}">${a.ortg_adj > 0 ? '+' : ''}${a.ortg_adj.toFixed(1)}</td>
       <td class="num ${cls(-a.drtg_adj)}">${a.drtg_adj > 0 ? '+' : ''}${a.drtg_adj.toFixed(1)}</td>
-      <td>${a.note || `${a.n} similar lineups`}</td>
+      <td>${a.note || `${a.n} similar`}</td>
     </tr>`;
   }).join('');
 
-  $('result').innerHTML = `
-    <div class="projection">
-      <div class="proj-headline">
-        <div class="proj-stat headline ${proj_netrtg >= 5 ? 'green' : proj_netrtg <= -5 ? 'red' : 'orange'}">
-          <div class="label">Net Rating</div>
-          <div class="value">${proj_netrtg >= 0 ? '+' : ''}${proj_netrtg.toFixed(1)}</div>
+  $('content').innerHTML = `
+    <div class="proj-panel">
+      <div class="proj-row">
+        <div class="proj-stat headline ${headlineCls}">
+          <div class="label">Projected Net Rtg</div>
+          <div class="value">${projCurr.netrtg >= 0 ? '+' : ''}${projCurr.netrtg.toFixed(1)}</div>
+          <div class="delta ${deltaCls}">${delta >= 0 ? '+' : ''}${delta.toFixed(1)} vs original</div>
         </div>
         <div class="proj-stat">
-          <div class="label">Off Rating</div>
-          <div class="value">${proj_ortg.toFixed(1)}</div>
+          <div class="label">Proj ORtg</div>
+          <div class="value">${projCurr.ortg.toFixed(1)}</div>
+          <div class="delta ${cmpCls(projCurr.ortg - projOrig.ortg, true)}">${formatDelta(projCurr.ortg - projOrig.ortg)}</div>
         </div>
         <div class="proj-stat">
-          <div class="label">Def Rating</div>
-          <div class="value">${proj_drtg.toFixed(1)}</div>
+          <div class="label">Proj DRtg</div>
+          <div class="value">${projCurr.drtg.toFixed(1)}</div>
+          <div class="delta ${cmpCls(projCurr.drtg - projOrig.drtg, false)}">${formatDelta(projCurr.drtg - projOrig.drtg)}</div>
         </div>
         <div class="proj-stat">
           <div class="label">Pace</div>
-          <div class="value">${avg_pace.toFixed(1)}</div>
+          <div class="value">${projCurr.pace.toFixed(1)}</div>
         </div>
       </div>
-      <div class="proj-tier">${tierText}</div>
-      ${baseline_text}
-
-      <div class="breakdown">
-        <h3>Player stats (additive baseline ingredients)</h3>
-        <table>
-          <thead><tr><th>Player</th><th class="num">ORtg</th><th class="num">DRtg</th><th class="num">USG</th><th class="num">TS%</th><th class="num">PIE</th></tr></thead>
-          <tbody>
-            ${players_table}
-            <tr class="total"><td>Additive baseline (avg)</td>
-              <td class="num">${add_ortg.toFixed(1)}</td>
-              <td class="num">${add_drtg.toFixed(1)}</td>
-              <td class="num">—</td><td class="num">—</td><td class="num">—</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="breakdown">
-        <h3>Fit adjustments (Tier 2 model)</h3>
-        <table>
-          <thead><tr><th>Dimension</th><th class="num">Count</th><th class="num">ORtg Δ</th><th class="num">DRtg Δ</th><th>Sample</th></tr></thead>
-          <tbody>
-            ${adj_table}
-            <tr class="total"><td>Total fit adjustment</td><td class="num">—</td>
-              <td class="num ${ortg_adj_total > 0 ? 'adj-pos' : ortg_adj_total < 0 ? 'adj-neg' : ''}">${ortg_adj_total > 0 ? '+' : ''}${ortg_adj_total.toFixed(1)}</td>
-              <td class="num ${drtg_adj_total < 0 ? 'adj-pos' : drtg_adj_total > 0 ? 'adj-neg' : ''}">${drtg_adj_total > 0 ? '+' : ''}${drtg_adj_total.toFixed(1)}</td>
-              <td>—</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="notes">
-        <strong>How to read this:</strong>
-        <ul>
-          <li><strong>Additive baseline</strong> = average of each player's individual ORtg/DRtg. This is the "no chemistry" prediction.</li>
-          <li><strong>Fit adjustments</strong> are learned from ${coefs.meta.n_lineups.toLocaleString()} real NBA lineups. Each dimension captures a structural pattern: more shooters → better spacing, more rim protectors → better rim defense, too many high-usage players → usage conflict.</li>
-          <li><strong>Net Rating</strong> = projected ORtg − projected DRtg. Roughly: +5 to +10 = a strong lineup, +10 to +15 = elite, +15+ = championship-tier. Negatives mean the lineup gets outscored.</li>
-          <li><strong>Accuracy:</strong> ±3-4 points of ORtg/DRtg uncertainty. Read this as a tier estimate, not a precise number.</li>
-        </ul>
+      <div class="proj-tier">${classifyLineup(projCurr.netrtg)}</div>
+      <div class="proj-tier" style="border-left-color:var(--gold)">
+        <strong>Original lineup actual:</strong>
+        ORtg ${orig.stats.ortg.toFixed(1)} · DRtg ${orig.stats.drtg.toFixed(1)} ·
+        NetRtg ${orig.stats.netrtg >= 0 ? '+' : ''}${orig.stats.netrtg.toFixed(1)} ·
+        ${Math.round(orig.stats.min)} MIN in ${Math.round(orig.stats.gp)} games
+        (model projected this lineup at NetRtg ${projOrig.netrtg >= 0 ? '+' : ''}${projOrig.netrtg.toFixed(1)})
       </div>
     </div>
+
+    <div class="lineup-grid">${slotsHtml}</div>
+
+    <div class="action-row">
+      <button class="btn secondary" id="resetBtn">↻ Reset to Original</button>
+    </div>
+
+    <div class="breakdown">
+      <h3>Player ingredients</h3>
+      <table>
+        <thead><tr><th>Player</th><th class="num">ORtg</th><th class="num">DRtg</th><th class="num">USG</th><th class="num">TS</th><th class="num">PIE</th></tr></thead>
+        <tbody>
+          ${playersTable}
+          <tr class="total"><td>Additive baseline (avg)</td>
+            <td class="num">${projCurr.add_ortg.toFixed(1)}</td>
+            <td class="num">${projCurr.add_drtg.toFixed(1)}</td>
+            <td class="num">—</td><td class="num">—</td><td class="num">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="breakdown">
+      <h3>Fit adjustments</h3>
+      <table>
+        <thead><tr><th>Dimension</th><th class="num">Count</th><th class="num">ORtg Δ</th><th class="num">DRtg Δ</th><th>Sample</th></tr></thead>
+        <tbody>
+          ${adjTable}
+          <tr class="total"><td>Total fit adjustment</td><td class="num">—</td>
+            <td class="num ${projCurr.ortg_adj > 0 ? 'adj-pos' : projCurr.ortg_adj < 0 ? 'adj-neg' : ''}">${projCurr.ortg_adj > 0 ? '+' : ''}${projCurr.ortg_adj.toFixed(1)}</td>
+            <td class="num ${projCurr.drtg_adj < 0 ? 'adj-pos' : projCurr.drtg_adj > 0 ? 'adj-neg' : ''}">${projCurr.drtg_adj > 0 ? '+' : ''}${projCurr.drtg_adj.toFixed(1)}</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="notes">
+      <strong>How to read:</strong>
+      <ul>
+        <li><strong>Projected NetRtg</strong> = additive baseline (average player ratings) + fit adjustments learned from real lineups</li>
+        <li><strong>Delta vs original</strong> = how much your swaps shifted the projection vs. the unmodified lineup</li>
+        <li><strong>Original lineup actual</strong> shows what the unmodified lineup did. The gap between actual and projected gives a sense of model error for this specific lineup (±3-4 points typical)</li>
+        <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
+      </ul>
+    </div>
   `;
+
+  document.querySelectorAll('.swap-btn').forEach(btn => {
+    btn.addEventListener('click', () => openSwapModal(parseInt(btn.dataset.slot, 10)));
+  });
+  $('resetBtn').addEventListener('click', () => {
+    STATE.currentSlots = [...STATE.originalLineup.players];
+    STATE.swappedFrom = [null, null, null, null, null];
+    renderEditView();
+  });
+}
+
+function formatDelta(d) { return Math.abs(d) < 0.05 ? '±0.0' : (d >= 0 ? '+' : '') + d.toFixed(1); }
+function cmpCls(d, higherIsBetter) {
+  if (Math.abs(d) < 0.5) return 'zero';
+  const isPositive = higherIsBetter ? d > 0 : d < 0;
+  return isPositive ? 'pos' : 'neg';
+}
+
+let swapTargetSlot = -1;
+function openSwapModal(slotIdx) {
+  swapTargetSlot = slotIdx;
+  const current = STATE.currentSlots[slotIdx];
+  $('swapTitle').textContent = `Swap ${current.name}`;
+  $('swapSub').textContent = `Slot ${slotIdx + 1} — type any player name to find a replacement (loaded at their ${STATE.season} performance).`;
+  $('swapInput').value = '';
+  $('swapResults').innerHTML = '';
+  $('swapModal').classList.add('open');
+  setTimeout(() => $('swapInput').focus(), 50);
+}
+function closeSwapModal() { $('swapModal').classList.remove('open'); swapTargetSlot = -1; }
+function wireModal() {
+  $('swapClose').addEventListener('click', closeSwapModal);
+  $('swapModal').addEventListener('click', (e) => { if (e.target.id === 'swapModal') closeSwapModal(); });
+  $('swapInput').addEventListener('input', (e) => renderSwapResults(e.target.value.trim()));
+}
+function renderSwapResults(query) {
+  if (!query || query.length < 2) { $('swapResults').innerHTML = ''; return; }
+  const r = playerDb.exec(`
+    SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION, MIN, OFF_RATING, USG_PCT
+    FROM player_advanced
+    WHERE PLAYER_NAME LIKE '%${query.replace(/'/g, "''")}%'
+      AND SEASON = '${STATE.season}'
+      AND SEASON_TYPE = 'Regular Season'
+      AND MIN >= 10
+    ORDER BY MIN DESC
+    LIMIT 8
+  `);
+  if (!r.length) { $('swapResults').innerHTML = `<div class="empty-state" style="padding:1rem">No matches in ${STATE.season}</div>`; return; }
+  const items = r[0].values.map(([pid, name, team, min, ortg, usg]) => `
+    <div class="swap-result-item" data-pid="${pid}">
+      <div class="name">${name}</div>
+      <div class="meta">${team || '—'} · ORtg ${Number(ortg).toFixed(0)} · USG ${(Number(usg) * 100).toFixed(1)}% · ${Number(min).toFixed(0)} MIN</div>
+    </div>
+  `).join('');
+  $('swapResults').innerHTML = items;
+  document.querySelectorAll('.swap-result-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const pid = parseInt(el.dataset.pid, 10);
+      const newPlayer = loadPlayer(pid, STATE.season);
+      if (!newPlayer) return alert('Could not load player.');
+      if (STATE.swappedFrom[swapTargetSlot] === null) {
+        STATE.swappedFrom[swapTargetSlot] = STATE.currentSlots[swapTargetSlot];
+      }
+      if (newPlayer.player_id === STATE.originalLineup.players[swapTargetSlot].player_id) {
+        STATE.swappedFrom[swapTargetSlot] = null;
+      }
+      STATE.currentSlots[swapTargetSlot] = newPlayer;
+      closeSwapModal();
+      renderEditView();
+    });
+  });
+}
+
+function projectLineup(players) {
+  const add_ortg = mean(players.map(p => p.ortg));
+  const add_drtg = mean(players.map(p => p.drtg));
+  const pace = mean(players.map(p => p.pace));
+  const n_high_usg    = players.filter(p => p.usg >= USG_HIGH).length;
+  const n_shooters    = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
+  const n_rim_protect = players.filter(p => p.blk >= BLK_HIGH).length;
+  const n_playmakers  = players.filter(p => p.ast_pct >= AST_HIGH).length;
+  const n_rebounders  = players.filter(p => p.reb_pct >= REB_HIGH).length;
+  const oBase = coefs.meta.baseline_ortg_resid_mean || 0;
+  const dBase = coefs.meta.baseline_drtg_resid_mean || 0;
+  const dims = [
+    ['n_high_usg', n_high_usg, 'Usage stacking'],
+    ['n_shooters', n_shooters, 'Spacing (shooters)'],
+    ['n_rim_protect', n_rim_protect, 'Rim protection'],
+    ['n_playmakers', n_playmakers, 'Playmaking depth'],
+    ['n_rebounders', n_rebounders, 'Rebound depth'],
+  ];
+  let ortg_adj = 0, drtg_adj = 0;
+  const breakdown = [];
+  for (const [key, value, label] of dims) {
+    const dim = coefs.dimensions[key];
+    if (!dim) continue;
+    const bucket = dim.buckets[String(value)];
+    if (!bucket) { breakdown.push({ label, value, ortg_adj: 0, drtg_adj: 0, note: 'no data' }); continue; }
+    const o = bucket.ortg_adj - oBase;
+    const d = bucket.drtg_adj - dBase;
+    ortg_adj += o; drtg_adj += d;
+    breakdown.push({ label, value, ortg_adj: o, drtg_adj: d, n: bucket.n_samples });
+  }
+  return {
+    add_ortg, add_drtg, pace, ortg_adj, drtg_adj,
+    ortg: add_ortg + ortg_adj,
+    drtg: add_drtg + drtg_adj,
+    netrtg: (add_ortg + ortg_adj) - (add_drtg + drtg_adj),
+    breakdown,
+  };
 }
 
 function classifyLineup(netrtg) {
-  if (netrtg >= 12) return '🏆 Championship-tier lineup — elite both ways';
+  if (netrtg >= 12) return '🏆 Championship-tier — elite both ways';
   if (netrtg >= 7)  return '⭐ Top-tier lineup — strong outlier expected';
-  if (netrtg >= 3)  return '✓ Above-average lineup — solid above NBA mean';
-  if (netrtg >= -3) return '○ Neutral lineup — close to league average';
+  if (netrtg >= 3)  return '✓ Above-average lineup — solid net positive';
+  if (netrtg >= -3) return '○ Average lineup — near league mean';
   if (netrtg >= -7) return '⚠ Below-average lineup — likely gets outscored';
-  return '✗ Weak lineup — projects significantly below average';
+  return '✗ Weak lineup — projects well below average';
 }
 
 function mean(arr) {
@@ -700,6 +655,5 @@ function mean(arr) {
 
 boot();
 </script>
-
 </body>
 </html>
