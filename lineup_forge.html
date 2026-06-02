@@ -439,9 +439,12 @@ function renderEditView() {
     if (q.fallback) {
       ratLine = `<span style="color:var(--orange)">rat365 N/A</span>`;
     } else if (q.blended) {
-      // Effective rat365 differs meaningfully from current — show blended badge + current
-      const curText = q.rat365_current !== null ? `cur ${q.rat365_current.toFixed(1)}` : `${q.n_seasons}-season blend`;
-      ratLine = `<span style="color:var(--purple)" title="Weighted across ${q.n_seasons} seasons; current ${q.rat365_current !== null ? q.rat365_current.toFixed(1) : 'N/A'}">↺ rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span></span><br><span style="color:var(--muted);font-size:0.62rem">${curText} · weighted ${q.n_seasons}y</span>`;
+      // Boost active — current rat365 was anomalously low; using career-weighted instead
+      const curText = q.rat365_current !== null ? `cur ${q.rat365_current.toFixed(1)}` : `no current data`;
+      const tip = q.rat365_current !== null
+        ? `Current rat365 ${q.rat365_current.toFixed(1)} below career level; using ${q.n_seasons}-season weighted ${q.rat365.toFixed(1)}`
+        : `No current rat365; using ${q.n_seasons}-season weighted history`;
+      ratLine = `<span style="color:var(--purple)" title="${tip}">↺ rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span></span><br><span style="color:var(--muted);font-size:0.62rem">${curText} · boosted ${q.n_seasons}y</span>`;
     } else {
       ratLine = `rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span>`;
     }
@@ -575,7 +578,7 @@ function renderEditView() {
       <strong>How to read:</strong>
       <ul>
         <li><strong>Projected NetRtg</strong> uses <em>player quality</em> (rat365 from HoopsMatic Real Value, stripped of age/draft factors) as the baseline — independent of team context. Each player's "Quality Δ" is their NetRtg contribution above an average rotation player.</li>
-        <li><strong>Weighted rat365</strong> blends each player's rat365 across all available seasons, weighted by <em>games played × recency</em> (each older season multiplied by 0.65). Current rat365 from HoopsMatic Real Value drives the current season; historical seasons are estimated from PIE × 1.4 from <code>player_stats.db</code>. <span style="color:var(--purple)">↺</span> indicates a player whose effective rat365 differs materially from their current — typically due to injury (Giannis, Haliburton) or a career trend (rookie improvement, veteran decline).</li>
+        <li><strong>Weighted rat365</strong> blends each player's rat365 across all available seasons, weighted by <em>games played × recency</em> (each older season multiplied by 0.65). Historical seasons use PIE-derived equivalents (calibrated against current rat365). The blend only <em>boosts</em> a player when their current is depressed: <code>effective = max(current, weighted)</code>. So rising stars like SGA stay at their current peak, while injury-limited stars like Giannis get credit for healthier prior seasons. <span style="color:var(--purple)">↺</span> indicates the boost is active.</li>
         <li><strong>ORtg / DRtg</strong> are derived from the quality baseline (split 50/50 between offense and defense, anchored at league avg 115) plus the fit adjustments. They're consistent with NetRtg and free of team-context bias. The "avg" values shown in the breakdown are the OLD team-context-biased additive — kept for reference only.</li>
         <li><strong>Fit adjustments</strong> are learned from real NBA lineups and apply on top of the quality baseline — they capture spacing, usage overlap, rim protection, etc.</li>
         <li><strong>Original lineup actual</strong> shows what the unmodified lineup actually did. The gap between actual and projected gives a sense of model error.</li>
@@ -679,19 +682,30 @@ const _weightedRatCache = {};
 
 // Constants for the weighted historical model.
 const RECENCY_DECAY     = 0.65;  // each older season weight × this factor
-const PIE_TO_RAT365     = 1.4;   // PIE * 100 * this = rat365-equivalent (calibration)
 const MIN_SEASON_GP     = 5;     // skip seasons below this GP (too noisy)
+// PIE → rat365 conversion: rat365 ≈ (PIE_percent − SHIFT) × SCALE
+// Calibrated against two anchor points: league-avg PIE 10% → rat365 4.7,
+// elite PIE 21% → rat365 ~27. Players below PIE 7.68% map to rat365 0.
+const PIE_SHIFT = 7.68;
+const PIE_SCALE = 2.03;
+const PIE_DERIVED_CAP = 35;  // hard ceiling so a fluky high-PIE season doesn't dominate
 
 function seasonStartYear(s) { return parseInt(String(s).slice(0, 4), 10); }
 
+function pieToRat365(pieDecimal) {
+  const piePct = pieDecimal * 100;
+  return Math.min(PIE_DERIVED_CAP, Math.max(0, (piePct - PIE_SHIFT) * PIE_SCALE));
+}
+
 // Compute a player's effective rat365 by weighting all available seasons.
-// Returns: { effective, current_rat365, seasons: [{season, gp, rat, weight, source}], n_seasons }
+// Returns: { effective, blended, current_rat365, seasons, n_seasons }
+//   effective = max(current_rat365, blended) — asymmetric, only boost
+//   blended   = weighted historical average (informational)
 function computeWeightedRat365(playerId, nbaName, currentSeason) {
   if (!playerId || !playerDb) return null;
   const cacheKey = `${playerId}_${currentSeason}`;
   if (_weightedRatCache[cacheKey] !== undefined) return _weightedRatCache[cacheKey];
 
-  // Pull every season this player has data in
   const r = playerDb.exec(`
     SELECT SEASON, CAST(GP AS INTEGER) AS GP, CAST(MIN AS FLOAT) AS MIN, CAST(PIE AS REAL) AS PIE
     FROM player_advanced
@@ -705,7 +719,6 @@ function computeWeightedRat365(playerId, nbaName, currentSeason) {
     return null;
   }
 
-  // Pull current rat365 from RV (if present)
   let current_rat365 = null;
   if (QUALITY) {
     const hh = NAME_DICT[nbaName] || nbaName;
@@ -725,12 +738,10 @@ function computeWeightedRat365(playerId, nbaName, currentSeason) {
 
     let seasonRat, source;
     if (season === currentSeason && current_rat365 !== null) {
-      // Use real Real Value rat365 for the current season when available
       seasonRat = current_rat365;
       source = 'rv';
     } else {
-      // Historical or current-without-RV: use PIE-derived equivalent
-      seasonRat = pie * 100 * PIE_TO_RAT365;
+      seasonRat = pieToRat365(pie);
       source = 'pie';
     }
     totalWeighted += seasonRat * weight;
@@ -742,32 +753,32 @@ function computeWeightedRat365(playerId, nbaName, currentSeason) {
     _weightedRatCache[cacheKey] = null;
     return null;
   }
-  const result = {
-    effective: totalWeighted / totalWeight,
-    current_rat365,
-    seasons,
-    n_seasons: seasons.length,
-  };
+  const blended = totalWeighted / totalWeight;
+  // Asymmetric rule: only let weighted boost (use higher of current vs blend).
+  // Never penalize a player who has improved over time.
+  const effective = current_rat365 !== null ? Math.max(current_rat365, blended) : blended;
+  const result = { effective, blended, current_rat365, seasons, n_seasons: seasons.length };
   _weightedRatCache[cacheKey] = result;
   return result;
 }
 
-// Quality lookup using weighted historical model.
+// Quality lookup with asymmetric weighted-historical model.
 function getQuality(nbaName, playerId) {
-  const weighted = computeWeightedRat365(playerId, nbaName, STATE.season);
-  if (!weighted) return null;
+  const w = computeWeightedRat365(playerId, nbaName, STATE.season);
+  if (!w) return null;
   const hh = NAME_DICT[nbaName] || nbaName;
-  // "Blended" = effective notably different from current (≥ 2 rat365 points or no current data)
-  const blended = (weighted.current_rat365 === null) ||
-                  (Math.abs(weighted.effective - weighted.current_rat365) >= 2.0);
+  // "Blended" = we actually used the historical boost (weighted > current).
+  // For players with no current rat365 at all, the blend is what we use.
+  const usingBlend = (w.current_rat365 === null) || (w.blended > w.current_rat365 + 1.0);
   return {
     hh_name: hh,
-    rat365: weighted.effective,
-    rat365_current: weighted.current_rat365,
-    seasons: weighted.seasons,
-    n_seasons: weighted.n_seasons,
-    blended,
-    source: weighted.current_rat365 !== null ? 'rv+history' : 'history',
+    rat365: w.effective,
+    rat365_current: w.current_rat365,
+    rat365_blended: w.blended,
+    seasons: w.seasons,
+    n_seasons: w.n_seasons,
+    blended: usingBlend,
+    source: w.current_rat365 !== null ? (usingBlend ? 'boosted' : 'current') : 'history-only',
   };
 }
 
