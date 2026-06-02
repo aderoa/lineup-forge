@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lineup Forge — HoopsMatic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #0c0f14;
+  --surface: #141820;
+  --surface2: #1a1f2b;
+  --border: #252b38;
+  --text1: #e8eaed;
+  --text2: #9aa0ad;
+  --muted: #5e6577;
+  --accent: #3b82f6;
+  --accent-dim: rgba(59,130,246,0.12);
+  --green: #22c55e;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --gold: #f0b637;
+}
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1); min-height:100vh; padding-bottom:4rem; }
+::-webkit-scrollbar { height:6px; width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#2a3142; border-radius:3px; }
+
+.header {
+  background:linear-gradient(135deg, #1a1f2b 0%, #0c0f14 100%);
+  border-bottom:1px solid var(--border);
+  padding:1.25rem 2rem;
+  display:flex; align-items:center; gap:1rem;
+}
+.header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; }
+.header .logo span { color:var(--accent); }
+.header .badge {
+  font-size:0.6rem; padding:0.2rem 0.5rem; background:rgba(59,130,246,0.15);
+  color:var(--accent); border-radius:4px; font-weight:600; letter-spacing:0.05em;
+}
+.header .sub { font-size:0.7rem; color:var(--muted); margin-left:auto; font-family:'JetBrains Mono',monospace; }
+
+#status {
+  padding:0.6rem 2rem; background:rgba(245,158,11,0.08); color:var(--orange);
+  font-size:0.8rem; border-bottom:1px solid var(--border);
+}
+#status.ready { background:rgba(34,197,94,0.06); color:var(--green); }
+#status.error { background:rgba(239,68,68,0.08); color:var(--red); }
+
+.wrap { max-width:1200px; margin:0 auto; padding:1.5rem 2rem; }
+
+/* Season + opponent controls */
+.controls {
+  display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;
+  padding:1rem 1.25rem; background:var(--surface); border:1px solid var(--border);
+  border-radius:10px;
+}
+.ctrl { display:flex; flex-direction:column; gap:0.3rem; }
+.ctrl label { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
+.ctrl select, .ctrl input {
+  font-family:inherit; font-size:0.85rem; padding:0.5rem 0.65rem;
+  background:var(--surface2); color:var(--text1); border:1px solid var(--border);
+  border-radius:6px; outline:none; min-width:140px;
+}
+.ctrl select:focus, .ctrl input:focus { border-color:var(--accent); }
+
+/* Lineup slots */
+.lineup-grid {
+  display:grid; grid-template-columns:repeat(5, 1fr); gap:0.75rem;
+  margin-bottom:1.5rem;
+}
+.slot {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:1rem; min-height:140px; display:flex; flex-direction:column; gap:0.5rem;
+  position:relative;
+}
+.slot.filled { border-color:var(--accent); }
+.slot .slot-label {
+  font-size:0.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-weight:600;
+}
+.slot input[type=text] {
+  font-family:inherit; font-size:0.85rem; padding:0.5rem 0.65rem;
+  background:var(--surface2); color:var(--text1); border:1px solid var(--border);
+  border-radius:6px; outline:none; width:100%;
+}
+.slot input[type=text]:focus { border-color:var(--accent); }
+.slot .player-info { margin-top:0.4rem; font-size:0.72rem; line-height:1.5; }
+.slot .player-info .name { font-weight:700; color:var(--text1); font-size:0.86rem; margin-bottom:0.3rem; }
+.slot .player-info .team { color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:0.65rem; margin-left:0.4rem; }
+.slot .player-info .stats { color:var(--text2); font-family:'JetBrains Mono',monospace; font-size:0.68rem; }
+.slot .clear-btn {
+  position:absolute; top:0.4rem; right:0.4rem; font-size:0.7rem; color:var(--muted);
+  background:none; border:none; cursor:pointer; padding:0.2rem 0.4rem;
+}
+.slot .clear-btn:hover { color:var(--red); }
+
+/* Autocomplete dropdown */
+.autocomplete {
+  position:absolute; top:100%; left:0; right:0; z-index:50;
+  background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+  margin-top:0.25rem; max-height:280px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+.autocomplete-item {
+  padding:0.5rem 0.65rem; cursor:pointer; border-bottom:1px solid var(--border);
+  font-size:0.78rem; line-height:1.3;
+}
+.autocomplete-item:last-child { border-bottom:none; }
+.autocomplete-item:hover, .autocomplete-item.active { background:var(--accent-dim); }
+.autocomplete-item .name { font-weight:600; }
+.autocomplete-item .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.66rem; margin-top:0.15rem; }
+
+.btn {
+  font-family:inherit; font-size:0.85rem; font-weight:700;
+  padding:0.65rem 1.5rem; border:none; border-radius:6px; cursor:pointer;
+  transition:background .15s, transform .1s;
+  background:var(--accent); color:#fff;
+}
+.btn:hover { background:#2563eb; }
+.btn:active { transform:translateY(1px); }
+.btn:disabled { background:var(--surface2); color:var(--muted); cursor:not-allowed; }
+.btn.secondary { background:var(--surface2); color:var(--text1); border:1px solid var(--border); }
+.btn.secondary:hover { border-color:var(--accent); color:var(--accent); }
+
+.action-row { display:flex; gap:0.6rem; margin-bottom:1.5rem; }
+
+/* Projection results */
+.projection {
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:1.5rem; margin-bottom:1rem;
+}
+.proj-headline { display:flex; align-items:baseline; gap:1.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+.proj-stat { display:flex; flex-direction:column; gap:0.15rem; }
+.proj-stat .label { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; font-weight:600; }
+.proj-stat .value { font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:700; }
+.proj-stat.headline .value { font-size:2rem; color:var(--accent); }
+.proj-stat.headline.green .value { color:var(--green); }
+.proj-stat.headline.red .value { color:var(--red); }
+.proj-stat.headline.orange .value { color:var(--orange); }
+.proj-tier {
+  font-size:0.72rem; color:var(--text2); font-style:italic; margin-bottom:1rem;
+  padding:0.5rem 0.75rem; background:var(--surface2); border-radius:6px;
+  border-left:3px solid var(--accent);
+}
+
+.breakdown { margin-top:1rem; }
+.breakdown h3 { font-size:0.95rem; font-weight:700; margin-bottom:0.6rem; }
+.breakdown table { width:100%; font-size:0.78rem; border-collapse:collapse; }
+.breakdown td, .breakdown th {
+  padding:0.4rem 0.65rem; border-bottom:1px solid var(--border); text-align:left;
+}
+.breakdown th { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; background:var(--surface2); }
+.breakdown td.num { font-family:'JetBrains Mono',monospace; text-align:right; }
+.breakdown tr:last-child td { border-bottom:none; }
+.breakdown tr.total { font-weight:700; background:var(--surface2); }
+.breakdown td.adj-pos { color:var(--green); }
+.breakdown td.adj-neg { color:var(--red); }
+.breakdown td.adj-zero { color:var(--muted); }
+
+.notes {
+  font-size:0.72rem; color:var(--text2); line-height:1.6; margin-top:1rem;
+  padding:0.8rem 1rem; background:var(--surface2); border-radius:8px;
+}
+.notes strong { color:var(--text1); }
+.notes ul { margin:0.4rem 0 0 1.2rem; }
+
+.empty-state {
+  text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:0.85rem;
+  background:var(--surface); border:1px dashed var(--border); border-radius:10px;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .header { padding:1rem; }
+  .wrap { padding:1rem; }
+  .lineup-grid { grid-template-columns:repeat(2, 1fr); }
+  .slot { min-height:120px; }
+  .controls { padding:0.7rem; gap:0.5rem; }
+  .ctrl select, .ctrl input { min-width:auto; width:100%; }
+  .proj-stat.headline .value { font-size:1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Lineup<span>Forge</span></div>
+  <div class="badge">HOOPSMATIC</div>
+  <div class="sub" id="meta">Loading...</div>
+</div>
+
+<div id="status">Initializing...</div>
+
+<div class="wrap">
+
+  <div class="controls">
+    <div class="ctrl">
+      <label>Player Pool Season</label>
+      <select id="seasonSelect"></select>
+    </div>
+    <div class="ctrl">
+      <label>Compare vs. Team Baseline</label>
+      <select id="baselineTeam">
+        <option value="">— None —</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="lineup-grid" id="lineupGrid">
+    <!-- 5 slots dynamically inserted -->
+  </div>
+
+  <div class="action-row">
+    <button class="btn" id="projectBtn" disabled>Project Lineup</button>
+    <button class="btn secondary" id="clearBtn">Clear All</button>
+    <button class="btn secondary" id="demoBtn">Try Demo (Giannis → OKC)</button>
+  </div>
+
+  <div id="result"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+<script>
+// ────────────────────────────────────────────────────────────────────
+// CONFIG — set these to wherever you publish player_stats.db.gz and fit_coefficients.json
+// ────────────────────────────────────────────────────────────────────
+const PLAYER_DB_URL = 'https://aderoa.github.io/lineup-forge/player_stats.db.gz';
+const COEFS_URL     = 'https://aderoa.github.io/lineup-forge/fit_coefficients.json';
+
+let db = null;
+let coefs = null;
+const slots = [null, null, null, null, null]; // each holds {player_id, name, season, ...}
+
+const $ = id => document.getElementById(id);
+const setStatus = (msg, cls = '') => { $('status').textContent = msg; $('status').className = cls; };
+
+// ────────────────────────────────────────────────────────────────────
+// Boot
+// ────────────────────────────────────────────────────────────────────
+async function boot() {
+  try {
+    setStatus('Loading SQL engine...');
+    const SQL = await initSqlJs({
+      locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}`
+    });
+
+    setStatus('Downloading player stats database...');
+    const [dbBuf, coefsJson] = await Promise.all([
+      fetchDb(PLAYER_DB_URL),
+      fetch(COEFS_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+    ]);
+
+    db = new SQL.Database(new Uint8Array(dbBuf));
+    coefs = coefsJson;
+
+    const meta = db.exec("SELECT key, value FROM _meta")[0];
+    const metaMap = Object.fromEntries(meta.values);
+    $('meta').textContent = `${Number(metaMap.total_rows).toLocaleString()} rows · ${(dbBuf.byteLength / 1024 / 1024).toFixed(1)}MB`;
+
+    initControls();
+    renderSlots();
+    setStatus(`✓ Ready · ${coefs.meta.n_lineups.toLocaleString()} lineups trained the fit model · most recent season: ${getMostRecentSeason()}`, 'ready');
+  } catch (err) {
+    console.error(err);
+    setStatus('Failed to load: ' + err.message, 'error');
+  }
+}
+
+async function fetchDb(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${url}`);
+  if (url.endsWith('.gz')) {
+    const ds = new DecompressionStream('gzip');
+    return await new Response(r.body.pipeThrough(ds)).arrayBuffer();
+  }
+  return await r.arrayBuffer();
+}
+
+function getMostRecentSeason() {
+  const r = db.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC LIMIT 1");
+  return r[0]?.values?.[0]?.[0] || '';
+}
+
+function initControls() {
+  // Populate seasons
+  const seasons = db.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC")[0].values.map(r => r[0]);
+  const sel = $('seasonSelect');
+  seasons.forEach(s => sel.add(new Option(s, s)));
+  sel.value = seasons[0]; // most recent
+  sel.addEventListener('change', () => {
+    // Clear slots when season changes — players are season-keyed
+    for (let i = 0; i < 5; i++) slots[i] = null;
+    renderSlots();
+    updateProjectBtn();
+  });
+
+  // Populate teams for baseline comparison
+  const teams = db.exec(`SELECT DISTINCT TEAM_ABBREVIATION FROM player_advanced WHERE TEAM_ABBREVIATION <> '' ORDER BY TEAM_ABBREVIATION`)[0].values.map(r => r[0]);
+  const tsel = $('baselineTeam');
+  teams.forEach(t => tsel.add(new Option(t, t)));
+
+  $('projectBtn').addEventListener('click', projectLineup);
+  $('clearBtn').addEventListener('click', () => {
+    for (let i = 0; i < 5; i++) slots[i] = null;
+    $('result').innerHTML = '';
+    renderSlots();
+    updateProjectBtn();
+  });
+  $('demoBtn').addEventListener('click', loadDemo);
+}
+
+function loadDemo() {
+  // Giannis → OKC: SGA, Dort, JDub, Giannis, Holmgren
+  const demoNames = [
+    'Shai Gilgeous-Alexander',
+    'Luguentz Dort',
+    'Jalen Williams',
+    'Giannis Antetokounmpo',
+    'Chet Holmgren',
+  ];
+  const season = $('seasonSelect').value;
+  for (let i = 0; i < 5; i++) {
+    const r = db.exec(`SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION FROM player_advanced WHERE PLAYER_NAME = '${demoNames[i].replace(/'/g, "''")}' AND SEASON = '${season}' AND SEASON_TYPE = 'Regular Season' LIMIT 1`);
+    if (r.length && r[0].values.length) {
+      const [pid, name, team] = r[0].values[0];
+      slots[i] = { player_id: pid, name, team, season };
+    } else {
+      slots[i] = null;
+      console.warn(`Demo: ${demoNames[i]} not found for season ${season}`);
+    }
+  }
+  $('baselineTeam').value = 'OKC';
+  renderSlots();
+  updateProjectBtn();
+  projectLineup();
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Slots / autocomplete
+// ────────────────────────────────────────────────────────────────────
+function renderSlots() {
+  const grid = $('lineupGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const s = document.createElement('div');
+    s.className = 'slot' + (slots[i] ? ' filled' : '');
+    s.innerHTML = renderSlotContent(i);
+    grid.appendChild(s);
+  }
+  // Wire up autocomplete for empty slots
+  for (let i = 0; i < 5; i++) {
+    if (!slots[i]) {
+      const input = grid.children[i].querySelector('input');
+      if (input) wireAutocomplete(input, i);
+    } else {
+      const clearBtn = grid.children[i].querySelector('.clear-btn');
+      if (clearBtn) clearBtn.addEventListener('click', () => { slots[i] = null; renderSlots(); updateProjectBtn(); });
+    }
+  }
+}
+
+function renderSlotContent(i) {
+  const p = slots[i];
+  if (!p) {
+    return `
+      <div class="slot-label">Player ${i + 1}</div>
+      <input type="text" placeholder="Type player name..." autocomplete="off" data-slot="${i}">
+    `;
+  }
+  // Fetch the per-player stats for display
+  const r = db.exec(`
+    SELECT OFF_RATING, DEF_RATING, USG_PCT, TS_PCT, PIE
+    FROM player_advanced
+    WHERE PLAYER_ID = ${p.player_id} AND SEASON = '${p.season}' AND SEASON_TYPE = 'Regular Season'
+    LIMIT 1
+  `);
+  if (!r.length) return `<div class="player-info">No stats found</div>`;
+  const [ortg, drtg, usg, ts, pie] = r[0].values[0];
+  return `
+    <button class="clear-btn">✕</button>
+    <div class="slot-label">Player ${i + 1}</div>
+    <div class="player-info">
+      <div class="name">${p.name}<span class="team">${p.team || ''}</span></div>
+      <div class="stats">
+        ORtg ${Number(ortg).toFixed(0)} / DRtg ${Number(drtg).toFixed(0)}<br>
+        USG ${(Number(usg) * 100).toFixed(1)}% · TS ${(Number(ts) * 100).toFixed(1)}%<br>
+        PIE ${(Number(pie) * 100).toFixed(1)}
+      </div>
+    </div>
+  `;
+}
+
+function wireAutocomplete(input, slotIdx) {
+  let dropdown = null;
+  let activeIdx = -1;
+  let lastResults = [];
+
+  const search = (q) => {
+    if (!q || q.length < 2) return [];
+    const season = $('seasonSelect').value;
+    // Match against PLAYER_NAME with LIKE; constrain to season; favor higher minutes
+    const r = db.exec(`
+      SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION, MIN, OFF_RATING, USG_PCT
+      FROM player_advanced
+      WHERE PLAYER_NAME LIKE '%${q.replace(/'/g, "''")}%'
+        AND SEASON = '${season}'
+        AND SEASON_TYPE = 'Regular Season'
+      ORDER BY MIN DESC
+      LIMIT 8
+    `);
+    if (!r.length) return [];
+    return r[0].values.map(v => ({
+      player_id: v[0], name: v[1], team: v[2], min: v[3], ortg: v[4], usg: v[5]
+    }));
+  };
+
+  const removeDropdown = () => { if (dropdown) { dropdown.remove(); dropdown = null; } activeIdx = -1; };
+
+  const showResults = (results) => {
+    removeDropdown();
+    if (!results.length) return;
+    lastResults = results;
+    dropdown = document.createElement('div');
+    dropdown.className = 'autocomplete';
+    dropdown.innerHTML = results.map((r, idx) => `
+      <div class="autocomplete-item" data-idx="${idx}">
+        <span class="name">${r.name}</span>
+        <div class="meta">${r.team || '—'} · ORtg ${Number(r.ortg).toFixed(0)} · USG ${(Number(r.usg) * 100).toFixed(1)}% · ${Number(r.min).toFixed(0)} MIN</div>
+      </div>
+    `).join('');
+    input.parentNode.style.position = 'relative';
+    input.parentNode.appendChild(dropdown);
+    dropdown.querySelectorAll('.autocomplete-item').forEach((el, idx) => {
+      el.addEventListener('mousedown', (e) => { e.preventDefault(); pickResult(idx); });
+    });
+  };
+
+  const pickResult = (idx) => {
+    const r = lastResults[idx];
+    if (!r) return;
+    slots[slotIdx] = { player_id: r.player_id, name: r.name, team: r.team, season: $('seasonSelect').value };
+    removeDropdown();
+    renderSlots();
+    updateProjectBtn();
+  };
+
+  input.addEventListener('input', (e) => {
+    const results = search(e.target.value.trim());
+    showResults(results);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (!dropdown) return;
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(items.length - 1, activeIdx + 1);
+      items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(0, activeIdx - 1);
+      items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIdx >= 0) pickResult(activeIdx);
+      else if (lastResults.length) pickResult(0);
+    } else if (e.key === 'Escape') {
+      removeDropdown();
+    }
+  });
+  input.addEventListener('blur', () => setTimeout(removeDropdown, 200));
+}
+
+function updateProjectBtn() {
+  const filled = slots.filter(Boolean).length;
+  $('projectBtn').disabled = filled !== 5;
+  $('projectBtn').textContent = filled === 5 ? 'Project Lineup' : `Project Lineup (need ${5 - filled} more)`;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Projection math
+// ────────────────────────────────────────────────────────────────────
+const USG_HIGH = 0.25;     // USG_PCT decimal threshold
+const SHOOT_OK = 0.35;     // 3P% threshold
+const SHOOT_MIN_3PA = 1.5; // minimum 3PA/g to qualify as shooter
+const AST_HIGH = 0.20;     // AST_PCT threshold for playmakers
+const REB_HIGH = 0.10;     // REB_PCT threshold for plus rebounders
+const BLK_HIGH = 1.0;      // BLK/g threshold for rim protectors
+
+function projectLineup() {
+  // Pull full Advanced + Base for each slot
+  const players = slots.map(s => {
+    const r = db.exec(`
+      SELECT a.PLAYER_NAME, a.TEAM_ABBREVIATION,
+             a.OFF_RATING, a.DEF_RATING, a.NET_RATING, a.USG_PCT, a.TS_PCT,
+             a.AST_PCT, a.REB_PCT, a.PIE, a.PACE,
+             b.FG3_PCT, b.FG3A, b.BLK
+      FROM player_advanced a
+      LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID
+        AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
+      WHERE a.PLAYER_ID = ${s.player_id}
+        AND a.SEASON = '${s.season}'
+        AND a.SEASON_TYPE = 'Regular Season'
+      LIMIT 1
+    `);
+    if (!r.length) return null;
+    const [name, team, ortg, drtg, netrtg, usg, ts, ast_pct, reb_pct, pie, pace, fg3p, fg3a, blk] = r[0].values[0];
+    return { name, team, ortg: +ortg, drtg: +drtg, netrtg: +netrtg, usg: +usg, ts: +ts,
+             ast_pct: +ast_pct, reb_pct: +reb_pct, pie: +pie, pace: +pace,
+             fg3p: +fg3p, fg3a: +fg3a, blk: +blk };
+  });
+  if (players.some(p => !p)) {
+    setStatus('Could not load all player stats — try refreshing.', 'error');
+    return;
+  }
+
+  // Additive baseline — simple equal-weighted mean across the 5 players
+  const add_ortg = mean(players.map(p => p.ortg));
+  const add_drtg = mean(players.map(p => p.drtg));
+  const avg_pace = mean(players.map(p => p.pace));
+
+  // Lineup features
+  const n_high_usg    = players.filter(p => p.usg >= USG_HIGH).length;
+  const n_shooters    = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
+  const n_rim_protect = players.filter(p => p.blk >= BLK_HIGH).length;
+  const n_playmakers  = players.filter(p => p.ast_pct >= AST_HIGH).length;
+  const n_rebounders  = players.filter(p => p.reb_pct >= REB_HIGH).length;
+
+  // Apply fit adjustments
+  // Center each dimension's adjustment around the global residual mean so
+  // the systematic baseline bias washes out and only the relative effects remain.
+  const ortg_baseline_resid = coefs.meta.baseline_ortg_resid_mean || 0;
+  const drtg_baseline_resid = coefs.meta.baseline_drtg_resid_mean || 0;
+
+  const dims = [
+    ['n_high_usg',    n_high_usg,    'Usage stacking'],
+    ['n_shooters',    n_shooters,    'Spacing (shooters)'],
+    ['n_rim_protect', n_rim_protect, 'Rim protection'],
+    ['n_playmakers',  n_playmakers,  'Playmaking depth'],
+    ['n_rebounders',  n_rebounders,  'Rebound depth'],
+  ];
+
+  let ortg_adj_total = 0;
+  let drtg_adj_total = 0;
+  const adj_breakdown = [];
+
+  for (const [key, value, label] of dims) {
+    const dim = coefs.dimensions[key];
+    if (!dim) continue;
+    const bucket = dim.buckets[String(value)];
+    if (!bucket) {
+      // Out-of-range bucket (e.g., n=3 rim protectors which we excluded for low sample).
+      // Skip — no adjustment.
+      adj_breakdown.push({ label, value, ortg_adj: 0, drtg_adj: 0, note: 'no data — skipped' });
+      continue;
+    }
+    // Subtract the global baseline residual so we measure deviation, not absolute residual
+    const o = bucket.ortg_adj - ortg_baseline_resid;
+    const d = bucket.drtg_adj - drtg_baseline_resid;
+    ortg_adj_total += o;
+    drtg_adj_total += d;
+    adj_breakdown.push({ label, value, ortg_adj: o, drtg_adj: d, n: bucket.n_samples });
+  }
+
+  const proj_ortg = add_ortg + ortg_adj_total;
+  const proj_drtg = add_drtg + drtg_adj_total;
+  const proj_netrtg = proj_ortg - proj_drtg;
+
+  // Baseline team comparison (if selected)
+  let baseline_text = '';
+  const baseTeam = $('baselineTeam').value;
+  if (baseTeam) {
+    // Get team's actual ORtg/DRtg for the season
+    const season = $('seasonSelect').value;
+    const r = db.exec(`
+      SELECT AVG(OFF_RATING), AVG(DEF_RATING), AVG(NET_RATING)
+      FROM player_advanced
+      WHERE TEAM_ABBREVIATION = '${baseTeam}' AND SEASON = '${season}'
+        AND SEASON_TYPE = 'Regular Season' AND MIN >= 15
+    `);
+    if (r.length && r[0].values[0][0] != null) {
+      const [team_o, team_d, team_net] = r[0].values[0];
+      const delta_o = proj_ortg - team_o;
+      const delta_d = proj_drtg - team_d;
+      const delta_n = proj_netrtg - team_net;
+      baseline_text = `
+        <div class="proj-tier"><strong>${baseTeam} ${season} baseline:</strong>
+          ORtg ${Number(team_o).toFixed(1)} (proj ${delta_o >= 0 ? '+' : ''}${delta_o.toFixed(1)}) ·
+          DRtg ${Number(team_d).toFixed(1)} (proj ${delta_d >= 0 ? '+' : ''}${delta_d.toFixed(1)}) ·
+          NetRtg ${Number(team_net).toFixed(1)} (proj ${delta_n >= 0 ? '+' : ''}${delta_n.toFixed(1)})
+        </div>`;
+    }
+  }
+
+  // Tier classification — gives the user a quick read on quality
+  const tierText = classifyLineup(proj_netrtg);
+
+  // Render
+  const players_table = players.map((p, i) => `
+    <tr>
+      <td>${i + 1}. ${p.name}</td>
+      <td class="num">${p.ortg.toFixed(1)}</td>
+      <td class="num">${p.drtg.toFixed(1)}</td>
+      <td class="num">${(p.usg * 100).toFixed(1)}%</td>
+      <td class="num">${(p.ts * 100).toFixed(1)}%</td>
+      <td class="num">${(p.pie * 100).toFixed(1)}</td>
+    </tr>
+  `).join('');
+
+  const adj_table = adj_breakdown.map(a => {
+    const cls = (v) => v > 0.1 ? 'adj-pos' : v < -0.1 ? 'adj-neg' : 'adj-zero';
+    return `<tr>
+      <td>${a.label}</td>
+      <td class="num">${a.value}</td>
+      <td class="num ${cls(a.ortg_adj)}">${a.ortg_adj > 0 ? '+' : ''}${a.ortg_adj.toFixed(1)}</td>
+      <td class="num ${cls(-a.drtg_adj)}">${a.drtg_adj > 0 ? '+' : ''}${a.drtg_adj.toFixed(1)}</td>
+      <td>${a.note || `${a.n} similar lineups`}</td>
+    </tr>`;
+  }).join('');
+
+  $('result').innerHTML = `
+    <div class="projection">
+      <div class="proj-headline">
+        <div class="proj-stat headline ${proj_netrtg >= 5 ? 'green' : proj_netrtg <= -5 ? 'red' : 'orange'}">
+          <div class="label">Net Rating</div>
+          <div class="value">${proj_netrtg >= 0 ? '+' : ''}${proj_netrtg.toFixed(1)}</div>
+        </div>
+        <div class="proj-stat">
+          <div class="label">Off Rating</div>
+          <div class="value">${proj_ortg.toFixed(1)}</div>
+        </div>
+        <div class="proj-stat">
+          <div class="label">Def Rating</div>
+          <div class="value">${proj_drtg.toFixed(1)}</div>
+        </div>
+        <div class="proj-stat">
+          <div class="label">Pace</div>
+          <div class="value">${avg_pace.toFixed(1)}</div>
+        </div>
+      </div>
+      <div class="proj-tier">${tierText}</div>
+      ${baseline_text}
+
+      <div class="breakdown">
+        <h3>Player stats (additive baseline ingredients)</h3>
+        <table>
+          <thead><tr><th>Player</th><th class="num">ORtg</th><th class="num">DRtg</th><th class="num">USG</th><th class="num">TS%</th><th class="num">PIE</th></tr></thead>
+          <tbody>
+            ${players_table}
+            <tr class="total"><td>Additive baseline (avg)</td>
+              <td class="num">${add_ortg.toFixed(1)}</td>
+              <td class="num">${add_drtg.toFixed(1)}</td>
+              <td class="num">—</td><td class="num">—</td><td class="num">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="breakdown">
+        <h3>Fit adjustments (Tier 2 model)</h3>
+        <table>
+          <thead><tr><th>Dimension</th><th class="num">Count</th><th class="num">ORtg Δ</th><th class="num">DRtg Δ</th><th>Sample</th></tr></thead>
+          <tbody>
+            ${adj_table}
+            <tr class="total"><td>Total fit adjustment</td><td class="num">—</td>
+              <td class="num ${ortg_adj_total > 0 ? 'adj-pos' : ortg_adj_total < 0 ? 'adj-neg' : ''}">${ortg_adj_total > 0 ? '+' : ''}${ortg_adj_total.toFixed(1)}</td>
+              <td class="num ${drtg_adj_total < 0 ? 'adj-pos' : drtg_adj_total > 0 ? 'adj-neg' : ''}">${drtg_adj_total > 0 ? '+' : ''}${drtg_adj_total.toFixed(1)}</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notes">
+        <strong>How to read this:</strong>
+        <ul>
+          <li><strong>Additive baseline</strong> = average of each player's individual ORtg/DRtg. This is the "no chemistry" prediction.</li>
+          <li><strong>Fit adjustments</strong> are learned from ${coefs.meta.n_lineups.toLocaleString()} real NBA lineups. Each dimension captures a structural pattern: more shooters → better spacing, more rim protectors → better rim defense, too many high-usage players → usage conflict.</li>
+          <li><strong>Net Rating</strong> = projected ORtg − projected DRtg. Roughly: +5 to +10 = a strong lineup, +10 to +15 = elite, +15+ = championship-tier. Negatives mean the lineup gets outscored.</li>
+          <li><strong>Accuracy:</strong> ±3-4 points of ORtg/DRtg uncertainty. Read this as a tier estimate, not a precise number.</li>
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+function classifyLineup(netrtg) {
+  if (netrtg >= 12) return '🏆 Championship-tier lineup — elite both ways';
+  if (netrtg >= 7)  return '⭐ Top-tier lineup — strong outlier expected';
+  if (netrtg >= 3)  return '✓ Above-average lineup — solid above NBA mean';
+  if (netrtg >= -3) return '○ Neutral lineup — close to league average';
+  if (netrtg >= -7) return '⚠ Below-average lineup — likely gets outscored';
+  return '✗ Weak lineup — projects significantly below average';
+}
+
+function mean(arr) {
+  const valid = arr.filter(v => isFinite(v));
+  return valid.reduce((s, v) => s + v, 0) / valid.length;
+}
+
+boot();
+</script>
+
+</body>
+</html>
