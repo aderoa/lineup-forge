@@ -182,9 +182,22 @@ const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
 
 // Two-axis quality model
-const OFF_CALIB = 10, OFF_SCALE = 0.20;   // (rat365 - 10) × 0.20 = offense contribution per player
-const DEF_CALIB = 8,  DEF_SCALE = 0.15;   // (DEF_SCORE - 8) × 0.15 = defense contribution per player
+const OFF_CALIB = 12, OFF_SCALE = 0.20;   // (rat365 - 12) × 0.20 = offense contribution per player
+const DEF_CALIB = 10, DEF_SCALE = 0.15;   // (DEF_SCORE - 10) × 0.15 = defense contribution per player
 const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
+
+// Boost gate (gradual GP-based taper): only apply the asymmetric historical boost
+// when current-season sample is limited. Linear taper between FULL and NONE:
+//   currentGP ≤ BOOST_GP_FULL: full boost (clearly limited sample, e.g., Giannis 15 GP)
+//   currentGP ≥ BOOST_GP_NONE: no boost (full-season trust, e.g., Nurkić 65+ GP)
+//   in between: linearly tapered (e.g., 30 GP → 67% boost; 40 GP → 33% boost)
+const BOOST_GP_FULL = 20;
+const BOOST_GP_NONE = 50;
+function boostFraction(currentGP) {
+  if (currentGP >= BOOST_GP_NONE) return 0;
+  if (currentGP <= BOOST_GP_FULL) return 1;
+  return (BOOST_GP_NONE - currentGP) / (BOOST_GP_NONE - BOOST_GP_FULL);
+}
 
 // Fit dampening: how much the learned lineup-composition coefficients are applied.
 // 1.0 = full strength (raw learned coefficients), 0.0 = ignore fit entirely (pure quality).
@@ -662,11 +675,11 @@ function renderEditView() {
       <ul>
         <li><strong>Two-axis quality model:</strong> each player has separate offensive (rat365-based) and defensive (DEF_SCORE-based) contributions.
           <ul>
-            <li><em>Offense Δ</em> = (rat365 − 10) × 0.20 — from HoopsMatic Real Value</li>
-            <li><em>Defense Δ</em> = (DEF_SCORE − 8) × 0.15 — from your Defensive Rankings system</li>
+            <li><em>Offense Δ</em> = (rat365 − 12) × 0.20 — from HoopsMatic Real Value</li>
+            <li><em>Defense Δ</em> = (DEF_SCORE − 10) × 0.15 — from your Defensive Rankings system</li>
           </ul>
         </li>
-        <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend only <em>boosts</em> a player when their current is anomalously depressed: <code>effective = max(current, weighted)</code>. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
+        <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend boost is applied <em>gradually</em> based on current-season games played: full boost below 20 GP, no boost above 50 GP, linear taper in between. So Giannis (15 GP) gets full credit for his career level, while Nurkić (65+ GP) trusts his actual current value, and a load-managed vet at 35 GP gets a partial boost. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
         <li><strong>Projected ORtg</strong> = 115 + sum of offense Δs + fit ORtg adj. <strong>Projected DRtg</strong> = 115 − sum of defense Δs + fit DRtg adj. So elite defenders <em>lower</em> the projected DRtg directly.</li>
         <li><strong>Fit adjustments</strong> are learned from real NBA lineups — they capture lineup-composition effects (spacing, usage stacking, rim protection, etc.) on top of the per-player quality. Currently applied at <strong>${(FIT_WEIGHT * 100).toFixed(0)}% weight</strong> so individual star talent has the bigger say (fit buckets average across all lineups in a category and can't distinguish exceptional individuals like Giannis from typical bucket members).</li>
         <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
@@ -841,10 +854,26 @@ function computeWeightedRat365(playerId, nbaName, currentSeason) {
     return null;
   }
   const blended = totalWeighted / totalWeight;
-  // Asymmetric rule: only let weighted boost (use higher of current vs blend).
-  // Never penalize a player who has improved over time.
-  const effective = current_rat365 !== null ? Math.max(current_rat365, blended) : blended;
-  const result = { effective, blended, current_rat365, seasons, n_seasons: seasons.length };
+
+  // Find current-season GP for the boost gate
+  const currentSeasonEntry = seasons.find(s => s.season === currentSeason);
+  const currentGP = currentSeasonEntry ? currentSeasonEntry.gp : 0;
+
+  // Asymmetric rule with gradual GP-based taper: boost is fractional based on currentGP.
+  //   - No current rat365 at all: use blend entirely.
+  //   - Current data + below BOOST_GP_FULL: full boost (effective = blended).
+  //   - Current data + above BOOST_GP_NONE: no boost (effective = current).
+  //   - In between: effective = current + fraction × (blended − current), clamped non-negative.
+  let effective;
+  if (current_rat365 === null) {
+    effective = blended;
+  } else if (blended > current_rat365) {
+    const f = boostFraction(currentGP);
+    effective = current_rat365 + f * (blended - current_rat365);
+  } else {
+    effective = current_rat365;
+  }
+  const result = { effective, blended, current_rat365, currentGP, seasons, n_seasons: seasons.length };
   _weightedRatCache[cacheKey] = result;
   return result;
 }
@@ -927,10 +956,21 @@ function computeWeightedDefScore(playerId, nbaName, currentSeason) {
     return null;
   }
   const blended = totalWeighted / totalWeight;
-  // Asymmetric: only let blend boost (use higher of current sheet score vs weighted composite).
-  // If no sheet score (player not in defensive rankings, e.g., low GP), use blend.
-  const effective = current_def_score !== null ? Math.max(current_def_score, blended) : blended;
-  const result = { effective, blended, current_def_score, seasons, n_seasons: seasons.length };
+
+  // Find current-season GP for boost gate (same logic as rat365)
+  const currentSeasonEntry = seasons.find(s => s.season === currentSeason);
+  const currentGP = currentSeasonEntry ? currentSeasonEntry.gp : 0;
+
+  let effective;
+  if (current_def_score === null) {
+    effective = blended;
+  } else if (blended > current_def_score) {
+    const f = boostFraction(currentGP);
+    effective = current_def_score + f * (blended - current_def_score);
+  } else {
+    effective = current_def_score;
+  }
+  const result = { effective, blended, current_def_score, currentGP, seasons, n_seasons: seasons.length };
   _defScoreCache[cacheKey] = result;
   return result;
 }
