@@ -219,10 +219,15 @@ async function boot() {
     STATE.season = commonSeasons[0];
 
     const totalMB = ((playerBuf.byteLength + lineupsBuf.byteLength) / 1024 / 1024).toFixed(1);
-    const qNote = QUALITY ? `${QUALITY._meta.n_players} quality scores` : 'no quality data';
+    const qNote = QUALITY ? `${QUALITY._meta.n_players} quality scores` : 'NO QUALITY DATA — fix';
     $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${qNote} · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
 
     setStatus('', 'hidden');
+    if (!QUALITY) {
+      setStatus('⚠ player_quality.json failed to load — projections falling back to watermark-only. Check that the file is deployed at the URL.', 'error');
+    } else if (Object.keys(NAME_DICT).length === 0) {
+      setStatus('⚠ name_dictionary.json failed to load — quality lookups may miss players with accent marks (Jokić, Dončić, etc.)', 'error');
+    }
     renderTeamPicker();
     wireModal();
   } catch (err) {
