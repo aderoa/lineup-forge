@@ -1,0 +1,2600 @@
+{
+  "_meta": {
+    "calibration_constant": 10.0,
+    "league_avg_rat365": 4.71,
+    "n_players": 646,
+    "rotation_avg": 10.22,
+    "scale_factor": 0.25,
+    "source": "NBA_Daily_Stats_2025-26 (rat365 column)",
+    "top100_avg": 14.54,
+    "top10_avg": 23.57,
+    "top200_avg": 11.15,
+    "top50_avg": 17.77
+  },
+  "players": {
+    "AJ Green": {
+      "rat365": 6.34,
+      "team": "Milwaukee"
+    },
+    "AJ Johnson": {
+      "rat365": 0.78,
+      "team": "Dallas"
+    },
+    "AJ Lawson": {
+      "rat365": 0.97,
+      "team": "Toronto"
+    },
+    "Aaron Gordon": {
+      "rat365": 6.83,
+      "team": "Denver"
+    },
+    "Aaron Holiday": {
+      "rat365": 3.02,
+      "team": "Houston"
+    },
+    "Aaron Nesmith": {
+      "rat365": 4.62,
+      "team": "Indiana"
+    },
+    "Aaron Wiggins": {
+      "rat365": 6.46,
+      "team": "Oklahoma City"
+    },
+    "Ace Bailey": {
+      "rat365": 6.25,
+      "team": "Utah"
+    },
+    "Adam Flagler": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Adama Bal": {
+      "rat365": 0.48,
+      "team": ""
+    },
+    "Adem Bona": {
+      "rat365": 4.56,
+      "team": "Philadelphia"
+    },
+    "Adou Thiero": {
+      "rat365": 0.61,
+      "team": "LA Lakers"
+    },
+    "Ajay Mitchell": {
+      "rat365": 11.39,
+      "team": "Oklahoma City"
+    },
+    "Al Horford": {
+      "rat365": 4.59,
+      "team": "Golden State"
+    },
+    "Alec Burks": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Alex Antetokounmpo": {
+      "rat365": 0.19,
+      "team": "Milwaukee"
+    },
+    "Alex Caruso": {
+      "rat365": 7.5,
+      "team": "Oklahoma City"
+    },
+    "Alex Ducas": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Alex Len": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Alex Morales": {
+      "rat365": 0.02,
+      "team": "Orlando"
+    },
+    "Alex Reese": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Alex Sarr": {
+      "rat365": 6.49,
+      "team": "Washington"
+    },
+    "Alijah Martin": {
+      "rat365": 0.45,
+      "team": "Toronto"
+    },
+    "Alondes Williams": {
+      "rat365": 0.59,
+      "team": ""
+    },
+    "Alperen Sengun": {
+      "rat365": 18.45,
+      "team": "Houston"
+    },
+    "Amari Williams": {
+      "rat365": 0.43,
+      "team": "Boston"
+    },
+    "Amen Thompson": {
+      "rat365": 19.23,
+      "team": "Houston"
+    },
+    "Amir Coffey": {
+      "rat365": 1.46,
+      "team": "Phoenix"
+    },
+    "Andersson Garcia": {
+      "rat365": 0.41,
+      "team": ""
+    },
+    "Andre Drummond": {
+      "rat365": 6.37,
+      "team": "Philadelphia"
+    },
+    "Andre Jackson": {
+      "rat365": 0.71,
+      "team": "Milwaukee"
+    },
+    "Andrew Nembhard": {
+      "rat365": 9.05,
+      "team": "Indiana"
+    },
+    "Andrew Wiggins": {
+      "rat365": 9.53,
+      "team": "Miami"
+    },
+    "Anfernee Simons": {
+      "rat365": 6.8,
+      "team": "Chicago"
+    },
+    "Anthony Black": {
+      "rat365": 10.03,
+      "team": "Orlando"
+    },
+    "Anthony Davis": {
+      "rat365": 4.19,
+      "team": "Washington"
+    },
+    "Anthony Edwards": {
+      "rat365": 17.25,
+      "team": "Minnesota"
+    },
+    "Anthony Gill": {
+      "rat365": 2.82,
+      "team": "Washington"
+    },
+    "Antonio Reeves": {
+      "rat365": 0.22,
+      "team": "Charlotte"
+    },
+    "Ariel Hukporti": {
+      "rat365": 2.18,
+      "team": "New York"
+    },
+    "Asa Newell": {
+      "rat365": 2.13,
+      "team": "Atlanta"
+    },
+    "Ausar Thompson": {
+      "rat365": 12.7,
+      "team": "Detroit"
+    },
+    "Austin Reaves": {
+      "rat365": 13.74,
+      "team": "LA Lakers"
+    },
+    "Ayo Dosunmu": {
+      "rat365": 11.3,
+      "team": "Minnesota"
+    },
+    "Bam Adebayo": {
+      "rat365": 15.11,
+      "team": "Miami"
+    },
+    "Baylor Scheierman": {
+      "rat365": 5.9,
+      "team": "Boston"
+    },
+    "Ben Saraf": {
+      "rat365": 2.12,
+      "team": "Brooklyn"
+    },
+    "Ben Sheppard": {
+      "rat365": 3.84,
+      "team": "Indiana"
+    },
+    "Ben Simmons": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Bennedict Mathurin": {
+      "rat365": 9.1,
+      "team": "LA Clippers"
+    },
+    "Bez Mbeng": {
+      "rat365": 1.15,
+      "team": "Utah"
+    },
+    "Bilal Coulibaly": {
+      "rat365": 3.0,
+      "team": "Washington"
+    },
+    "Bismack Biyombo": {
+      "rat365": 0.31,
+      "team": "San Antonio"
+    },
+    "Blake Hinson": {
+      "rat365": 1.33,
+      "team": "Utah"
+    },
+    "Blake Wesley": {
+      "rat365": 1.45,
+      "team": "Portland"
+    },
+    "Bobby Portis": {
+      "rat365": 7.98,
+      "team": "Milwaukee"
+    },
+    "Bobi Klintman": {
+      "rat365": 0.14,
+      "team": ""
+    },
+    "Bogdan Bogdanovic": {
+      "rat365": 1.07,
+      "team": "LA Clippers"
+    },
+    "Bol Bol": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Bones Hyland": {
+      "rat365": 6.22,
+      "team": "Minnesota"
+    },
+    "Bradley Beal": {
+      "rat365": 0.25,
+      "team": "LA Clippers"
+    },
+    "Branden Carlson": {
+      "rat365": 2.9,
+      "team": "Oklahoma City"
+    },
+    "Brandin Podziemski": {
+      "rat365": 11.56,
+      "team": "Golden State"
+    },
+    "Brandon Ingram": {
+      "rat365": 15.27,
+      "team": "Toronto"
+    },
+    "Brandon Miller": {
+      "rat365": 12.11,
+      "team": "Charlotte"
+    },
+    "Brandon Williams": {
+      "rat365": 7.57,
+      "team": "Dallas"
+    },
+    "Braxton Key": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Brice Sensabaugh": {
+      "rat365": 7.2,
+      "team": "Utah"
+    },
+    "Bronny James": {
+      "rat365": 1.16,
+      "team": "LA Lakers"
+    },
+    "Brook Lopez": {
+      "rat365": 6.69,
+      "team": "LA Clippers"
+    },
+    "Brooks Barnhizer": {
+      "rat365": 0.92,
+      "team": "Oklahoma City"
+    },
+    "Bruce Brown": {
+      "rat365": 7.78,
+      "team": "Denver"
+    },
+    "Bryce McGowens": {
+      "rat365": 3.03,
+      "team": "New Orleans"
+    },
+    "Buddy Boeheim": {
+      "rat365": 0.03,
+      "team": ""
+    },
+    "Buddy Hield": {
+      "rat365": 3.41,
+      "team": "Atlanta"
+    },
+    "CJ Huntley": {
+      "rat365": 0.17,
+      "team": "Phoenix"
+    },
+    "CJ McCollum": {
+      "rat365": 12.84,
+      "team": "Atlanta"
+    },
+    "Cade Cunningham": {
+      "rat365": 20.68,
+      "team": "Detroit"
+    },
+    "Caleb Houstan": {
+      "rat365": 0.44,
+      "team": ""
+    },
+    "Caleb Love": {
+      "rat365": 3.87,
+      "team": "Portland"
+    },
+    "Caleb Martin": {
+      "rat365": 2.2,
+      "team": "Dallas"
+    },
+    "Cam Christie": {
+      "rat365": 1.48,
+      "team": "LA Clippers"
+    },
+    "Cam Spencer": {
+      "rat365": 8.4,
+      "team": "Memphis"
+    },
+    "Cam Thomas": {
+      "rat365": 3.67,
+      "team": ""
+    },
+    "Cam Whitmore": {
+      "rat365": 1.18,
+      "team": "Washington"
+    },
+    "Cameron Johnson": {
+      "rat365": 7.86,
+      "team": "Denver"
+    },
+    "Cameron Payne": {
+      "rat365": 1.47,
+      "team": ""
+    },
+    "Caris LeVert": {
+      "rat365": 5.56,
+      "team": "Detroit"
+    },
+    "Carlton Carrington": {
+      "rat365": 6.04,
+      "team": "Washington"
+    },
+    "Carter Bryant": {
+      "rat365": 3.63,
+      "team": "San Antonio"
+    },
+    "Cason Wallace": {
+      "rat365": 11.21,
+      "team": "Oklahoma City"
+    },
+    "Cedric Coward": {
+      "rat365": 7.05,
+      "team": "Memphis"
+    },
+    "Chaney Johnson": {
+      "rat365": 1.3,
+      "team": "Brooklyn"
+    },
+    "Charles Bassey": {
+      "rat365": 0.93,
+      "team": "Golden State"
+    },
+    "Chaz Lanier": {
+      "rat365": 0.81,
+      "team": "Detroit"
+    },
+    "Chet Holmgren": {
+      "rat365": 18.97,
+      "team": "Oklahoma City"
+    },
+    "Chris Boucher": {
+      "rat365": 0.19,
+      "team": ""
+    },
+    "Chris Livingston": {
+      "rat365": 0.06,
+      "team": ""
+    },
+    "Chris Manon": {
+      "rat365": 0.13,
+      "team": "LA Lakers"
+    },
+    "Chris Paul": {
+      "rat365": 0.54,
+      "team": ""
+    },
+    "Chris Youngblood": {
+      "rat365": 0.72,
+      "team": "Portland"
+    },
+    "Christian Braun": {
+      "rat365": 6.53,
+      "team": "Denver"
+    },
+    "Christian Koloko": {
+      "rat365": 0.92,
+      "team": "Atlanta"
+    },
+    "Chucky Hepburn": {
+      "rat365": -0.04,
+      "team": "Toronto"
+    },
+    "Chuma Okeke": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Clint Capela": {
+      "rat365": 5.09,
+      "team": "Houston"
+    },
+    "Coby White": {
+      "rat365": 7.75,
+      "team": "Charlotte"
+    },
+    "Cody Martin": {
+      "rat365": 0.04,
+      "team": ""
+    },
+    "Cody Williams": {
+      "rat365": 4.46,
+      "team": "Utah"
+    },
+    "Colby Jones": {
+      "rat365": 0.02,
+      "team": ""
+    },
+    "Cole Anthony": {
+      "rat365": 1.88,
+      "team": ""
+    },
+    "Cole Swider": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Colin Castleton": {
+      "rat365": 0.06,
+      "team": "Orlando"
+    },
+    "Collin Gillespie": {
+      "rat365": 11.57,
+      "team": "Phoenix"
+    },
+    "Collin Murray-Boyles": {
+      "rat365": 7.3,
+      "team": "Toronto"
+    },
+    "Collin Sexton": {
+      "rat365": 8.53,
+      "team": "Chicago"
+    },
+    "Cooper Flagg": {
+      "rat365": 12.26,
+      "team": "Dallas"
+    },
+    "Corey Kispert": {
+      "rat365": 4.53,
+      "team": "Atlanta"
+    },
+    "Cormac Ryan": {
+      "rat365": 1.25,
+      "team": "Milwaukee"
+    },
+    "Cory Joseph": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Craig Porter": {
+      "rat365": 5.15,
+      "team": "Cleveland"
+    },
+    "Curtis Jones": {
+      "rat365": 0.39,
+      "team": "Denver"
+    },
+    "D'Angelo Russell": {
+      "rat365": 1.97,
+      "team": "Washington"
+    },
+    "DaQuan Jeffries": {
+      "rat365": 0.21,
+      "team": ""
+    },
+    "DaRon Holmes": {
+      "rat365": 0.89,
+      "team": "Denver"
+    },
+    "Daeqwon Plowden": {
+      "rat365": 2.59,
+      "team": "Sacramento"
+    },
+    "Dalano Banton": {
+      "rat365": 0.16,
+      "team": "Boston"
+    },
+    "Dalen Terry": {
+      "rat365": 1.96,
+      "team": "Philadelphia"
+    },
+    "Dalton Knecht": {
+      "rat365": 1.85,
+      "team": "LA Lakers"
+    },
+    "Damian Lillard": {
+      "rat365": 0.0,
+      "team": "Portland"
+    },
+    "Damion Baugh": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Damion Lee": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Daniel Gafford": {
+      "rat365": 5.5,
+      "team": "Dallas"
+    },
+    "Daniss Jenkins": {
+      "rat365": 8.9,
+      "team": "Detroit"
+    },
+    "Danny Wolf": {
+      "rat365": 4.06,
+      "team": "Brooklyn"
+    },
+    "Dante Exum": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Dario Saric": {
+      "rat365": 0.05,
+      "team": ""
+    },
+    "Dariq Whitehead": {
+      "rat365": 0.37,
+      "team": ""
+    },
+    "Darius Garland": {
+      "rat365": 7.94,
+      "team": "LA Clippers"
+    },
+    "David Duke": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "David Jones": {
+      "rat365": 0.47,
+      "team": "San Antonio"
+    },
+    "David Roddy": {
+      "rat365": 0.53,
+      "team": "Denver"
+    },
+    "Davion Mitchell": {
+      "rat365": 7.91,
+      "team": "Miami"
+    },
+    "Day'Ron Sharpe": {
+      "rat365": 6.47,
+      "team": "Brooklyn"
+    },
+    "De'Aaron Fox": {
+      "rat365": 17.99,
+      "team": "San Antonio"
+    },
+    "De'Andre Hunter": {
+      "rat365": 4.6,
+      "team": "Sacramento"
+    },
+    "De'Anthony Melton": {
+      "rat365": 5.42,
+      "team": "Golden State"
+    },
+    "DeAndre Jordan": {
+      "rat365": 0.87,
+      "team": "New Orleans"
+    },
+    "DeJon Jarreau": {
+      "rat365": 0.62,
+      "team": ""
+    },
+    "DeMar DeRozan": {
+      "rat365": 12.2,
+      "team": "Sacramento"
+    },
+    "Dean Wade": {
+      "rat365": 5.69,
+      "team": "Cleveland"
+    },
+    "Deandre Ayton": {
+      "rat365": 12.75,
+      "team": "LA Lakers"
+    },
+    "Dejounte Murray": {
+      "rat365": 2.11,
+      "team": "New Orleans"
+    },
+    "Delon Wright": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Deni Avdija": {
+      "rat365": 16.74,
+      "team": "Portland"
+    },
+    "Dennis Schroeder": {
+      "rat365": 7.86,
+      "team": "Cleveland"
+    },
+    "Dereck Lively": {
+      "rat365": 0.4,
+      "team": "Dallas"
+    },
+    "Derik Queen": {
+      "rat365": 8.95,
+      "team": "New Orleans"
+    },
+    "Derrick Jones": {
+      "rat365": 5.61,
+      "team": "LA Clippers"
+    },
+    "Derrick White": {
+      "rat365": 15.24,
+      "team": "Boston"
+    },
+    "Desmond Bane": {
+      "rat365": 16.56,
+      "team": "Orlando"
+    },
+    "Devin Booker": {
+      "rat365": 15.99,
+      "team": "Phoenix"
+    },
+    "Devin Carter": {
+      "rat365": 2.9,
+      "team": "Sacramento"
+    },
+    "Devin Vassell": {
+      "rat365": 12.17,
+      "team": "San Antonio"
+    },
+    "Dillon Brooks": {
+      "rat365": 9.16,
+      "team": "Phoenix"
+    },
+    "Dillon Jones": {
+      "rat365": 0.17,
+      "team": "New York"
+    },
+    "Domantas Sabonis": {
+      "rat365": 2.73,
+      "team": "Sacramento"
+    },
+    "Dominick Barlow": {
+      "rat365": 6.88,
+      "team": "Philadelphia"
+    },
+    "Donovan Clingan": {
+      "rat365": 13.35,
+      "team": "Portland"
+    },
+    "Donovan Mitchell": {
+      "rat365": 22.61,
+      "team": "Cleveland"
+    },
+    "Donte DiVincenzo": {
+      "rat365": 11.01,
+      "team": "Minnesota"
+    },
+    "Dorian Finney-Smith": {
+      "rat365": 1.25,
+      "team": "Houston"
+    },
+    "Doug McDermott": {
+      "rat365": 0.96,
+      "team": "Sacramento"
+    },
+    "Drake Powell": {
+      "rat365": 2.86,
+      "team": "Brooklyn"
+    },
+    "Draymond Green": {
+      "rat365": 6.23,
+      "team": "Golden State"
+    },
+    "Drew Eubanks": {
+      "rat365": 1.94,
+      "team": "Sacramento"
+    },
+    "Drew Peterson": {
+      "rat365": 0.02,
+      "team": ""
+    },
+    "Drew Timme": {
+      "rat365": 0.91,
+      "team": "LA Lakers"
+    },
+    "Dru Smith": {
+      "rat365": 5.14,
+      "team": "Miami"
+    },
+    "Duncan Robinson": {
+      "rat365": 11.11,
+      "team": "Detroit"
+    },
+    "Duop Reath": {
+      "rat365": 0.8,
+      "team": ""
+    },
+    "Dwight Powell": {
+      "rat365": 3.1,
+      "team": "Dallas"
+    },
+    "Dylan Cardwell": {
+      "rat365": 3.28,
+      "team": "Sacramento"
+    },
+    "Dylan Harper": {
+      "rat365": 12.37,
+      "team": "San Antonio"
+    },
+    "Dyson Daniels": {
+      "rat365": 13.42,
+      "team": "Atlanta"
+    },
+    "EJ Liddell": {
+      "rat365": 1.17,
+      "team": "Brooklyn"
+    },
+    "Egor Demin": {
+      "rat365": 4.21,
+      "team": "Brooklyn"
+    },
+    "Elfrid Payton": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Elijah Harkless": {
+      "rat365": 1.32,
+      "team": "Utah"
+    },
+    "Emanuel Miller": {
+      "rat365": 0.12,
+      "team": "San Antonio"
+    },
+    "Emoni Bates": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Enrique Freeman": {
+      "rat365": 0.2,
+      "team": "Minnesota"
+    },
+    "Eric Gordon": {
+      "rat365": 0.26,
+      "team": ""
+    },
+    "Ethan Thompson": {
+      "rat365": 1.73,
+      "team": "Indiana"
+    },
+    "Evan Mobley": {
+      "rat365": 17.79,
+      "team": "Cleveland"
+    },
+    "Franz Wagner": {
+      "rat365": 7.86,
+      "team": "Orlando"
+    },
+    "Fred VanVleet": {
+      "rat365": 0.0,
+      "team": "Houston"
+    },
+    "GG Jackson": {
+      "rat365": 5.1,
+      "team": "Memphis"
+    },
+    "Gabe Vincent": {
+      "rat365": 2.23,
+      "team": "Atlanta"
+    },
+    "Garrett Temple": {
+      "rat365": 0.2,
+      "team": "Toronto"
+    },
+    "Garrison Mathews": {
+      "rat365": 0.6,
+      "team": ""
+    },
+    "Gary Harris": {
+      "rat365": 1.29,
+      "team": "Milwaukee"
+    },
+    "Gary Payton II": {
+      "rat365": 6.24,
+      "team": "Golden State"
+    },
+    "Gary Trent Jr": {
+      "rat365": 3.45,
+      "team": "Milwaukee"
+    },
+    "Georges Niang": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Giannis Antetokounmpo": {
+      "rat365": 11.16,
+      "team": "Milwaukee"
+    },
+    "Goga Bitadze": {
+      "rat365": 6.17,
+      "team": "Orlando"
+    },
+    "Gradey Dick": {
+      "rat365": 4.12,
+      "team": "Toronto"
+    },
+    "Grant Nelson": {
+      "rat365": 0.14,
+      "team": ""
+    },
+    "Grant Williams": {
+      "rat365": 3.02,
+      "team": "Charlotte"
+    },
+    "Grayson Allen": {
+      "rat365": 7.93,
+      "team": "Phoenix"
+    },
+    "Guerschon Yabusele": {
+      "rat365": 3.3,
+      "team": "Chicago"
+    },
+    "Gui Santos": {
+      "rat365": 6.43,
+      "team": "Golden State"
+    },
+    "Harrison Barnes": {
+      "rat365": 9.11,
+      "team": "San Antonio"
+    },
+    "Harrison Ingram": {
+      "rat365": 0.13,
+      "team": "San Antonio"
+    },
+    "Hayden Gray": {
+      "rat365": 0.04,
+      "team": "Utah"
+    },
+    "Haywood Highsmith": {
+      "rat365": 0.45,
+      "team": "Phoenix"
+    },
+    "Herb Jones": {
+      "rat365": 4.27,
+      "team": "New Orleans"
+    },
+    "Hugo Gonzalez": {
+      "rat365": 3.63,
+      "team": "Boston"
+    },
+    "Hunter Dickinson": {
+      "rat365": 0.03,
+      "team": "New Orleans"
+    },
+    "Hunter Sallis": {
+      "rat365": 0.03,
+      "team": ""
+    },
+    "Hunter Tyson": {
+      "rat365": 0.39,
+      "team": ""
+    },
+    "Immanuel Quickley": {
+      "rat365": 12.46,
+      "team": "Toronto"
+    },
+    "Isaac Jones": {
+      "rat365": 0.1,
+      "team": "Detroit"
+    },
+    "Isaac Okoro": {
+      "rat365": 4.79,
+      "team": "Chicago"
+    },
+    "Isaiah Collier": {
+      "rat365": 6.66,
+      "team": "Utah"
+    },
+    "Isaiah Crawford": {
+      "rat365": 0.28,
+      "team": "Houston"
+    },
+    "Isaiah Hartenstein": {
+      "rat365": 10.82,
+      "team": "Oklahoma City"
+    },
+    "Isaiah Jackson": {
+      "rat365": 4.27,
+      "team": "LA Clippers"
+    },
+    "Isaiah Joe": {
+      "rat365": 9.22,
+      "team": "Oklahoma City"
+    },
+    "Isaiah Livers": {
+      "rat365": 0.8,
+      "team": "Phoenix"
+    },
+    "Isaiah Mobley": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Isaiah Stevens": {
+      "rat365": 0.15,
+      "team": "Sacramento"
+    },
+    "Isaiah Stewart": {
+      "rat365": 7.24,
+      "team": "Detroit"
+    },
+    "Ivica Zubac": {
+      "rat365": 7.33,
+      "team": "Indiana"
+    },
+    "JD Davison": {
+      "rat365": 1.01,
+      "team": "Houston"
+    },
+    "JT Thor": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Ja Morant": {
+      "rat365": 3.12,
+      "team": "Memphis"
+    },
+    "Ja'Kobe Walter": {
+      "rat365": 6.26,
+      "team": "Toronto"
+    },
+    "Jabari Smith": {
+      "rat365": 13.6,
+      "team": "Houston"
+    },
+    "Jabari Walker": {
+      "rat365": 2.56,
+      "team": "Philadelphia"
+    },
+    "Jack McVeigh": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jackson Rowe": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jacob Toppin": {
+      "rat365": 0.08,
+      "team": ""
+    },
+    "Jaden Hardy": {
+      "rat365": 2.79,
+      "team": "Washington"
+    },
+    "Jaden McDaniels": {
+      "rat365": 12.09,
+      "team": "Minnesota"
+    },
+    "Jaden Springer": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jae'Sean Tate": {
+      "rat365": 1.53,
+      "team": "Houston"
+    },
+    "Jahmai Mashack": {
+      "rat365": 1.32,
+      "team": "Memphis"
+    },
+    "Jahmir Young": {
+      "rat365": 0.2,
+      "team": "Miami"
+    },
+    "Jahmyl Telfort": {
+      "rat365": -0.01,
+      "team": ""
+    },
+    "Jaime Jaquez": {
+      "rat365": 11.52,
+      "team": "Miami"
+    },
+    "Jake LaRavia": {
+      "rat365": 8.3,
+      "team": "LA Lakers"
+    },
+    "Jakob Poeltl": {
+      "rat365": 7.36,
+      "team": "Toronto"
+    },
+    "Jalen Bridges": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jalen Brunson": {
+      "rat365": 23.67,
+      "team": "New York"
+    },
+    "Jalen Duren": {
+      "rat365": 19.74,
+      "team": "Detroit"
+    },
+    "Jalen Green": {
+      "rat365": 5.56,
+      "team": "Phoenix"
+    },
+    "Jalen Hood-Schifino": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jalen Johnson": {
+      "rat365": 18.34,
+      "team": "Atlanta"
+    },
+    "Jalen Pickett": {
+      "rat365": 2.99,
+      "team": "Denver"
+    },
+    "Jalen Slawson": {
+      "rat365": 1.02,
+      "team": "Indiana"
+    },
+    "Jalen Smith": {
+      "rat365": 5.43,
+      "team": "Chicago"
+    },
+    "Jalen Suggs": {
+      "rat365": 8.69,
+      "team": "Orlando"
+    },
+    "Jalen Williams": {
+      "rat365": 8.83,
+      "team": "Oklahoma City"
+    },
+    "Jalen Wilson": {
+      "rat365": 2.17,
+      "team": "Brooklyn"
+    },
+    "Jamal Cain": {
+      "rat365": 2.45,
+      "team": "Orlando"
+    },
+    "Jamal Murray": {
+      "rat365": 20.87,
+      "team": "Denver"
+    },
+    "Jamal Shead": {
+      "rat365": 7.36,
+      "team": "Toronto"
+    },
+    "Jamaree Bouyea": {
+      "rat365": 2.85,
+      "team": "Phoenix"
+    },
+    "James Harden": {
+      "rat365": 20.63,
+      "team": "Cleveland"
+    },
+    "James Johnson": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "James Wiseman": {
+      "rat365": 0.05,
+      "team": ""
+    },
+    "Jamir Watkins": {
+      "rat365": 2.82,
+      "team": "Washington"
+    },
+    "Jamison Battle": {
+      "rat365": 2.13,
+      "team": "Toronto"
+    },
+    "Jarace Walker": {
+      "rat365": 6.48,
+      "team": "Indiana"
+    },
+    "Jared Butler": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jared McCain": {
+      "rat365": 6.03,
+      "team": "Oklahoma City"
+    },
+    "Jared Rhoden": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jaren Jackson Jr": {
+      "rat365": 7.18,
+      "team": "Utah"
+    },
+    "Jarred Vanderbilt": {
+      "rat365": 4.16,
+      "team": "LA Lakers"
+    },
+    "Jarrett Allen": {
+      "rat365": 14.46,
+      "team": "Cleveland"
+    },
+    "Jase Richardson": {
+      "rat365": 2.01,
+      "team": "Orlando"
+    },
+    "Javon Small": {
+      "rat365": 3.43,
+      "team": "Memphis"
+    },
+    "Javonte Cooke": {
+      "rat365": 0.03,
+      "team": ""
+    },
+    "Javonte Green": {
+      "rat365": 7.28,
+      "team": "Detroit"
+    },
+    "Jaxson Hayes": {
+      "rat365": 7.68,
+      "team": "LA Lakers"
+    },
+    "Jay Huff": {
+      "rat365": 6.91,
+      "team": "Indiana"
+    },
+    "Jaylen Brown": {
+      "rat365": 20.78,
+      "team": "Boston"
+    },
+    "Jaylen Clark": {
+      "rat365": 3.31,
+      "team": "Minnesota"
+    },
+    "Jaylen Martin": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jaylen Sims": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jaylen Wells": {
+      "rat365": 6.52,
+      "team": "Memphis"
+    },
+    "Jaylin Williams": {
+      "rat365": 7.4,
+      "team": "Oklahoma City"
+    },
+    "Jaylon Tyson": {
+      "rat365": 9.16,
+      "team": "Cleveland"
+    },
+    "Jayson Kent": {
+      "rat365": 0.13,
+      "team": "Portland"
+    },
+    "Jayson Tatum": {
+      "rat365": 5.72,
+      "team": "Boston"
+    },
+    "Jeenathan Williams": {
+      "rat365": 0.66,
+      "team": "Golden State"
+    },
+    "Jeff Dowtin": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jeff Green": {
+      "rat365": 0.49,
+      "team": "Houston"
+    },
+    "Jerami Grant": {
+      "rat365": 8.93,
+      "team": "Portland"
+    },
+    "Jeremiah Fears": {
+      "rat365": 8.42,
+      "team": "New Orleans"
+    },
+    "Jeremiah Robinson-Earl": {
+      "rat365": 0.91,
+      "team": ""
+    },
+    "Jeremy Sochan": {
+      "rat365": 2.24,
+      "team": "New York"
+    },
+    "Jericho Sims": {
+      "rat365": 4.53,
+      "team": "Milwaukee"
+    },
+    "Jett Howard": {
+      "rat365": 2.42,
+      "team": "Orlando"
+    },
+    "Jevon Carter": {
+      "rat365": 2.85,
+      "team": "Orlando"
+    },
+    "Jimmy Butler": {
+      "rat365": 9.29,
+      "team": "Golden State"
+    },
+    "Joan Beringer": {
+      "rat365": 2.15,
+      "team": "Minnesota"
+    },
+    "Jock Landale": {
+      "rat365": 7.76,
+      "team": "Atlanta"
+    },
+    "Joe Ingles": {
+      "rat365": 0.65,
+      "team": "Minnesota"
+    },
+    "Joel Embiid": {
+      "rat365": 11.79,
+      "team": "Philadelphia"
+    },
+    "John Collins": {
+      "rat365": 8.97,
+      "team": "LA Clippers"
+    },
+    "John Konchar": {
+      "rat365": 3.54,
+      "team": "Utah"
+    },
+    "John Poulakidas": {
+      "rat365": 0.81,
+      "team": "Dallas"
+    },
+    "John Tonje": {
+      "rat365": 0.0,
+      "team": "Boston"
+    },
+    "Johni Broome": {
+      "rat365": 0.1,
+      "team": "Philadelphia"
+    },
+    "Johnny Furphy": {
+      "rat365": 1.65,
+      "team": "Indiana"
+    },
+    "Johnny Juzang": {
+      "rat365": 0.38,
+      "team": ""
+    },
+    "Jonas Valanciunas": {
+      "rat365": 6.72,
+      "team": "Denver"
+    },
+    "Jonathan Isaac": {
+      "rat365": 1.98,
+      "team": "Orlando"
+    },
+    "Jonathan Kuminga": {
+      "rat365": 4.98,
+      "team": "Atlanta"
+    },
+    "Jonathan Mogbo": {
+      "rat365": 0.93,
+      "team": "Toronto"
+    },
+    "Jordan Clarkson": {
+      "rat365": 6.34,
+      "team": "New York"
+    },
+    "Jordan Goodwin": {
+      "rat365": 7.78,
+      "team": "Phoenix"
+    },
+    "Jordan Hawkins": {
+      "rat365": 1.43,
+      "team": "New Orleans"
+    },
+    "Jordan McLaughlin": {
+      "rat365": 1.59,
+      "team": "San Antonio"
+    },
+    "Jordan Miller": {
+      "rat365": 6.97,
+      "team": "LA Clippers"
+    },
+    "Jordan Poole": {
+      "rat365": 3.34,
+      "team": "New Orleans"
+    },
+    "Jordan Walsh": {
+      "rat365": 5.19,
+      "team": "Boston"
+    },
+    "Jose Alvarado": {
+      "rat365": 5.88,
+      "team": "New York"
+    },
+    "Josh Christopher": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Josh Giddey": {
+      "rat365": 9.79,
+      "team": "Chicago"
+    },
+    "Josh Green": {
+      "rat365": 2.91,
+      "team": "Charlotte"
+    },
+    "Josh Hart": {
+      "rat365": 13.46,
+      "team": "New York"
+    },
+    "Josh Minott": {
+      "rat365": 3.82,
+      "team": "Brooklyn"
+    },
+    "Josh Oduro": {
+      "rat365": 0.22,
+      "team": "New Orleans"
+    },
+    "Josh Okogie": {
+      "rat365": 4.73,
+      "team": "Houston"
+    },
+    "Jrue Holiday": {
+      "rat365": 9.25,
+      "team": "Portland"
+    },
+    "Julian Champagnie": {
+      "rat365": 12.84,
+      "team": "San Antonio"
+    },
+    "Julian Phillips": {
+      "rat365": 1.09,
+      "team": "Minnesota"
+    },
+    "Julian Reese": {
+      "rat365": 1.4,
+      "team": "Washington"
+    },
+    "Julian Strawther": {
+      "rat365": 3.84,
+      "team": "Denver"
+    },
+    "Julius Randle": {
+      "rat365": 18.01,
+      "team": "Minnesota"
+    },
+    "Justin Champagnie": {
+      "rat365": 5.74,
+      "team": "Washington"
+    },
+    "Justin Edwards": {
+      "rat365": 3.68,
+      "team": "Philadelphia"
+    },
+    "Justin Minaya": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Jusuf Nurkic": {
+      "rat365": 5.16,
+      "team": "Utah"
+    },
+    "KJ Simpson": {
+      "rat365": 0.76,
+      "team": "Denver"
+    },
+    "Kadary Richmond": {
+      "rat365": 0.4,
+      "team": ""
+    },
+    "Kai Jones": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Kam Jones": {
+      "rat365": 1.28,
+      "team": "Indiana"
+    },
+    "Karl-Anthony Towns": {
+      "rat365": 21.26,
+      "team": "New York"
+    },
+    "Karlo Matkovic": {
+      "rat365": 4.03,
+      "team": "New Orleans"
+    },
+    "Kasparas Jakucionis": {
+      "rat365": 3.74,
+      "team": "Miami"
+    },
+    "Kawhi Leonard": {
+      "rat365": 19.18,
+      "team": "LA Clippers"
+    },
+    "Keaton Wallace": {
+      "rat365": 1.94,
+      "team": "Atlanta"
+    },
+    "Keegan Murray": {
+      "rat365": 2.44,
+      "team": "Sacramento"
+    },
+    "Keion Brooks": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Kel'el Ware": {
+      "rat365": 10.52,
+      "team": "Miami"
+    },
+    "Keldon Johnson": {
+      "rat365": 13.32,
+      "team": "San Antonio"
+    },
+    "Kelly Olynyk": {
+      "rat365": 2.15,
+      "team": "San Antonio"
+    },
+    "Kelly Oubre": {
+      "rat365": 7.86,
+      "team": "Philadelphia"
+    },
+    "Kennedy Chandler": {
+      "rat365": 1.1,
+      "team": ""
+    },
+    "Kenrich Williams": {
+      "rat365": 4.55,
+      "team": "Oklahoma City"
+    },
+    "Kentavious Caldwell-Pope": {
+      "rat365": 3.76,
+      "team": "Memphis"
+    },
+    "Keon Ellis": {
+      "rat365": 4.78,
+      "team": "Cleveland"
+    },
+    "Keon Johnson": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Keshad Johnson": {
+      "rat365": 1.41,
+      "team": "Miami"
+    },
+    "Keshon Gilbert": {
+      "rat365": 0.12,
+      "team": "Atlanta"
+    },
+    "Kevin Durant": {
+      "rat365": 19.9,
+      "team": "Houston"
+    },
+    "Kevin Huerter": {
+      "rat365": 7.02,
+      "team": "Detroit"
+    },
+    "Kevin Knox": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Kevin Love": {
+      "rat365": 2.53,
+      "team": "Utah"
+    },
+    "Kevin McCullar": {
+      "rat365": 0.48,
+      "team": "New York"
+    },
+    "Kevin Porter": {
+      "rat365": 7.42,
+      "team": "Milwaukee"
+    },
+    "Kevon Looney": {
+      "rat365": 0.92,
+      "team": "New Orleans"
+    },
+    "Keyonte George": {
+      "rat365": 10.13,
+      "team": "Utah"
+    },
+    "Khaman Maluach": {
+      "rat365": 1.75,
+      "team": "Phoenix"
+    },
+    "Khris Middleton": {
+      "rat365": 4.66,
+      "team": "Dallas"
+    },
+    "Killian Hayes": {
+      "rat365": 1.16,
+      "team": "Sacramento"
+    },
+    "Klay Thompson": {
+      "rat365": 5.0,
+      "team": "Dallas"
+    },
+    "Kobe Brown": {
+      "rat365": 2.91,
+      "team": "Indiana"
+    },
+    "Kobe Bufkin": {
+      "rat365": 0.25,
+      "team": ""
+    },
+    "Kobe Sanders": {
+      "rat365": 4.65,
+      "team": "LA Clippers"
+    },
+    "Koby Brea": {
+      "rat365": 0.41,
+      "team": "Phoenix"
+    },
+    "Kon Knueppel": {
+      "rat365": 14.02,
+      "team": "Charlotte"
+    },
+    "Kris Dunn": {
+      "rat365": 7.92,
+      "team": "LA Clippers"
+    },
+    "Kris Murray": {
+      "rat365": 4.0,
+      "team": "Portland"
+    },
+    "Kristaps Porzingis": {
+      "rat365": 5.16,
+      "team": "Golden State"
+    },
+    "Kyle Anderson": {
+      "rat365": 3.22,
+      "team": "Minnesota"
+    },
+    "Kyle Filipowski": {
+      "rat365": 7.65,
+      "team": "Utah"
+    },
+    "Kyle Kuzma": {
+      "rat365": 8.17,
+      "team": "Milwaukee"
+    },
+    "Kyle Lowry": {
+      "rat365": 0.08,
+      "team": "Philadelphia"
+    },
+    "Kylor Kelley": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Kyrie Irving": {
+      "rat365": 0.0,
+      "team": "Dallas"
+    },
+    "Kyshawn George": {
+      "rat365": 5.15,
+      "team": "Washington"
+    },
+    "LJ Cryer": {
+      "rat365": 0.84,
+      "team": "Golden State"
+    },
+    "LaMelo Ball": {
+      "rat365": 13.96,
+      "team": "Charlotte"
+    },
+    "Lachlan Olbrich": {
+      "rat365": 1.09,
+      "team": "Chicago"
+    },
+    "Lamar Stevens": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Landry Shamet": {
+      "rat365": 5.89,
+      "team": "New York"
+    },
+    "Larry Nance Jr": {
+      "rat365": 1.49,
+      "team": "Cleveland"
+    },
+    "Lauri Markkanen": {
+      "rat365": 9.27,
+      "team": "Utah"
+    },
+    "Lawson Lovering": {
+      "rat365": 0.22,
+      "team": ""
+    },
+    "LeBron James": {
+      "rat365": 16.94,
+      "team": "LA Lakers"
+    },
+    "Leaky Black": {
+      "rat365": 0.74,
+      "team": "Washington"
+    },
+    "Leonard Miller": {
+      "rat365": 3.24,
+      "team": "Chicago"
+    },
+    "Lester Quinones": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Liam McNeeley": {
+      "rat365": 1.09,
+      "team": "Charlotte"
+    },
+    "Lindy Waters III": {
+      "rat365": 1.08,
+      "team": "San Antonio"
+    },
+    "Lonnie Walker": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Lonzo Ball": {
+      "rat365": 2.24,
+      "team": ""
+    },
+    "Lucas Williamson": {
+      "rat365": 0.35,
+      "team": ""
+    },
+    "Luguentz Dort": {
+      "rat365": 7.16,
+      "team": "Oklahoma City"
+    },
+    "Luka Doncic": {
+      "rat365": 23.34,
+      "team": "LA Lakers"
+    },
+    "Luka Garza": {
+      "rat365": 7.69,
+      "team": "Boston"
+    },
+    "Luke Kennard": {
+      "rat365": 8.57,
+      "team": "LA Lakers"
+    },
+    "Luke Kornet": {
+      "rat365": 9.59,
+      "team": "San Antonio"
+    },
+    "Luke Travers": {
+      "rat365": 0.33,
+      "team": ""
+    },
+    "Mac McClung": {
+      "rat365": 0.36,
+      "team": "Chicago"
+    },
+    "Malachi Smith": {
+      "rat365": 1.21,
+      "team": "Brooklyn"
+    },
+    "Malaki Branham": {
+      "rat365": 0.92,
+      "team": ""
+    },
+    "Malevy Leons": {
+      "rat365": 0.87,
+      "team": "Golden State"
+    },
+    "Malik Beasley": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Malik Monk": {
+      "rat365": 5.55,
+      "team": "Sacramento"
+    },
+    "MarJon Beauchamp": {
+      "rat365": 0.67,
+      "team": "Philadelphia"
+    },
+    "Marcus Bagley": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Marcus Sasser": {
+      "rat365": 2.17,
+      "team": "Detroit"
+    },
+    "Marcus Smart": {
+      "rat365": 7.68,
+      "team": "LA Lakers"
+    },
+    "Mark Sears": {
+      "rat365": 0.12,
+      "team": ""
+    },
+    "Mark Williams": {
+      "rat365": 9.42,
+      "team": "Phoenix"
+    },
+    "Markelle Fultz": {
+      "rat365": 0.01,
+      "team": ""
+    },
+    "Markieff Morris": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Marvin Bagley": {
+      "rat365": 6.51,
+      "team": "Dallas"
+    },
+    "Mason Plumlee": {
+      "rat365": 0.52,
+      "team": "San Antonio"
+    },
+    "Matas Buzelis": {
+      "rat365": 9.74,
+      "team": "Chicago"
+    },
+    "Matisse Thybulle": {
+      "rat365": 2.18,
+      "team": "Portland"
+    },
+    "Max Christie": {
+      "rat365": 6.98,
+      "team": "Dallas"
+    },
+    "Max Shulga": {
+      "rat365": 0.02,
+      "team": "Boston"
+    },
+    "Max Strus": {
+      "rat365": 2.91,
+      "team": "Cleveland"
+    },
+    "Maxi Kleber": {
+      "rat365": 1.18,
+      "team": "LA Lakers"
+    },
+    "Maxime Raynaud": {
+      "rat365": 8.29,
+      "team": "Sacramento"
+    },
+    "Maxwell Lewis": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Micah Peavy": {
+      "rat365": 1.84,
+      "team": "New Orleans"
+    },
+    "Micah Potter": {
+      "rat365": 4.12,
+      "team": "Indiana"
+    },
+    "Michael Porter": {
+      "rat365": 9.92,
+      "team": "Brooklyn"
+    },
+    "Mikal Bridges": {
+      "rat365": 16.01,
+      "team": "New York"
+    },
+    "Mike Conley": {
+      "rat365": 3.89,
+      "team": "Minnesota"
+    },
+    "Miles Bridges": {
+      "rat365": 13.13,
+      "team": "Charlotte"
+    },
+    "Miles Kelly": {
+      "rat365": 0.32,
+      "team": ""
+    },
+    "Miles McBride": {
+      "rat365": 5.75,
+      "team": "New York"
+    },
+    "Miles Norris": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Mitchell Robinson": {
+      "rat365": 9.29,
+      "team": "New York"
+    },
+    "Mo Bamba": {
+      "rat365": 0.17,
+      "team": ""
+    },
+    "Mohamed Diawara": {
+      "rat365": 2.52,
+      "team": "New York"
+    },
+    "Monte Morris": {
+      "rat365": 0.1,
+      "team": ""
+    },
+    "Moritz Wagner": {
+      "rat365": 2.23,
+      "team": "Orlando"
+    },
+    "Moses Moody": {
+      "rat365": 6.82,
+      "team": "Golden State"
+    },
+    "Mouhamadou Gueye": {
+      "rat365": 0.11,
+      "team": "Chicago"
+    },
+    "Mouhamed Gueye": {
+      "rat365": 4.54,
+      "team": "Atlanta"
+    },
+    "Moussa Cisse": {
+      "rat365": 2.32,
+      "team": "Dallas"
+    },
+    "Moussa Diabate": {
+      "rat365": 10.19,
+      "team": "Charlotte"
+    },
+    "Myles Turner": {
+      "rat365": 8.23,
+      "team": "Milwaukee"
+    },
+    "Myron Gardner": {
+      "rat365": 1.63,
+      "team": "Miami"
+    },
+    "N'Faly Dante": {
+      "rat365": 0.05,
+      "team": ""
+    },
+    "Nae'Qwan Tomlin": {
+      "rat365": 4.15,
+      "team": "Cleveland"
+    },
+    "Naji Marshall": {
+      "rat365": 10.14,
+      "team": "Dallas"
+    },
+    "Naz Reid": {
+      "rat365": 11.76,
+      "team": "Minnesota"
+    },
+    "Neemias Queta": {
+      "rat365": 13.25,
+      "team": "Boston"
+    },
+    "Nick Richards": {
+      "rat365": 2.62,
+      "team": "Chicago"
+    },
+    "Nick Smith": {
+      "rat365": 1.52,
+      "team": "LA Lakers"
+    },
+    "Nickeil Alexander-Walker": {
+      "rat365": 14.72,
+      "team": "Atlanta"
+    },
+    "Nicolas Batum": {
+      "rat365": 3.42,
+      "team": "LA Clippers"
+    },
+    "Nicolas Claxton": {
+      "rat365": 9.26,
+      "team": "Brooklyn"
+    },
+    "Nigel Hayes": {
+      "rat365": 0.22,
+      "team": ""
+    },
+    "Nikola Jokic": {
+      "rat365": 25.44,
+      "team": "Denver"
+    },
+    "Nikola Jovic": {
+      "rat365": 3.19,
+      "team": "Miami"
+    },
+    "Nikola Topic": {
+      "rat365": 0.47,
+      "team": "Oklahoma City"
+    },
+    "Nikola Vucevic": {
+      "rat365": 10.6,
+      "team": "Boston"
+    },
+    "Nique Clifford": {
+      "rat365": 4.84,
+      "team": "Sacramento"
+    },
+    "Noa Essengue": {
+      "rat365": -0.02,
+      "team": "Chicago"
+    },
+    "Noah Clowney": {
+      "rat365": 5.87,
+      "team": "Brooklyn"
+    },
+    "Noah Penda": {
+      "rat365": 2.69,
+      "team": "Orlando"
+    },
+    "Nolan Traore": {
+      "rat365": 3.17,
+      "team": "Brooklyn"
+    },
+    "Norchad Omier": {
+      "rat365": 0.24,
+      "team": "LA Clippers"
+    },
+    "Norman Powell": {
+      "rat365": 10.33,
+      "team": "Miami"
+    },
+    "OG Anunoby": {
+      "rat365": 15.81,
+      "team": "New York"
+    },
+    "Obi Toppin": {
+      "rat365": 2.9,
+      "team": "Indiana"
+    },
+    "Ochai Agbaji": {
+      "rat365": 2.68,
+      "team": "Brooklyn"
+    },
+    "Olivier Sarr": {
+      "rat365": 0.23,
+      "team": "Cleveland"
+    },
+    "Olivier-Maxence Prosper": {
+      "rat365": 4.38,
+      "team": "Memphis"
+    },
+    "Omer Yurtseven": {
+      "rat365": 0.27,
+      "team": ""
+    },
+    "Onyeka Okongwu": {
+      "rat365": 12.6,
+      "team": "Atlanta"
+    },
+    "Orlando Robinson": {
+      "rat365": 0.08,
+      "team": ""
+    },
+    "Oscar Tshiebwe": {
+      "rat365": 2.18,
+      "team": "Utah"
+    },
+    "Oso Ighodaro": {
+      "rat365": 8.18,
+      "team": "Phoenix"
+    },
+    "Ousmane Dieng": {
+      "rat365": 3.81,
+      "team": "Milwaukee"
+    },
+    "PJ Hall": {
+      "rat365": 0.99,
+      "team": "Charlotte"
+    },
+    "PJ Tucker": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "PJ Washington": {
+      "rat365": 6.39,
+      "team": "Dallas"
+    },
+    "Pacome Dadiet": {
+      "rat365": 0.75,
+      "team": "New York"
+    },
+    "Paolo Banchero": {
+      "rat365": 17.56,
+      "team": "Orlando"
+    },
+    "Pascal Siakam": {
+      "rat365": 12.91,
+      "team": "Indiana"
+    },
+    "Pat Connaughton": {
+      "rat365": 1.33,
+      "team": "Charlotte"
+    },
+    "Pat Spencer": {
+      "rat365": 4.47,
+      "team": "Golden State"
+    },
+    "Patrick Baldwin": {
+      "rat365": 0.33,
+      "team": "Sacramento"
+    },
+    "Patrick Mills": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Patrick Williams": {
+      "rat365": 3.86,
+      "team": "Chicago"
+    },
+    "Paul George": {
+      "rat365": 8.13,
+      "team": "Philadelphia"
+    },
+    "Paul Reed": {
+      "rat365": 7.98,
+      "team": "Detroit"
+    },
+    "Payton Pritchard": {
+      "rat365": 16.51,
+      "team": "Boston"
+    },
+    "Payton Sandfort": {
+      "rat365": 0.19,
+      "team": "Oklahoma City"
+    },
+    "Pelle Larsson": {
+      "rat365": 8.33,
+      "team": "Miami"
+    },
+    "Pete Nance": {
+      "rat365": 2.31,
+      "team": "Milwaukee"
+    },
+    "Peyton Watson": {
+      "rat365": 8.27,
+      "team": "Denver"
+    },
+    "Precious Achiuwa": {
+      "rat365": 7.87,
+      "team": "Sacramento"
+    },
+    "Quentin Grimes": {
+      "rat365": 10.08,
+      "team": "Philadelphia"
+    },
+    "Quenton Jackson": {
+      "rat365": 3.68,
+      "team": "Indiana"
+    },
+    "Quinten Post": {
+      "rat365": 4.62,
+      "team": "Golden State"
+    },
+    "RJ Barrett": {
+      "rat365": 12.16,
+      "team": "Toronto"
+    },
+    "Rasheer Fleming": {
+      "rat365": 2.42,
+      "team": "Phoenix"
+    },
+    "RayJ Dennis": {
+      "rat365": 0.32,
+      "team": "Atlanta"
+    },
+    "Rayan Rupert": {
+      "rat365": 2.39,
+      "team": "Memphis"
+    },
+    "Reece Beekman": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Reed Sheppard": {
+      "rat365": 12.01,
+      "team": "Houston"
+    },
+    "Ricky Council IV": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Riley Minix": {
+      "rat365": 0.35,
+      "team": "Cleveland"
+    },
+    "Rob Dillingham": {
+      "rat365": 2.4,
+      "team": "Chicago"
+    },
+    "Robert Williams": {
+      "rat365": 6.81,
+      "team": "Portland"
+    },
+    "Rocco Zikarsky": {
+      "rat365": 0.2,
+      "team": "Minnesota"
+    },
+    "Ron Harper Jr": {
+      "rat365": 1.56,
+      "team": "Boston"
+    },
+    "Ron Holland": {
+      "rat365": 6.76,
+      "team": "Detroit"
+    },
+    "Royce O'Neale": {
+      "rat365": 8.45,
+      "team": "Phoenix"
+    },
+    "Rudy Gobert": {
+      "rat365": 15.08,
+      "team": "Minnesota"
+    },
+    "Rui Hachimura": {
+      "rat365": 9.42,
+      "team": "LA Lakers"
+    },
+    "Russell Westbrook": {
+      "rat365": 8.29,
+      "team": "Sacramento"
+    },
+    "Ryan Dunn": {
+      "rat365": 5.1,
+      "team": "Phoenix"
+    },
+    "Ryan Kalkbrenner": {
+      "rat365": 7.58,
+      "team": "Charlotte"
+    },
+    "Ryan Nembhard": {
+      "rat365": 3.9,
+      "team": "Dallas"
+    },
+    "Ryan Rollins": {
+      "rat365": 11.61,
+      "team": "Milwaukee"
+    },
+    "Saddiq Bey": {
+      "rat365": 11.06,
+      "team": "New Orleans"
+    },
+    "Sam Hauser": {
+      "rat365": 8.52,
+      "team": "Boston"
+    },
+    "Sam Merrill": {
+      "rat365": 7.53,
+      "team": "Cleveland"
+    },
+    "Sandro Mamukelashvili": {
+      "rat365": 10.61,
+      "team": "Toronto"
+    },
+    "Santiago Aldama": {
+      "rat365": 5.96,
+      "team": "Memphis"
+    },
+    "Scoot Henderson": {
+      "rat365": 4.2,
+      "team": "Portland"
+    },
+    "Scottie Barnes": {
+      "rat365": 18.67,
+      "team": "Toronto"
+    },
+    "Scotty Pippen Jr": {
+      "rat365": 0.92,
+      "team": "Memphis"
+    },
+    "Sean Pedulla": {
+      "rat365": 0.11,
+      "team": "LA Clippers"
+    },
+    "Seth Curry": {
+      "rat365": 0.55,
+      "team": "Golden State"
+    },
+    "Shaedon Sharpe": {
+      "rat365": 7.91,
+      "team": "Portland"
+    },
+    "Shai Gilgeous-Alexander": {
+      "rat365": 31.49,
+      "team": "Oklahoma City"
+    },
+    "Shake Milton": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Sharife Cooper": {
+      "rat365": 2.44,
+      "team": "Washington"
+    },
+    "Sidy Cissoko": {
+      "rat365": 3.41,
+      "team": "Portland"
+    },
+    "Simone Fontecchio": {
+      "rat365": 5.17,
+      "team": "Miami"
+    },
+    "Sion James": {
+      "rat365": 5.03,
+      "team": "Charlotte"
+    },
+    "Skal Labissiere": {
+      "rat365": 0.21,
+      "team": ""
+    },
+    "Spencer Dinwiddie": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Spencer Jones": {
+      "rat365": 4.43,
+      "team": "Denver"
+    },
+    "Stanley Umude": {
+      "rat365": 0.03,
+      "team": ""
+    },
+    "Stephen Curry": {
+      "rat365": 10.42,
+      "team": "Golden State"
+    },
+    "Stephon Castle": {
+      "rat365": 17.38,
+      "team": "San Antonio"
+    },
+    "Steven Adams": {
+      "rat365": 3.7,
+      "team": "Houston"
+    },
+    "Sviatoslav Mykhailiuk": {
+      "rat365": 3.64,
+      "team": "Utah"
+    },
+    "TJ McConnell": {
+      "rat365": 6.33,
+      "team": "Indiana"
+    },
+    "Taelon Peter": {
+      "rat365": 1.15,
+      "team": "Indiana"
+    },
+    "Taj Gibson": {
+      "rat365": 0.29,
+      "team": "Memphis"
+    },
+    "Talen Horton-Tucker": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Tari Eason": {
+      "rat365": 7.38,
+      "team": "Houston"
+    },
+    "Taurean Prince": {
+      "rat365": 1.84,
+      "team": "Milwaukee"
+    },
+    "Taylor Hendricks": {
+      "rat365": 3.46,
+      "team": "Memphis"
+    },
+    "Terance Mann": {
+      "rat365": 4.15,
+      "team": "Brooklyn"
+    },
+    "Terence Davis": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Terrence Shannon": {
+      "rat365": 2.71,
+      "team": "Minnesota"
+    },
+    "Terry Rozier": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Thanasis Antetokounmpo": {
+      "rat365": 0.54,
+      "team": "Milwaukee"
+    },
+    "Thomas Bryant": {
+      "rat365": 4.15,
+      "team": "Cleveland"
+    },
+    "Thomas Sorber": {
+      "rat365": 0.0,
+      "team": "Oklahoma City"
+    },
+    "Tidjane Salaun": {
+      "rat365": 2.49,
+      "team": "Charlotte"
+    },
+    "Tim Hardaway Jr": {
+      "rat365": 10.75,
+      "team": "Denver"
+    },
+    "Tobias Harris": {
+      "rat365": 11.68,
+      "team": "Detroit"
+    },
+    "Toby Okani": {
+      "rat365": 0.2,
+      "team": ""
+    },
+    "Tolu Smith": {
+      "rat365": 0.73,
+      "team": "Detroit"
+    },
+    "Tony Bradley": {
+      "rat365": 1.62,
+      "team": "Atlanta"
+    },
+    "Torrey Craig": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Tosan Evbuomwan": {
+      "rat365": 0.0,
+      "team": "Charlotte"
+    },
+    "Toumani Camara": {
+      "rat365": 10.08,
+      "team": "Portland"
+    },
+    "Trae Young": {
+      "rat365": 2.13,
+      "team": "Washington"
+    },
+    "Trayce Jackson-Davis": {
+      "rat365": 2.72,
+      "team": "Toronto"
+    },
+    "Tre Johnson": {
+      "rat365": 4.2,
+      "team": "Washington"
+    },
+    "Tre Jones": {
+      "rat365": 9.8,
+      "team": "Chicago"
+    },
+    "Tre Mann": {
+      "rat365": 1.92,
+      "team": "Charlotte"
+    },
+    "Tre Scott": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Trendon Watford": {
+      "rat365": 3.43,
+      "team": "Philadelphia"
+    },
+    "Trentyn Flowers": {
+      "rat365": 0.02,
+      "team": ""
+    },
+    "Trevelin Queen": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Trevor Keels": {
+      "rat365": 0.02,
+      "team": "Miami"
+    },
+    "Trey Alexander": {
+      "rat365": 0.32,
+      "team": "New Orleans"
+    },
+    "Trey Jemison": {
+      "rat365": 0.11,
+      "team": "New York"
+    },
+    "Trey Lyles": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Trey Murphy": {
+      "rat365": 12.06,
+      "team": "New Orleans"
+    },
+    "Tristan Da Silva": {
+      "rat365": 7.56,
+      "team": "Orlando"
+    },
+    "Tristan Enaruna": {
+      "rat365": 0.51,
+      "team": "Cleveland"
+    },
+    "Tristan Thompson": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Tristan Vukcevic": {
+      "rat365": 3.07,
+      "team": "Washington"
+    },
+    "Tristen Newton": {
+      "rat365": 0.14,
+      "team": "Houston"
+    },
+    "Ty Jerome": {
+      "rat365": 2.44,
+      "team": "Memphis"
+    },
+    "TyTy Washington": {
+      "rat365": 0.31,
+      "team": "LA Clippers"
+    },
+    "Tyler Burton": {
+      "rat365": 0.75,
+      "team": ""
+    },
+    "Tyler Herro": {
+      "rat365": 5.88,
+      "team": "Miami"
+    },
+    "Tyler Kolek": {
+      "rat365": 3.84,
+      "team": "New York"
+    },
+    "Tyler Smith": {
+      "rat365": 0.41,
+      "team": "Dallas"
+    },
+    "Tyrese Haliburton": {
+      "rat365": 0.95,
+      "team": "Indiana"
+    },
+    "Tyrese Martin": {
+      "rat365": 2.32,
+      "team": "Philadelphia"
+    },
+    "Tyrese Maxey": {
+      "rat365": 21.57,
+      "team": "Philadelphia"
+    },
+    "Tyrese Proctor": {
+      "rat365": 2.36,
+      "team": "Cleveland"
+    },
+    "Tyson Etienne": {
+      "rat365": 1.22,
+      "team": "Brooklyn"
+    },
+    "Tyus Jones": {
+      "rat365": 2.6,
+      "team": "Denver"
+    },
+    "VJ Edgecombe": {
+      "rat365": 13.45,
+      "team": "Philadelphia"
+    },
+    "Vasilije Micic": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Victor Wembanyama": {
+      "rat365": 24.64,
+      "team": "San Antonio"
+    },
+    "Vince Williams Jr": {
+      "rat365": 2.83,
+      "team": ""
+    },
+    "Vit Krejci": {
+      "rat365": 4.8,
+      "team": "Portland"
+    },
+    "Vladislav Goldin": {
+      "rat365": 0.0,
+      "team": "Miami"
+    },
+    "Vlatko Cancar": {
+      "rat365": 0.0,
+      "team": ""
+    },
+    "Walker Kessler": {
+      "rat365": 0.99,
+      "team": "Utah"
+    },
+    "Walter Clayton": {
+      "rat365": 4.14,
+      "team": "Memphis"
+    },
+    "Wendell Carter Jr": {
+      "rat365": 11.54,
+      "team": "Orlando"
+    },
+    "Wendell Moore": {
+      "rat365": 0.18,
+      "team": "Detroit"
+    },
+    "Will Richard": {
+      "rat365": 4.65,
+      "team": "Golden State"
+    },
+    "Will Riley": {
+      "rat365": 5.26,
+      "team": "Washington"
+    },
+    "Xavier Tillman": {
+      "rat365": 0.57,
+      "team": "Charlotte"
+    },
+    "Yang Hansen": {
+      "rat365": 0.39,
+      "team": "Portland"
+    },
+    "Yanic Konan Niederhauser": {
+      "rat365": 2.23,
+      "team": "LA Clippers"
+    },
+    "Yuki Kawamura": {
+      "rat365": 0.66,
+      "team": "Chicago"
+    },
+    "Yves Missi": {
+      "rat365": 4.93,
+      "team": "New Orleans"
+    },
+    "Zaccharie Risacher": {
+      "rat365": 6.13,
+      "team": "Atlanta"
+    },
+    "Zach Collins": {
+      "rat365": 1.13,
+      "team": "Chicago"
+    },
+    "Zach Edey": {
+      "rat365": 1.91,
+      "team": "Memphis"
+    },
+    "Zach LaVine": {
+      "rat365": 5.14,
+      "team": "Sacramento"
+    },
+    "Zeke Nnaji": {
+      "rat365": 2.33,
+      "team": "Denver"
+    },
+    "Ziaire Williams": {
+      "rat365": 4.14,
+      "team": "Brooklyn"
+    },
+    "Zion Williamson": {
+      "rat365": 12.27,
+      "team": "New Orleans"
+    },
+    "Zyon Pullin": {
+      "rat365": 0.28,
+      "team": "Minnesota"
+    }
+  }
+}
