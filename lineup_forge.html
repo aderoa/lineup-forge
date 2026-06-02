@@ -173,12 +173,26 @@ const COEFS_URL      = 'https://aderoa.github.io/lineup-forge/fit_coefficients.j
 const NAMES_URL      = 'https://aderoa.github.io/lineup-forge/name_dictionary.json';
 const QUALITY_URL    = 'https://aderoa.github.io/lineup-forge/player_quality.json';
 
+// Defensive Rankings — fetched live from the same sheet Defense page uses
+const DEF_SHEET_ID   = '1JH2FUBIyQ1zEHzZBxgP8vHBZ7d8EtP5-fSVG3zMgCgg';
+const DEF_API_KEY    = 'AIzaSyB9g7c6llswswuZQ2I5y2MwGk6BzYEtHsY';
+const DEF_URL        = `https://sheets.googleapis.com/v4/spreadsheets/${DEF_SHEET_ID}/values/Defensive_Rankings?key=${DEF_API_KEY}`;
+
 const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
 
+// Two-axis quality model
+const OFF_CALIB = 10, OFF_SCALE = 0.20;   // (rat365 - 10) × 0.20 = offense contribution per player
+const DEF_CALIB = 8,  DEF_SCALE = 0.15;   // (DEF_SCORE - 8) × 0.15 = defense contribution per player
+const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
+
+// Box-score composite weights (calibrated to roughly approximate DEF_SCORE scale)
+const COMP_BLK = 5, COMP_STL = 5, COMP_DREB = 40;
+
 let playerDb = null, lineupsDb = null, coefs = null;
-let NAME_DICT = {};    // NBA name → HH name
-let QUALITY = null;    // { _meta: {...}, players: { HH_name: { rat365, team } } }
+let NAME_DICT = {};
+let QUALITY = null;
+let DEFENSE = {};      // HH name → { def_score, team, gp }
 
 const STATE = {
   page: 'team', season: null, team: null,
@@ -201,12 +215,13 @@ async function boot() {
     const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
 
     setStatus('Downloading data...');
-    const [playerBuf, lineupsBuf, coefsJson, namesJson, qualityJson] = await Promise.all([
+    const [playerBuf, lineupsBuf, coefsJson, namesJson, qualityJson, defenseData] = await Promise.all([
       fetchDb(PLAYER_DB_URL),
       fetchDb(LINEUPS_DB_URL),
       fetch(COEFS_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
       fetch(NAMES_URL).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch(QUALITY_URL).then(r => r.ok ? r.json() : null).catch(() => null),
+      loadDefenseData().catch(e => { console.warn('Defense data failed:', e); return {}; }),
     ]);
 
     playerDb  = new SQL.Database(new Uint8Array(playerBuf));
@@ -214,13 +229,15 @@ async function boot() {
     coefs = coefsJson;
     NAME_DICT = namesJson || {};
     QUALITY = qualityJson;
+    DEFENSE = defenseData || {};
 
     const commonSeasons = getCommonSeasons();
     STATE.season = commonSeasons[0];
 
     const totalMB = ((playerBuf.byteLength + lineupsBuf.byteLength) / 1024 / 1024).toFixed(1);
     const qNote = QUALITY ? `${QUALITY._meta.n_players} quality scores` : 'NO QUALITY DATA — fix';
-    $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${qNote} · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
+    const dNote = Object.keys(DEFENSE).length > 0 ? `${Object.keys(DEFENSE).length} defense scores` : 'no defense data';
+    $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${qNote} · ${dNote} · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
 
     setStatus('', 'hidden');
     if (!QUALITY) {
@@ -244,6 +261,48 @@ async function fetchDb(url) {
     return await new Response(r.body.pipeThrough(ds)).arrayBuffer();
   }
   return await r.arrayBuffer();
+}
+
+// Fetch and parse the Defensive_Rankings sheet. Returns { HH_name: { def_score, team, gp } }.
+// The sheet has multiple sections (Season, Last 30D, Last 7D, Last Day) — we want the
+// Season section, which appears first. Sections are delimited by [LAST_30D] / [LAST_7D] /
+// [LAST_DAY] markers in column 0.
+async function loadDefenseData() {
+  const res = await fetch(DEF_URL);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching defense sheet`);
+  const data = await res.json();
+  const rows = data.values || [];
+  if (!rows.length) return {};
+
+  // Find the header row (first row with "PLAYER" in column 0)
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    if (((rows[i][0] || '').trim()) === 'PLAYER') { headerIdx = i; break; }
+  }
+  if (headerIdx === -1) return {};
+
+  const headers = rows[headerIdx];
+  const idx = {};
+  headers.forEach((h, i) => { idx[(h || '').trim()] = i; });
+  if (idx.PLAYER === undefined || idx.DEF_SCORE === undefined) return {};
+
+  const STOP_MARKERS = ['[LAST_DAY]', '[LAST_7D]', '[LAST_30D]'];
+  const result = {};
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    const first = (row[0] || '').trim();
+    if (STOP_MARKERS.includes(first)) break;  // hit next section
+    const name = (row[idx.PLAYER] || '').trim();
+    if (!name) continue;
+    const score = parseFloat(row[idx.DEF_SCORE]);
+    if (isNaN(score)) continue;
+    result[name] = {
+      def_score: score,
+      team: (row[idx.TEAM] || '').trim(),
+      gp: parseInt(row[idx.GP]) || 0,
+    };
+  }
+  return result;
 }
 
 function getCommonSeasons() {
@@ -435,19 +494,32 @@ function renderEditView() {
     const swapped = STATE.swappedFrom[i] !== null;
     const fromName = swapped ? STATE.swappedFrom[i].name.split(' ').slice(-1)[0] : null;
     const q = projCurr.quality_per_player[i];
-    let ratLine;
+
+    // Offense line: rat365 + offense contribution
+    let offLine;
     if (q.fallback) {
-      ratLine = `<span style="color:var(--orange)">rat365 N/A</span>`;
-    } else if (q.blended) {
-      // Boost active — current rat365 was anomalously low; using career-weighted instead
-      const curText = q.rat365_current !== null ? `cur ${q.rat365_current.toFixed(1)}` : `no current data`;
+      offLine = `<span style="color:var(--orange)">rat365 N/A</span>`;
+    } else if (q.off_blended) {
+      const curText = q.rat365_current !== null ? `cur ${q.rat365_current.toFixed(1)}` : `no current`;
       const tip = q.rat365_current !== null
-        ? `Current rat365 ${q.rat365_current.toFixed(1)} below career level; using ${q.n_seasons}-season weighted ${q.rat365.toFixed(1)}`
-        : `No current rat365; using ${q.n_seasons}-season weighted history`;
-      ratLine = `<span style="color:var(--purple)" title="${tip}">↺ rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span></span><br><span style="color:var(--muted);font-size:0.62rem">${curText} · boosted ${q.n_seasons}y</span>`;
+        ? `Current ${q.rat365_current.toFixed(1)} below career; using ${q.off_n_seasons}-season weighted ${q.rat365.toFixed(1)}`
+        : `Using ${q.off_n_seasons}-season weighted history`;
+      offLine = `<span style="color:var(--purple)" title="${tip}">↺ rat365 ${q.rat365.toFixed(1)} <span style="color:${q.off_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(off ${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(1)})</span></span> <span style="color:var(--muted);font-size:0.6rem">(${curText})</span>`;
     } else {
-      ratLine = `rat365 ${q.rat365.toFixed(1)} <span style="color:${q.contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(1)})</span>`;
+      offLine = `rat365 ${q.rat365.toFixed(1)} <span style="color:${q.off_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(off ${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(1)})</span>`;
     }
+
+    // Defense line: DEF_SCORE + defense contribution
+    let defLine;
+    if (q.def_score === null) {
+      defLine = `<span style="color:var(--muted)">DEF N/A</span>`;
+    } else if (q.def_blended) {
+      const curText = q.def_current !== null ? `cur ${q.def_current.toFixed(1)}` : `no current`;
+      defLine = `<span style="color:var(--purple)" title="Defensive history blended">↺ DEF ${q.def_score.toFixed(1)} <span style="color:${q.def_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(def ${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(1)})</span></span> <span style="color:var(--muted);font-size:0.6rem">(${curText})</span>`;
+    } else {
+      defLine = `DEF ${q.def_score.toFixed(1)} <span style="color:${q.def_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(def ${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(1)})</span>`;
+    }
+
     return `
       <div class="slot ${swapped ? 'swapped' : ''}">
         ${swapped ? `<div class="from-tag">was ${fromName}</div>` : ''}
@@ -455,8 +527,8 @@ function renderEditView() {
         <div class="name">${p.name}</div>
         <div class="meta">${p.team || '—'} · ${p.season}</div>
         <div class="stats">
-          ${ratLine}<br>
-          ORtg ${p.ortg.toFixed(0)} / DRtg ${p.drtg.toFixed(0)}<br>
+          ${offLine}<br>
+          ${defLine}<br>
           USG ${(p.usg * 100).toFixed(1)}% · TS ${(p.ts * 100).toFixed(1)}%
         </div>
         <button class="swap-btn" data-slot="${i}">↔ Swap</button>
@@ -466,29 +538,32 @@ function renderEditView() {
 
   const playersTable = STATE.currentSlots.map((p, i) => {
     const q = projCurr.quality_per_player[i];
-    let curCell, wtCell, contribCell;
+    let rat365Cell, defCell, offContribCell, defContribCell;
     if (q.fallback) {
-      curCell = `<span style="color:var(--orange)">N/A</span>`;
-      wtCell = `<span style="color:var(--muted)">—</span>`;
-      contribCell = `<span style="color:var(--orange)">${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(2)}*</span>`;
+      rat365Cell = `<span style="color:var(--orange)">N/A</span>`;
+      defCell = q.def_score !== null ? q.def_score.toFixed(1) : `<span style="color:var(--muted)">—</span>`;
+      offContribCell = `<span style="color:var(--orange)">${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(2)}*</span>`;
+      defContribCell = `<span style="color:var(--muted)">${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(2)}</span>`;
     } else {
-      const curDisplay = q.rat365_current !== null ? q.rat365_current.toFixed(2) : '—';
-      curCell = q.blended
-        ? `<span style="color:var(--muted)">${curDisplay}</span>`
-        : curDisplay;
-      wtCell = q.blended
-        ? `<span style="color:var(--purple);font-weight:700" title="Weighted across ${q.n_seasons} seasons (recency-decayed)">↺ ${q.rat365.toFixed(2)}</span>`
-        : q.rat365.toFixed(2);
-      contribCell = `<span class="${q.contrib > 0.1 ? 'adj-pos' : q.contrib < -0.1 ? 'adj-neg' : ''}">${q.contrib >= 0 ? '+' : ''}${q.contrib.toFixed(2)}</span>`;
+      rat365Cell = q.off_blended
+        ? `<span style="color:var(--purple);font-weight:700" title="↺ blended">${q.rat365.toFixed(1)}</span>`
+        : q.rat365.toFixed(1);
+      defCell = q.def_score === null
+        ? `<span style="color:var(--muted)">—</span>`
+        : (q.def_blended
+            ? `<span style="color:var(--purple);font-weight:700" title="↺ blended">${q.def_score.toFixed(1)}</span>`
+            : q.def_score.toFixed(1));
+      offContribCell = `<span class="${q.off_contrib > 0.1 ? 'adj-pos' : q.off_contrib < -0.1 ? 'adj-neg' : ''}">${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(2)}</span>`;
+      defContribCell = `<span class="${q.def_contrib > 0.1 ? 'adj-pos' : q.def_contrib < -0.1 ? 'adj-neg' : ''}">${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(2)}</span>`;
     }
     return `
       <tr>
         <td>${i + 1}. ${p.name}</td>
-        <td class="num">${curCell}</td>
-        <td class="num">${wtCell}</td>
-        <td class="num">${contribCell}</td>
-        <td class="num">${p.ortg.toFixed(1)}</td>
-        <td class="num">${p.drtg.toFixed(1)}</td>
+        <td class="num">${rat365Cell}</td>
+        <td class="num">${defCell}</td>
+        <td class="num">${offContribCell}</td>
+        <td class="num">${defContribCell}</td>
+        <td class="num">${(q.off_contrib + q.def_contrib >= 0 ? '+' : '') + (q.off_contrib + q.def_contrib).toFixed(2)}</td>
       </tr>
     `;
   }).join('');
@@ -544,16 +619,16 @@ function renderEditView() {
     </div>
 
     <div class="breakdown">
-      <h3>Player ingredients</h3>
+      <h3>Player ingredients (two-axis quality)</h3>
       <table>
-        <thead><tr><th>Player</th><th class="num">Current rat365</th><th class="num">Weighted rat365</th><th class="num">Quality Δ</th><th class="num">ORtg</th><th class="num">DRtg</th></tr></thead>
+        <thead><tr><th>Player</th><th class="num">rat365</th><th class="num">DEF</th><th class="num">Off Δ</th><th class="num">Def Δ</th><th class="num">Net Δ</th></tr></thead>
         <tbody>
           ${playersTable}
-          <tr class="total"><td>Quality NetRtg baseline ${projCurr.n_blended > 0 ? `<span style="color:var(--purple);font-weight:normal">(↺ ${projCurr.n_blended} weighted-blended)</span>` : ''} ${5 - projCurr.n_with_quality > 0 ? `<span style="color:var(--orange);font-weight:normal">(${5 - projCurr.n_with_quality} fallback*)</span>` : ''}</td>
+          <tr class="total"><td>Lineup totals ${projCurr.n_off_blended > 0 || projCurr.n_def_blended > 0 ? `<span style="color:var(--purple);font-weight:normal">(↺ ${projCurr.n_off_blended} off / ${projCurr.n_def_blended} def blended)</span>` : ''} ${5 - projCurr.n_with_quality > 0 ? `<span style="color:var(--orange);font-weight:normal">(${5 - projCurr.n_with_quality} fallback*)</span>` : ''}</td>
             <td class="num">—</td><td class="num">—</td>
+            <td class="num ${projCurr.total_off > 0 ? 'adj-pos' : projCurr.total_off < 0 ? 'adj-neg' : ''}">${projCurr.total_off >= 0 ? '+' : ''}${projCurr.total_off.toFixed(1)}</td>
+            <td class="num ${projCurr.total_def > 0 ? 'adj-pos' : projCurr.total_def < 0 ? 'adj-neg' : ''}">${projCurr.total_def >= 0 ? '+' : ''}${projCurr.total_def.toFixed(1)}</td>
             <td class="num ${projCurr.quality_net_baseline > 0 ? 'adj-pos' : projCurr.quality_net_baseline < 0 ? 'adj-neg' : ''}">${projCurr.quality_net_baseline >= 0 ? '+' : ''}${projCurr.quality_net_baseline.toFixed(1)}</td>
-            <td class="num">avg ${projCurr.add_ortg.toFixed(1)}</td>
-            <td class="num">avg ${projCurr.add_drtg.toFixed(1)}</td>
           </tr>
         </tbody>
       </table>
@@ -577,11 +652,15 @@ function renderEditView() {
     <div class="notes">
       <strong>How to read:</strong>
       <ul>
-        <li><strong>Projected NetRtg</strong> uses <em>player quality</em> (rat365 from HoopsMatic Real Value, stripped of age/draft factors) as the baseline — independent of team context. Each player's "Quality Δ" is their NetRtg contribution above an average rotation player.</li>
-        <li><strong>Weighted rat365</strong> blends each player's rat365 across all available seasons, weighted by <em>games played × recency</em> (each older season multiplied by 0.65). Historical seasons use PIE-derived equivalents (calibrated against current rat365). The blend only <em>boosts</em> a player when their current is depressed: <code>effective = max(current, weighted)</code>. So rising stars like SGA stay at their current peak, while injury-limited stars like Giannis get credit for healthier prior seasons. <span style="color:var(--purple)">↺</span> indicates the boost is active.</li>
-        <li><strong>ORtg / DRtg</strong> are derived from the quality baseline (split 50/50 between offense and defense, anchored at league avg 115) plus the fit adjustments. They're consistent with NetRtg and free of team-context bias. The "avg" values shown in the breakdown are the OLD team-context-biased additive — kept for reference only.</li>
-        <li><strong>Fit adjustments</strong> are learned from real NBA lineups and apply on top of the quality baseline — they capture spacing, usage overlap, rim protection, etc.</li>
-        <li><strong>Original lineup actual</strong> shows what the unmodified lineup actually did. The gap between actual and projected gives a sense of model error.</li>
+        <li><strong>Two-axis quality model:</strong> each player has separate offensive (rat365-based) and defensive (DEF_SCORE-based) contributions.
+          <ul>
+            <li><em>Offense Δ</em> = (rat365 − 10) × 0.20 — from HoopsMatic Real Value</li>
+            <li><em>Defense Δ</em> = (DEF_SCORE − 8) × 0.15 — from your Defensive Rankings system</li>
+          </ul>
+        </li>
+        <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend only <em>boosts</em> a player when their current is anomalously depressed: <code>effective = max(current, weighted)</code>. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
+        <li><strong>Projected ORtg</strong> = 115 + sum of offense Δs + fit ORtg adj. <strong>Projected DRtg</strong> = 115 − sum of defense Δs + fit DRtg adj. So elite defenders <em>lower</em> the projected DRtg directly.</li>
+        <li><strong>Fit adjustments</strong> are learned from real NBA lineups — they capture lineup-composition effects (spacing, usage stacking, rim protection, etc.) on top of the per-player quality.</li>
         <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
       </ul>
     </div>
@@ -782,34 +861,138 @@ function getQuality(nbaName, playerId) {
   };
 }
 
+// ─── Defense quality: similar architecture, using DEF_SCORE + box-score composite ───
+
+const _defScoreCache = {};
+
+// Box-score derived defensive composite, calibrated to roughly approximate DEF_SCORE scale.
+// Inputs: BLK/game, STL/game, DREB_PCT (decimal 0-0.30).
+// Used as historical proxy when DEF_SCORE isn't available for older seasons.
+function boxScoreDefComposite(blk, stl, dreb_pct) {
+  return COMP_BLK * (blk || 0) + COMP_STL * (stl || 0) + COMP_DREB * (dreb_pct || 0);
+}
+
+function computeWeightedDefScore(playerId, nbaName, currentSeason) {
+  if (!playerId || !playerDb) return null;
+  const cacheKey = `${playerId}_${currentSeason}`;
+  if (_defScoreCache[cacheKey] !== undefined) return _defScoreCache[cacheKey];
+
+  const r = playerDb.exec(`
+    SELECT a.SEASON, CAST(a.GP AS INTEGER) AS GP,
+           CAST(a.DREB_PCT AS REAL) AS DREB_PCT,
+           CAST(b.BLK AS REAL) AS BLK, CAST(b.STL AS REAL) AS STL
+    FROM player_advanced a
+    LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
+    WHERE a.PLAYER_ID = ${playerId}
+      AND a.SEASON_TYPE = 'Regular Season'
+      AND CAST(a.GP AS INTEGER) >= ${MIN_SEASON_GP}
+    ORDER BY a.SEASON DESC
+  `);
+  if (!r.length || !r[0].values.length) {
+    _defScoreCache[cacheKey] = null;
+    return null;
+  }
+
+  // Get current DEF_SCORE from sheet if present
+  let current_def_score = null;
+  const hh = NAME_DICT[nbaName] || nbaName;
+  if (DEFENSE[hh]) current_def_score = DEFENSE[hh].def_score;
+
+  const currentYear = seasonStartYear(currentSeason);
+  let totalWeighted = 0;
+  let totalWeight = 0;
+  const seasons = [];
+
+  for (const [season, gp, dreb_pct, blk, stl] of r[0].values) {
+    const yearDelta = currentYear - seasonStartYear(season);
+    if (yearDelta < 0) continue;
+    const recencyWeight = Math.pow(RECENCY_DECAY, yearDelta);
+    const weight = gp * recencyWeight;
+    const composite = boxScoreDefComposite(+blk, +stl, +dreb_pct);
+    totalWeighted += composite * weight;
+    totalWeight += weight;
+    seasons.push({ season, gp, composite, weight });
+  }
+
+  if (totalWeight === 0) {
+    _defScoreCache[cacheKey] = null;
+    return null;
+  }
+  const blended = totalWeighted / totalWeight;
+  // Asymmetric: only let blend boost (use higher of current sheet score vs weighted composite).
+  // If no sheet score (player not in defensive rankings, e.g., low GP), use blend.
+  const effective = current_def_score !== null ? Math.max(current_def_score, blended) : blended;
+  const result = { effective, blended, current_def_score, seasons, n_seasons: seasons.length };
+  _defScoreCache[cacheKey] = result;
+  return result;
+}
+
+function getDefenseQuality(nbaName, playerId) {
+  const d = computeWeightedDefScore(playerId, nbaName, STATE.season);
+  if (!d) return null;
+  const usingBlend = (d.current_def_score === null) || (d.blended > d.current_def_score + 1.5);
+  return {
+    def_score: d.effective,
+    def_score_current: d.current_def_score,
+    def_score_blended: d.blended,
+    seasons: d.seasons,
+    n_seasons: d.n_seasons,
+    blended: usingBlend,
+    source: d.current_def_score !== null ? (usingBlend ? 'boosted' : 'current') : 'history-only',
+  };
+}
+
 function projectLineup(players) {
-  // ── Layer 0: traditional additive baseline (still useful for ORtg/DRtg display) ──
+  // ── Layer 0: traditional additive (informational only) ──
   const add_ortg = mean(players.map(p => p.ortg));
   const add_drtg = mean(players.map(p => p.drtg));
   const pace = mean(players.map(p => p.pace));
 
-  // ── Layer 1: player quality (rat365-based, team-context-independent) ──
-  const qMeta = QUALITY ? QUALITY._meta : { calibration_constant: 10, scale_factor: 0.25 };
-  const CALIB = qMeta.calibration_constant;
-  const SCALE = qMeta.scale_factor;
-
+  // ── Layer 1: two-axis quality ──
+  // Offense per player:  (rat365 − 10) × 0.20
+  // Defense per player:  (DEF_SCORE − 8) × 0.15
+  // Each uses asymmetric weighted historical (peak boost for injured players).
   const quality_per_player = players.map(p => {
     const q = getQuality(p.name, p.player_id);
+    const d = getDefenseQuality(p.name, p.player_id);
+
+    // Offense contribution from rat365
+    let rat365 = null, rat365_current = null, off_blended = false, off_n_seasons = 0;
+    let off_contrib;
     if (q) {
-      return {
-        hh_name: q.hh_name, rat365: q.rat365, rat365_current: q.rat365_current,
-        seasons: q.seasons, n_seasons: q.n_seasons, blended: q.blended,
-        contrib: (q.rat365 - CALIB) * SCALE,
-        fallback: false,
-      };
+      rat365 = q.rat365;
+      rat365_current = q.rat365_current;
+      off_blended = q.blended;
+      off_n_seasons = q.n_seasons;
+      off_contrib = (rat365 - OFF_CALIB) * OFF_SCALE;
+    } else {
+      off_contrib = (p.netrtg || 0) / 12;
     }
-    // Last-resort fallback: derive from individual NetRtg
-    return { hh_name: null, rat365: null, rat365_current: null,
-             seasons: [], n_seasons: 0, blended: false,
-             contrib: (p.netrtg || 0) / 10, fallback: true };
+
+    // Defense contribution from DEF_SCORE
+    let def_score = null, def_current = null, def_blended = false, def_n_seasons = 0;
+    let def_contrib = 0;
+    if (d) {
+      def_score = d.def_score;
+      def_current = d.def_score_current;
+      def_blended = d.blended;
+      def_n_seasons = d.n_seasons;
+      def_contrib = (def_score - DEF_CALIB) * DEF_SCALE;
+    }
+
+    return {
+      hh_name: q ? q.hh_name : (NAME_DICT[p.name] || p.name),
+      rat365, rat365_current, off_blended, off_n_seasons,
+      def_score, def_current, def_blended, def_n_seasons,
+      off_contrib, def_contrib,
+      net_contrib: off_contrib + def_contrib,
+      fallback: !q,
+    };
   });
 
-  const quality_net_baseline = quality_per_player.reduce((s, q) => s + q.contrib, 0);
+  const total_off = quality_per_player.reduce((s, q) => s + q.off_contrib, 0);
+  const total_def = quality_per_player.reduce((s, q) => s + q.def_contrib, 0);
+  const quality_net_baseline = total_off + total_def;
 
   // ── Layer 2: fit coefficients (existing) ──
   const n_high_usg    = players.filter(p => p.usg >= USG_HIGH).length;
@@ -840,31 +1023,25 @@ function projectLineup(players) {
   }
   const fit_net = ortg_adj - drtg_adj;
 
-  // ── ORtg / DRtg display derivation ───────────────────────────────────────
-  // The OLD additive (mean of player.ortg / player.drtg) carries team-context
-  // bias: a player from a bad-defense team will look bad defensively just
-  // because of his team. Instead, derive ORtg/DRtg from the quality baseline
-  // (which is team-context-independent), splitting it 50/50 between O and D.
-  // Anchor at league baseline 115 (modern NBA approximation).
-  //
-  // This is imperfect (doesn't distinguish offensive vs defensive specialists),
-  // but it removes the misleading "+6.4 DRtg when adding Giannis" effect from
-  // additive averaging. A proper fix using Defensive Rankings DEF_SCORE is
-  // the next iteration.
-  const LEAGUE_BASE = 115;
-  const half_quality = quality_net_baseline / 2;
-  const display_ortg = LEAGUE_BASE + half_quality + ortg_adj;
-  const display_drtg = LEAGUE_BASE - half_quality + drtg_adj;
+  // ── Combine: ORtg / DRtg / NetRtg ──
+  // ORtg = LEAGUE_BASE + sum(offense contributions) + fit_ortg_adj
+  // DRtg = LEAGUE_BASE − sum(defense contributions) + fit_drtg_adj
+  //   (higher def_contrib → lower DRtg → better defense)
+  // NetRtg = ORtg − DRtg = (total_off + total_def) + fit_net
+  const display_ortg = LEAGUE_BASE + total_off + ortg_adj;
+  const display_drtg = LEAGUE_BASE - total_def + drtg_adj;
 
   return {
-    add_ortg, add_drtg, pace,        // kept for breakdown table (informational, biased)
+    add_ortg, add_drtg, pace,
     quality_per_player,
+    total_off, total_def,
     quality_net_baseline,
     n_with_quality: quality_per_player.filter(q => !q.fallback).length,
-    n_blended: quality_per_player.filter(q => q.blended).length,
+    n_off_blended: quality_per_player.filter(q => q.off_blended).length,
+    n_def_blended: quality_per_player.filter(q => q.def_blended).length,
     ortg_adj, drtg_adj, fit_net,
-    ortg: display_ortg,              // headline display (quality-derived, unbiased)
-    drtg: display_drtg,              // headline display (quality-derived, unbiased)
+    ortg: display_ortg,
+    drtg: display_drtg,
     netrtg: quality_net_baseline + fit_net,
     breakdown,
   };
