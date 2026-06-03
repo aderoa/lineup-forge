@@ -430,6 +430,32 @@ function getCommonSeasons() {
   return common.length > 0 ? [common[0]] : [];
 }
 
+// Normalize a raw NBA-database player name into HoopsMatic nomenclature.
+// The name_dictionary.json maps NBA strings (with "Jr.", diacritics, etc.) to
+// the canonical HH form used throughout HoopsMatic (e.g., "Jaime Jaquez Jr." →
+// "Jaime Jaquez", "Nikola Jokić" → "Nikola Jokic"). If a name isn't in the
+// dictionary, it's already canonical — pass through unchanged.
+function toDisplayName(nbaName) {
+  if (!nbaName) return nbaName;
+  return NAME_DICT[nbaName] || nbaName;
+}
+
+// Name-only DB lookup. Used by the lineup picker so we never have to fall back
+// to NBA's abbreviated GROUP_NAME ("B. Adebayo") for bench/garbage-time
+// lineups where one or more players don't meet the rotation-minutes threshold
+// used by loadPlayer. Returns the most-recent-season name, normalized to HH.
+function loadNameOnly(playerId) {
+  const r = playerDb.exec(`
+    SELECT PLAYER_NAME
+    FROM player_advanced
+    WHERE PLAYER_ID = ${playerId}
+    ORDER BY SEASON DESC
+    LIMIT 1
+  `);
+  if (!r.length || !r[0].values.length) return null;
+  return toDisplayName(r[0].values[0][0]);
+}
+
 function getAvailableSeasonTypes(season) {
   const r = lineupsDb.exec(`
     SELECT DISTINCT SEASON_TYPE, COUNT(*) AS n
@@ -599,27 +625,38 @@ async function renderLineupPicker() {
     return;
   }
 
-  // For each lineup: load 5 players, project, capture full names.
-  // Falls back to GROUP_NAME and actual NetRtg if any player can't be loaded
-  // (e.g., low-minutes filter or missing quality data).
+  // For each lineup: project NetRtg when possible, but always resolve every
+  // player's name so we never have to fall back to NBA's abbreviated GROUP_NAME.
   const enriched = r[0].values.map(row => {
     const [gid, gname, gp, min, ortg, drtg, netrtg, pace] = row;
     const playerIds = String(gid).replace(/^-|-$/g, '').split('-').filter(Boolean).map(Number);
     let displayNames = null, projected = null;
+
     if (playerIds.length === 5) {
       const loaded = playerIds.map(pid => loadPlayer(pid, STATE.season));
+
+      // Projection requires every player to meet the rotation-minutes filter.
       if (loaded.every(p => p)) {
         try {
           projected = projectLineup(loaded).netrtg;
-          displayNames = loaded.map(p => p.name);
         } catch (e) {
           console.warn('Projection failed for', gid, e);
         }
       }
+
+      // Names: prefer the loaded stats row's name; fall back to a name-only
+      // query for players who didn't pass the filter. Both paths normalize
+      // through NAME_DICT (HoopsMatic nomenclature).
+      displayNames = playerIds.map((pid, i) => loaded[i]?.name || loadNameOnly(pid));
+      if (displayNames.some(n => !n)) displayNames = null;
     }
+
+    // Ultimate fallback: parse NBA's abbreviated GROUP_NAME (still HH-normalized
+    // in case any of the abbreviated forms happen to be in the dictionary).
     if (!displayNames) {
-      displayNames = String(gname).split(' - ').map(n => n.trim()).filter(Boolean);
+      displayNames = String(gname).split(' - ').map(n => toDisplayName(n.trim())).filter(Boolean);
     }
+
     return { gid, gp, min, netrtg, projected, displayNames };
   });
 
@@ -628,7 +665,9 @@ async function renderLineupPicker() {
     const isProjected = row.projected !== null;
     const displayNet = isProjected ? row.projected : row.netrtg;
     const netCls = displayNet >= 3 ? 'pos' : displayNet <= -3 ? 'neg' : 'neutral';
-    const recordStr = isProjected ? (() => { const r = projectRecord(displayNet); return `${r.wins}-${r.losses}`; })() : '—';
+    // Always show a record — even fallback rows get the projectRecord
+    // translation applied to whatever NetRtg we have (real or projected).
+    const recordStr = (() => { const r = projectRecord(displayNet); return `${r.wins}-${r.losses}`; })();
     return `
       <div class="lineup-card" data-gid="${row.gid}">
         <div class="names">${namesHtml}</div>
@@ -717,7 +756,7 @@ function loadPlayer(playerId, preferredSeason) {
   if (!r.length || !r[0].values.length) return null;
   const v = r[0].values[0];
   return {
-    player_id: v[0], name: v[1], team: v[2], season: v[3],
+    player_id: v[0], name: toDisplayName(v[1]), team: v[2], season: v[3],
     ortg:+v[4], drtg:+v[5], netrtg:+v[6], usg:+v[7], ts:+v[8],
     ast_pct:+v[9], reb_pct:+v[10], pie:+v[11], pace:+v[12], min:+v[13], gp:+v[14],
     fg3p:+v[15], fg3a:+v[16], blk:+v[17],
@@ -946,7 +985,7 @@ function renderSwapResults(query) {
   const items = top.map(([pid, name, team, season, gp, min, ortg, usg]) => {
     return `
       <div class="swap-result-item" data-pid="${pid}">
-        <div class="name">${name}</div>
+        <div class="name">${toDisplayName(name)}</div>
         <div class="meta">${team || '—'} · ORtg ${Number(ortg).toFixed(0)} · USG ${(Number(usg) * 100).toFixed(1)}% · ${Number(gp).toFixed(0)}G ${Number(min).toFixed(0)} MIN</div>
       </div>
     `;
