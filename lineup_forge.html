@@ -41,10 +41,11 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 .breadcrumb select { font-family:inherit; font-size:0.8rem; padding:0.3rem 0.5rem; margin-left:0.5rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; outline:none; }
 
 .team-grid { display:grid; grid-template-columns:repeat(6, 1fr); gap:0.6rem; }
-.team-tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.1rem 0.5rem; text-align:center; cursor:pointer; transition:border-color .15s, transform .1s, background .15s; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.05rem; letter-spacing:0.02em; }
+.team-tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:0.9rem 0.5rem; text-align:center; cursor:pointer; transition:border-color .15s, transform .1s, background .15s; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.95rem; letter-spacing:0.02em; display:flex; flex-direction:column; align-items:center; gap:0.4rem; }
 .team-tile:hover { border-color:var(--accent); background:var(--accent-dim); }
 .team-tile:active { transform:translateY(1px); }
-.team-tile .team-full { font-family:'DM Sans',sans-serif; font-weight:500; font-size:0.62rem; color:var(--muted); margin-top:0.3rem; }
+.team-tile .team-logo { width:42px; height:42px; object-fit:contain; flex-shrink:0; }
+.team-tile .team-logo.missing { display:none; }
 
 .lineup-list { display:flex; flex-direction:column; gap:0.5rem; }
 .lineup-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color .15s, background .15s; display:grid; grid-template-columns:1fr auto auto auto auto; gap:1rem; align-items:center; }
@@ -181,6 +182,25 @@ const DEF_URL        = `https://sheets.googleapis.com/v4/spreadsheets/${DEF_SHEE
 
 const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
+
+// NBA team-ID mapping for the official logo CDN. URL pattern:
+//   https://cdn.nba.com/logos/nba/{team_id}/global/L/logo.svg
+// SVG renders with transparent background, sized via CSS. Mapping is stable;
+// every active franchise has a permanent team_id assigned by the league.
+const TEAM_LOGOS = {
+  ATL: 1610612737, BOS: 1610612738, CLE: 1610612739, NOP: 1610612740,
+  CHI: 1610612741, DAL: 1610612742, DEN: 1610612743, GSW: 1610612744,
+  HOU: 1610612745, LAC: 1610612746, LAL: 1610612747, MIA: 1610612748,
+  MIL: 1610612749, MIN: 1610612750, BKN: 1610612751, NYK: 1610612752,
+  ORL: 1610612753, IND: 1610612754, PHI: 1610612755, PHX: 1610612756,
+  POR: 1610612757, SAC: 1610612758, SAS: 1610612759, OKC: 1610612760,
+  TOR: 1610612761, UTA: 1610612762, MEM: 1610612763, WAS: 1610612764,
+  DET: 1610612765, CHA: 1610612766,
+};
+function teamLogoURL(abbr) {
+  const id = TEAM_LOGOS[abbr];
+  return id ? `https://cdn.nba.com/logos/nba/${id}/global/L/logo.svg` : null;
+}
 
 // Two-axis quality model
 const OFF_CALIB = 12, OFF_SCALE = 0.25;   // (rat365 - 12) × 0.25 = offense contribution per player
@@ -521,9 +541,15 @@ function renderTeamPicker() {
     return;
   }
 
-  const tiles = teams[0].values.map(([abbr, n]) => `
-    <div class="team-tile" data-team="${abbr}">${abbr}<div class="team-full">${n} lineups</div></div>
-  `).join('');
+  const tiles = teams[0].values.map(([abbr, n]) => {
+    const logoUrl = teamLogoURL(abbr);
+    const logoHtml = logoUrl
+      ? `<img src="${logoUrl}" class="team-logo" alt="${abbr}" onerror="this.classList.add('missing')">`
+      : '';
+    return `
+      <div class="team-tile" data-team="${abbr}">${logoHtml}${abbr}</div>
+    `;
+  }).join('');
   $('content').innerHTML = `<div class="team-grid">${tiles}</div>`;
   document.querySelectorAll('.team-tile').forEach(t => {
     t.addEventListener('click', () => {
@@ -538,7 +564,7 @@ async function renderLineupPicker() {
   renderBreadcrumb();
   $('content').innerHTML = `<div class="empty-state">Loading lineups…</div>`;
 
-  // Yield so the loading state actually renders before we run 20 projections
+  // Yield so the loading state actually renders before we run up to 50 projections
   await new Promise(resolve => setTimeout(resolve, 0));
 
   // When Combined, aggregate GP/MIN as sums and ratings as MIN-weighted means
@@ -558,14 +584,14 @@ async function renderLineupPicker() {
       AND SEASON_TYPE IN ('Regular Season', 'Playoffs')
     GROUP BY GROUP_ID
     ORDER BY SUM(MIN) DESC
-    LIMIT 20
+    LIMIT 50
   ` : `
     SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
     FROM lineups_5man
     WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
       AND SEASON_TYPE = '${STATE.season_type}'
     ORDER BY MIN DESC
-    LIMIT 20
+    LIMIT 50
   `);
 
   if (!r.length || !r[0].values.length) {
@@ -615,7 +641,7 @@ async function renderLineupPicker() {
 
   $('content').innerHTML = `
     <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
-      ${STATE.team} 5-man lineups — ${STATE.season} ${seasonTypeLabel()} — top 20 by minutes played, NetRtg from projection model. Click any to start swapping.
+      ${STATE.team} 5-man lineups — ${STATE.season} ${seasonTypeLabel()} — top 50 by minutes played, NetRtg from projection model. Click any to start swapping.
     </div>
     <div class="lineup-list">${cards}</div>
   `;
