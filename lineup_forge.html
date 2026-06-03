@@ -213,6 +213,62 @@ const FIT_WEIGHT = 0.35;
 // Box-score composite weights (calibrated to roughly approximate DEF_SCORE scale)
 const COMP_BLK = 5, COMP_STL = 5, COMP_DREB = 40;
 
+// Lineup-context: usage redistribution. Each player's USG_PCT is their season-long
+// average across all the 5-man combos they played in. When five specific players
+// share a court, possessions are strictly zero-sum: Σ(USG) must equal 100%.
+// Without normalization, stacking multiple stars (whose individual season USGs each
+// reflect being the alpha on their team) gives a lineup with USG total >> 100%,
+// which is mathematically impossible and over-counts high-USG buckets in the fit
+// coefficient lookup. Normalization rescales each player's USG so the lineup sums
+// to TOTAL_USG_TARGET, capturing how their roles would actually compress.
+const TOTAL_USG_TARGET = 1.0;
+
+// TS% diminishing returns: empirically, TS% shifts by ~−0.6 percentage points per
+// +1 percentage point of USG. So when a player's USG is forced down (e.g., star on
+// a stacked lineup), they get easier shots → TS% rises. Forced up (role player
+// stretched into more creation) → TS% drops. We translate the lineup-wide net TS
+// shift into a small NetRtg adjustment.
+//   USG_TS_SLOPE      — TS percentage points per 1pp USG shift (basketball-research value)
+//   TS_EFFICIENCY_FACTOR — converts TS percentage point gain to NetRtg contribution
+//                          (small to avoid double-counting effects already in fit coefs)
+const USG_TS_SLOPE = -0.6;
+const TS_EFFICIENCY_FACTOR = 0.03;
+
+function normalizeLineupUsages(players) {
+  const total = players.reduce((s, p) => s + (p.usg || 0), 0);
+  if (total <= 0.01) {
+    // edge case: all-zero (shouldn't happen in real data); split evenly
+    return players.map(p => ({
+      ...p, usg_raw: p.usg, usg: 0.2,
+      ts_raw: p.ts, ts: p.ts, ts_delta_pp: 0,
+    }));
+  }
+  const scale = TOTAL_USG_TARGET / total;
+  return players.map(p => {
+    const usg_norm = (p.usg || 0) * scale;
+    // TS diminishing returns: ts shifts by -SLOPE per +1pp USG shift
+    // (forced-down USG ⇒ TS rises; forced-up ⇒ TS drops)
+    const usg_delta_pp = (usg_norm - (p.usg || 0)) * 100;
+    const ts_delta_pp = -USG_TS_SLOPE * usg_delta_pp;
+    const ts_norm = Math.max(0.30, Math.min(0.78, (p.ts || 0.55) + ts_delta_pp / 100));
+    return {
+      ...p,
+      usg_raw: p.usg,
+      usg: usg_norm,
+      ts_raw: p.ts,
+      ts: ts_norm,
+      ts_delta_pp,   // signed: positive when TS gained (USG forced down)
+    };
+  });
+}
+
+// Sum of per-player NetRtg contributions from TS diminishing returns.
+// Positive when stars are forced down in USG (lineup gets more efficient overall);
+// negative when a low-usage lineup is being asked to take more shots than usual.
+function tsEfficiencyBonus(normalized) {
+  return normalized.reduce((s, p) => s + (p.ts_delta_pp || 0) * TS_EFFICIENCY_FACTOR, 0);
+}
+
 let playerDb = null, lineupsDb = null, coefs = null;
 let NAME_DICT = {};
 let QUALITY = null;
@@ -554,6 +610,7 @@ function renderEditView() {
     const swapped = STATE.swappedFrom[i] !== null;
     const fromName = swapped ? STATE.swappedFrom[i].name.split(' ').slice(-1)[0] : null;
     const q = projCurr.quality_per_player[i];
+    const np = projCurr.normalized_players[i];  // has .usg (lineup-normalized) and .usg_raw (season)
 
     // Offense line: rat365 + offense contribution
     let offLine;
@@ -589,7 +646,7 @@ function renderEditView() {
         <div class="stats">
           ${offLine}<br>
           ${defLine}<br>
-          USG ${(p.usg * 100).toFixed(1)}% · TS ${(p.ts * 100).toFixed(1)}%
+          USG ${(np.usg * 100).toFixed(1)}%${Math.abs(np.usg - np.usg_raw) > 0.005 ? ` <span style="color:var(--muted);font-size:0.6rem">(season ${(np.usg_raw * 100).toFixed(1)}%)</span>` : ''} · TS ${(np.ts * 100).toFixed(1)}%${Math.abs(np.ts - np.ts_raw) > 0.005 ? ` <span style="color:var(--muted);font-size:0.6rem">(season ${(np.ts_raw * 100).toFixed(1)}%)</span>` : ''}
         </div>
         <button class="swap-btn" data-slot="${i}">↔ Swap</button>
       </div>
@@ -700,8 +757,14 @@ function renderEditView() {
         <thead><tr><th>Dimension</th><th class="num">Count</th><th class="num">ORtg Δ</th><th class="num">DRtg Δ</th><th>Sample</th></tr></thead>
         <tbody>
           ${adjTable}
+          <tr><td>Efficiency (TS↔USG)</td>
+            <td class="num">—</td>
+            <td class="num ${projCurr.ts_bonus > 0.05 ? 'adj-pos' : projCurr.ts_bonus < -0.05 ? 'adj-neg' : ''}">${projCurr.ts_bonus >= 0 ? '+' : ''}${projCurr.ts_bonus.toFixed(2)}</td>
+            <td class="num">—</td>
+            <td><span style="color:var(--muted);font-size:0.65rem">diminishing returns from USG redistribution</span></td>
+          </tr>
           <tr class="total"><td>Total fit adjustment</td><td class="num">—</td>
-            <td class="num ${projCurr.ortg_adj > 0 ? 'adj-pos' : projCurr.ortg_adj < 0 ? 'adj-neg' : ''}">${projCurr.ortg_adj > 0 ? '+' : ''}${projCurr.ortg_adj.toFixed(1)}</td>
+            <td class="num ${(projCurr.ortg_adj + projCurr.ts_bonus) > 0 ? 'adj-pos' : (projCurr.ortg_adj + projCurr.ts_bonus) < 0 ? 'adj-neg' : ''}">${(projCurr.ortg_adj + projCurr.ts_bonus) > 0 ? '+' : ''}${(projCurr.ortg_adj + projCurr.ts_bonus).toFixed(1)}</td>
             <td class="num ${projCurr.drtg_adj < 0 ? 'adj-pos' : projCurr.drtg_adj > 0 ? 'adj-neg' : ''}">${projCurr.drtg_adj > 0 ? '+' : ''}${projCurr.drtg_adj.toFixed(1)}</td>
             <td>—</td>
           </tr>
@@ -721,6 +784,7 @@ function renderEditView() {
         <li><strong>Weighted historical blend:</strong> both axes blend each player's career trajectory. Historical seasons use PIE-derived equivalents for offense and box-score composite (BLK·5 + STL·5 + DREB%·40) for defense. The blend boost is applied <em>gradually</em> based on current-season games played: full boost below 40 GP, no boost above 50 GP, linear taper in between. So an injured/ramping-up star (Giannis at 36 GP) still gets full credit for his career level, while a healthy starter (60+ GP) trusts their actual current value. <span style="color:var(--purple)">↺</span> indicates a boost is active on that axis.</li>
         <li><strong>Projected ORtg</strong> = 115 + sum of offense Δs + fit ORtg adj. <strong>Projected DRtg</strong> = 115 − sum of defense Δs + fit DRtg adj. So elite defenders <em>lower</em> the projected DRtg directly.</li>
         <li><strong>Fit adjustments</strong> are learned from real NBA lineups — they capture lineup-composition effects (spacing, usage stacking, rim protection, etc.) on top of the per-player quality. Currently applied at <strong>${(FIT_WEIGHT * 100).toFixed(0)}% weight</strong> so individual star talent has the bigger say (fit buckets average across all lineups in a category and can't distinguish exceptional individuals like Giannis from typical bucket members).</li>
+        <li><strong>Lineup-normalized USG &amp; TS:</strong> each player's season-long USG_PCT is a context-dependent number (it reflects who they played with all year). On any given 5-man court, possessions are strictly zero-sum — Σ(USG) = 100%. When stacking multiple alphas, individual season USGs each remain at their solo-team levels (e.g., Giannis 36% + SGA 32%), so we rescale them proportionally to sum to 100% before counting high-usage roles. Each player's TS% is also adjusted (~−0.6pp per +1pp USG shift, basketball-research value): forced-down USG → easier shots → TS rises; forced-up USG → harder shots → TS drops. The net lineup-wide TS shift appears as a small efficiency adjustment in the fit breakdown.</li>
         <li>Tier ranges: ≥+12 championship · ≥+7 top-tier · ≥+3 above average · ±3 average · ≤−3 below average</li>
       </ul>
     </div>
@@ -1082,7 +1146,11 @@ function projectLineup(players) {
   const quality_net_baseline = total_off + total_def;
 
   // ── Layer 2: fit coefficients (existing) ──
-  const n_high_usg    = players.filter(p => p.usg >= USG_HIGH).length;
+  // Normalize USG first — when stars share court, possessions redistribute (sum = 100%).
+  // Without this, stacking multiple stars over-counts the high-USG bucket.
+  // AST_PCT and REB_PCT aren't strictly zero-sum, so we leave them as raw season values.
+  const normalized = normalizeLineupUsages(players);
+  const n_high_usg    = normalized.filter(p => p.usg >= USG_HIGH).length;
   const n_shooters    = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
   const n_rim_protect = players.filter(p => p.blk >= BLK_HIGH).length;
   const n_playmakers  = players.filter(p => p.ast_pct >= AST_HIGH).length;
@@ -1118,18 +1186,25 @@ function projectLineup(players) {
   const display_ortg = LEAGUE_BASE + total_off + ortg_adj;
   const display_drtg = LEAGUE_BASE - total_def + drtg_adj;
 
+  // TS diminishing-returns efficiency bonus from the USG normalization.
+  // Star-stacked lineups: USGs forced down → TS up → small positive.
+  // Low-usage lineups stretched: USGs forced up → TS down → small negative.
+  const ts_bonus = tsEfficiencyBonus(normalized);
+
   return {
     add_ortg, add_drtg, pace,
     quality_per_player,
+    normalized_players: normalized,
     total_off, total_def,
     quality_net_baseline,
+    ts_bonus,
     n_with_quality: quality_per_player.filter(q => !q.fallback).length,
     n_off_blended: quality_per_player.filter(q => q.off_blended).length,
     n_def_blended: quality_per_player.filter(q => q.def_blended).length,
     ortg_adj, drtg_adj, fit_net,
-    ortg: display_ortg,
+    ortg: display_ortg + ts_bonus,           // efficiency lift flows to ORtg
     drtg: display_drtg,
-    netrtg: quality_net_baseline + fit_net,
+    netrtg: quality_net_baseline + fit_net + ts_bonus,
     breakdown,
   };
 }
