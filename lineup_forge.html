@@ -309,6 +309,80 @@ function tsEfficiencyBonus(normalized) {
   return normalized.reduce((s, p) => s + (p.ts_delta_pp || 0) * TS_EFFICIENCY_FACTOR, 0);
 }
 
+// ── Structural viability adjustments ──
+// Additive penalties for catastrophic lineup compositions that the fit
+// coefficients can't capture. Fit averages across the (sparse) lineups in
+// each bucket — and real NBA teams basically never play 5-guard or
+// no-creator configurations, so the "0 rim protectors" or "all handlers"
+// buckets in training are dominated by *playable* small-ball / spacing
+// lineups rather than the catastrophic versions you can construct here.
+//
+// These penalties apply at FULL strength (no FIT_WEIGHT damping) since they
+// exist precisely to correct what fit can't. Calibrated so:
+//   - 5 elite guards no size:    ~−11 NetRtg vs naive prediction
+//   - Jokic + 4 wings:           ~−3.5 (light hit — actually playable)
+//   - All-bigs + no creator:     ~−5 to −6
+//   - 5 average bench guys:      ~0 (fit + low quality already handle it)
+function viabilityAdjustments(players) {
+  let ortg_pen = 0, drtg_pen = 0;
+  const notes = [];
+
+  // 1. Rim defense — needs at least one real shot blocker OR a big-bodied
+  //    rebounder. Pure "5 6'4" guards" gets the catastrophic version.
+  const hasRimProt = players.some(p => (p.blk || 0) >= 1.0);
+  const hasBigBody = players.some(p => (p.reb_pct || 0) >= 0.15);
+  if (!hasRimProt && !hasBigBody) {
+    drtg_pen += 7.0;
+    notes.push({ label: 'No rim protection or size', drtg: 7.0, ortg: 0 });
+  } else if (!hasRimProt) {
+    drtg_pen += 2.0;
+    notes.push({ label: 'Thin rim protection', drtg: 2.0, ortg: 0 });
+  }
+
+  // 2. Aggregate size — total rebounding capacity across the 5
+  const sumReb = players.reduce((s, p) => s + (p.reb_pct || 0), 0);
+  if (sumReb < 0.35) {
+    drtg_pen += 3.0;
+    ortg_pen += 1.5;
+    notes.push({ label: 'Tiny lineup', drtg: 3.0, ortg: 1.5 });
+  } else if (sumReb < 0.50) {
+    drtg_pen += 1.0;
+    ortg_pen += 0.5;
+    notes.push({ label: 'Undersized', drtg: 1.0, ortg: 0.5 });
+  }
+
+  // 3. Handler concentration — touches conflict when everyone wants the ball
+  const handlers = players.filter(p => (p.ast_pct || 0) >= AST_HIGH).length;
+  if (handlers >= 5) {
+    ortg_pen += 3.0;
+    notes.push({ label: 'All-handler lineup', drtg: 0, ortg: 3.0 });
+  } else if (handlers >= 4) {
+    ortg_pen += 1.5;
+    notes.push({ label: 'Handler stacking', drtg: 0, ortg: 1.5 });
+  }
+
+  // 4. Creation void — needs at least one primary creator
+  if (handlers === 0) {
+    ortg_pen += 3.0;
+    notes.push({ label: 'No primary creator', drtg: 0, ortg: 3.0 });
+  } else if (handlers === 1) {
+    ortg_pen += 0.7;
+    notes.push({ label: 'Thin creation', drtg: 0, ortg: 0.7 });
+  }
+
+  // 5. Spacing — without shooters, defense packs the paint and chokes drives
+  const shooters = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
+  if (shooters === 0) {
+    ortg_pen += 3.0;
+    notes.push({ label: 'No spacing', drtg: 0, ortg: 3.0 });
+  } else if (shooters === 1) {
+    ortg_pen += 1.0;
+    notes.push({ label: 'Thin spacing', drtg: 0, ortg: 1.0 });
+  }
+
+  return { ortg_pen, drtg_pen, notes };
+}
+
 let playerDb = null, lineupsDb = null, coefs = null;
 let NAME_DICT = {};
 let QUALITY = null;
@@ -874,6 +948,12 @@ function renderEditView() {
         const winDelta = r.wins - o.wins;
         return ` · projected ${r.wins}-${r.losses} (vs original ${o.wins}-${o.losses}, ${winDelta >= 0 ? '+' : ''}${winDelta} wins)`;
       })()}</div>
+      ${projCurr.viability.notes.length > 0 ? `
+        <div class="proj-tier" style="border-left-color:var(--orange); margin-top:0.4rem; color:var(--orange)">
+          ⚠ Structural concerns: ${projCurr.viability.notes.map(n => n.label).join(' · ')}
+          <span style="color:var(--muted)">(−${(projCurr.viability.ortg_pen + projCurr.viability.drtg_pen).toFixed(1)} NetRtg)</span>
+        </div>
+      ` : ''}
     </div>
 
     <div class="lineup-grid">${slotsHtml}</div>
@@ -1301,6 +1381,10 @@ function projectLineup(players) {
   // Low-usage lineups stretched: USGs forced up → TS down → small negative.
   const ts_bonus = tsEfficiencyBonus(normalized);
 
+  // Structural viability penalties — catastrophic compositions that fit can't
+  // capture (e.g., 5 guards with no rim protection). Applied at full strength.
+  const via = viabilityAdjustments(players);
+
   return {
     add_ortg, add_drtg, pace,
     quality_per_player,
@@ -1308,13 +1392,14 @@ function projectLineup(players) {
     total_off, total_def,
     quality_net_baseline,
     ts_bonus,
+    viability: via,
     n_with_quality: quality_per_player.filter(q => !q.fallback).length,
     n_off_blended: quality_per_player.filter(q => q.off_blended).length,
     n_def_blended: quality_per_player.filter(q => q.def_blended).length,
     ortg_adj, drtg_adj, fit_net,
-    ortg: display_ortg + ts_bonus,           // efficiency lift flows to ORtg
-    drtg: display_drtg,
-    netrtg: quality_net_baseline + fit_net + ts_bonus,
+    ortg: display_ortg + ts_bonus - via.ortg_pen,   // efficiency lift, viability cuts ORtg
+    drtg: display_drtg + via.drtg_pen,              // viability adds to DRtg (worse)
+    netrtg: quality_net_baseline + fit_net + ts_bonus - via.ortg_pen - via.drtg_pen,
     breakdown,
   };
 }
