@@ -253,6 +253,11 @@ const DEF_SHEET_ID   = '1JH2FUBIyQ1zEHzZBxgP8vHBZ7d8EtP5-fSVG3zMgCgg';
 const DEF_API_KEY    = 'AIzaSyB9g7c6llswswuZQ2I5y2MwGk6BzYEtHsY';
 const DEF_URL        = `https://sheets.googleapis.com/v4/spreadsheets/${DEF_SHEET_ID}/values/Defensive_Rankings?key=${DEF_API_KEY}`;
 
+// Positions — fetched from the main HoopsMatic sheet, Sheet2 cols S (PLAYER) + AG (POSITION).
+// Uses HoopsMatic nomenclature (matches what toDisplayName produces).
+const POS_SHEET_ID = '11llk0icQqoi0JwJXat5KO8y2RQeBMN5rS9FhAY56Idc';
+const POS_URL = `https://sheets.googleapis.com/v4/spreadsheets/${POS_SHEET_ID}/values:batchGet?ranges=Sheet2!S:S&ranges=Sheet2!AG:AG&key=${DEF_API_KEY}`;
+
 const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
 
@@ -441,6 +446,7 @@ let playerDb = null, lineupsDb = null, coefs = null;
 let NAME_DICT = {};
 let QUALITY = null;
 let DEFENSE = {};      // HH name → { def_score, team, gp }
+let POSITIONS = {};    // HH name → 'PG' | 'SG' | 'SF' | 'PF' | 'C' (from Sheet2 col AG)
 
 const STATE = {
   season: null, season_type: 'Regular Season', team: null,
@@ -466,22 +472,25 @@ const GAME = {
   loading_optimal: false,
 };
 
-// Position classification heuristic based on stats (the player_advanced table
-// doesn't have POSITION). This is rough — it categorizes by how players ACTUALLY
-// play, not by listed position. Quirks:
-//   - Modern playmaking bigs (Jokic, Sabonis) may land as PG due to high AST_PCT
-//   - True-stretch fours with low rebounding may land as WING
-// Good enough for game variety; a player who shows up in a "wrong" bucket is
-// still valid to pick — the engine projects whatever lineup the user builds.
+// Position classification: dictionary lookup first (from HoopsMatic's main sheet
+// Sheet2 col S=PLAYER / col AG=POSITION). Falls back to a stats heuristic if a
+// player isn't in the dictionary (e.g., new call-up not yet on the roster sheet).
+// The dictionary uses HoopsMatic naming, and player.name has already been run
+// through toDisplayName, so lookups are direct.
 function classifyPosition(p) {
+  const known = POSITIONS[p.name];
+  if (known) {
+    if (known === 'PG' || known === 'G')  return 'PG';
+    if (known === 'SG' || known === 'SF') return 'WING';
+    if (known === 'PF' || known === 'C')  return 'BIG';
+    // 'F' or any unexpected value → fall through to heuristic
+  }
+  // Heuristic fallback for players missing from the position sheet.
   const ast = p.ast_pct || 0;
   const reb = p.reb_pct || 0;
   const blk = p.blk || 0;
-  // Big: substantial rim presence (rebounding OR shot blocking)
   if (reb >= 0.13 || blk >= 1.2) return 'BIG';
-  // PG: primary distributor (high AST, low rebounding)
   if (ast >= 0.24 && reb < 0.11) return 'PG';
-  // Wing: everything else (2/3 archetypes, secondary scorers)
   return 'WING';
 }
 
@@ -753,13 +762,14 @@ async function boot() {
     const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
 
     setStatus('Downloading data...');
-    const [playerBuf, lineupsBuf, coefsJson, namesJson, qualityJson, defenseData] = await Promise.all([
+    const [playerBuf, lineupsBuf, coefsJson, namesJson, qualityJson, defenseData, positionData] = await Promise.all([
       fetchDb(PLAYER_DB_URL),
       fetchDb(LINEUPS_DB_URL),
       fetch(COEFS_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
       fetch(NAMES_URL).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch(QUALITY_URL).then(r => r.ok ? r.json() : null).catch(() => null),
       loadDefenseData().catch(e => { console.warn('Defense data failed:', e); return {}; }),
+      loadPositionData().catch(e => { console.warn('Position data failed:', e); return {}; }),
     ]);
 
     playerDb  = new SQL.Database(new Uint8Array(playerBuf));
@@ -768,6 +778,8 @@ async function boot() {
     NAME_DICT = namesJson || {};
     QUALITY = qualityJson;
     DEFENSE = defenseData || {};
+    POSITIONS = positionData || {};
+    console.log(`Loaded ${Object.keys(POSITIONS).length} player positions from sheet`);
 
     const commonSeasons = getCommonSeasons();
     STATE.season = commonSeasons[0];
@@ -824,6 +836,30 @@ async function loadDefenseData() {
       team: (row[idx.TEAM] || '').trim(),
       gp: parseInt(row[idx.GP]) || 0,
     };
+  }
+  return result;
+}
+
+// Fetches Sheet2 cols S (PLAYER) and AG (POSITION) from HoopsMatic's main sheet
+// via the batchGet endpoint — only the two columns we need, not the whole sheet.
+async function loadPositionData() {
+  const res = await fetch(POS_URL);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching positions sheet`);
+  const data = await res.json();
+  const ranges = data.valueRanges || [];
+  if (ranges.length !== 2) return {};
+  const players = ranges[0].values || [];
+  const positions = ranges[1].values || [];
+  const result = {};
+  // Row 0 is the header; rows align by index since both columns come from the same sheet
+  for (let i = 1; i < players.length; i++) {
+    const name = (players[i]?.[0] || '').trim();
+    const pos = (positions[i]?.[0] || '').trim();
+    if (!name || !pos) continue;
+    // Last-write-wins if the same player appears multiple times (the sheet
+    // doesn't really deduplicate, but the position should be consistent across
+    // duplicate rows for the same player)
+    result[name] = pos;
   }
   return result;
 }
