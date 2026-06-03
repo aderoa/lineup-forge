@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge Five — HoopsMatic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #f5f7fa; --surface: #ffffff; --surface2: #f3f4f6; --border: #e5e7eb;
+  --text1: #111827; --text2: #4b5563; --muted: #9ca3af;
+  --accent: #2563eb; --accent-dim: rgba(37,99,235,0.06);
+  --green: #16a34a; --red: #dc2626; --orange: #ea580c; --gold: #ca8a04; --purple: #7c3aed;
+}
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1); min-height:100vh; padding-bottom:4rem; }
+::-webkit-scrollbar { height:6px; width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+
+.header { background:#ffffff; border-bottom:1px solid var(--border); padding:1.25rem 2rem; display:flex; align-items:center; gap:1rem; }
+.header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; cursor:pointer; transition:opacity 0.15s; user-select:none; color:var(--text1); }
+.header .logo:hover { opacity:0.75; }
+.header .logo span { color:var(--accent); }
+.header .sub { font-size:0.7rem; color:var(--muted); margin-left:auto; font-family:'JetBrains Mono',monospace; }
+
+#status { padding:0.6rem 2rem; background:rgba(234,88,12,0.08); color:var(--orange); font-size:0.78rem; border-bottom:1px solid var(--border); }
+#status.ready { background:rgba(22,163,74,0.06); color:var(--green); }
+#status.error { background:rgba(220,38,38,0.08); color:var(--red); }
+#status.hidden { display:none; }
+
+.wrap { max-width:1200px; margin:0 auto; padding:1.5rem 2rem; }
+
+.section { margin-bottom:2.5rem; scroll-margin-top:1rem; }
+.section[hidden] { display:none; }
+.section-header { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size:0.78rem; margin-bottom:1.25rem; padding-bottom:0.7rem; border-bottom:1px solid var(--border); }
+.section-header .current { font-weight:700; color:var(--text1); text-transform:uppercase; letter-spacing:0.06em; font-size:0.82rem; }
+.section-header .back-link { color:var(--text2); cursor:pointer; transition:color .15s; }
+.section-header .back-link:hover { color:var(--accent); }
+.section-header .sep { color:var(--muted); }
+
+.breadcrumb { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size:0.78rem; color:var(--text2); margin-bottom:1.25rem; }
+.breadcrumb .crumb { color:var(--text2); cursor:pointer; transition:color .15s; }
+.breadcrumb .crumb.active { color:var(--accent); font-weight:600; cursor:default; }
+.breadcrumb .crumb:hover:not(.active) { color:var(--text1); }
+.breadcrumb .sep { color:var(--muted); }
+.breadcrumb select { font-family:inherit; font-size:0.8rem; padding:0.3rem 0.5rem; margin-left:0.5rem; background:var(--surface); color:var(--text1); border:1px solid var(--border); border-radius:5px; outline:none; }
+
+.team-grid { display:grid; grid-template-columns:repeat(6, 1fr); gap:0.6rem; }
+.team-tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:0.9rem 0.5rem; text-align:center; cursor:pointer; transition:border-color .15s, transform .1s, background .15s; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.95rem; letter-spacing:0.02em; display:flex; flex-direction:column; align-items:center; gap:0.4rem; color:var(--text1); }
+.team-tile:hover { border-color:var(--accent); background:var(--accent-dim); }
+.team-tile:active { transform:translateY(1px); }
+.team-tile .team-logo { width:42px; height:42px; object-fit:contain; flex-shrink:0; }
+.team-tile .team-logo.missing { display:none; }
+
+.lineup-list { display:flex; flex-direction:column; gap:0.5rem; }
+.lineup-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color .15s, background .15s; display:grid; grid-template-columns:1fr auto auto auto auto; gap:1rem; align-items:center; }
+.lineup-card:hover { border-color:var(--accent); background:var(--accent-dim); }
+.lineup-card .names { font-size:0.84rem; font-weight:600; line-height:1.4; }
+.lineup-card .names .sep { color:var(--muted); margin:0 0.25rem; font-weight:400; }
+.lineup-card .stat { display:flex; flex-direction:column; gap:0.1rem; text-align:right; font-family:'JetBrains Mono',monospace; }
+.lineup-card .stat .lbl { font-size:0.56rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+.lineup-card .stat .val { font-size:0.92rem; font-weight:700; }
+.lineup-card .stat.net .val.pos { color:var(--green); }
+.lineup-card .stat.net .val.neg { color:var(--red); }
+.lineup-card .stat.net .val.neutral { color:var(--orange); }
+
+.empty-state { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:0.85rem; background:var(--surface); border:1px dashed var(--border); border-radius:10px; }
+
+.proj-panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.25rem; }
+.proj-row { display:flex; gap:2rem; flex-wrap:wrap; align-items:baseline; }
+.proj-stat { display:flex; flex-direction:column; gap:0.15rem; min-width:90px; }
+.proj-stat .label { font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
+.proj-stat .value { font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:700; }
+.proj-stat.headline .value { font-size:2.4rem; color:var(--accent); line-height:1.1; }
+.proj-stat.headline.green .value { color:var(--green); }
+.proj-stat.headline.red .value { color:var(--red); }
+.proj-stat.headline.orange .value { color:var(--orange); }
+.proj-stat .delta { font-family:'JetBrains Mono',monospace; font-size:0.72rem; margin-top:0.15rem; }
+.proj-stat .delta.pos { color:var(--green); }
+.proj-stat .delta.neg { color:var(--red); }
+.proj-stat .delta.zero { color:var(--muted); }
+
+.proj-tier { font-size:0.74rem; color:var(--text2); font-style:italic; margin-top:1rem; padding:0.5rem 0.75rem; background:var(--surface2); border-radius:6px; border-left:3px solid var(--accent); }
+
+.lineup-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:0.6rem; margin-bottom:1.25rem; }
+.slot { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 0.75rem; position:relative; display:flex; flex-direction:column; gap:0.45rem; transition:border-color .15s; }
+.slot.swapped { border-color:var(--purple); background:rgba(124,58,237,0.05); }
+.slot .slot-num { font-size:0.55rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
+.slot .name { font-weight:700; font-size:0.85rem; line-height:1.2; color:var(--text1); }
+.slot .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.62rem; }
+.slot .stats { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text2); line-height:1.5; }
+.slot .swap-btn { margin-top:auto; padding:0.45rem 0.6rem; background:var(--green); color:#fff; border:1px solid var(--green); border-radius:5px; cursor:pointer; font-family:inherit; font-size:0.72rem; font-weight:700; transition:background .15s, border-color .15s; }
+.slot .swap-btn:hover { background:#15803d; border-color:#15803d; }
+.slot .from-tag { position:absolute; top:0.4rem; right:0.4rem; font-family:'JetBrains Mono',monospace; font-size:0.5rem; color:var(--purple); background:rgba(124,58,237,0.1); padding:0.15rem 0.35rem; border-radius:3px; letter-spacing:0.04em; font-weight:600; }
+
+.action-row { display:flex; gap:0.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+.btn { font-family:inherit; font-size:0.82rem; font-weight:700; padding:0.6rem 1.2rem; border:none; border-radius:6px; cursor:pointer; transition:background .15s, transform .1s; background:var(--accent); color:#fff; }
+.btn:hover { background:#1d4ed8; }
+.btn:active { transform:translateY(1px); }
+.btn.secondary { background:var(--surface); color:var(--text1); border:1px solid var(--border); }
+.btn.secondary:hover { border-color:var(--accent); color:var(--accent); }
+
+.breakdown { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; }
+.breakdown h3 { font-size:0.88rem; font-weight:700; margin-bottom:0.5rem; }
+.breakdown table { width:100%; font-size:0.76rem; border-collapse:collapse; }
+.breakdown td, .breakdown th { padding:0.35rem 0.5rem; border-bottom:1px solid var(--border); text-align:left; }
+.breakdown th { font-size:0.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+.breakdown td.num { font-family:'JetBrains Mono',monospace; text-align:right; }
+.breakdown tr:last-child td { border-bottom:none; }
+.breakdown tr.total { font-weight:700; background:var(--surface2); }
+.breakdown td.adj-pos { color:var(--green); }
+.breakdown td.adj-neg { color:var(--red); }
+
+.notes { font-size:0.7rem; color:var(--text2); line-height:1.6; padding:0.8rem 1rem; background:var(--surface2); border-radius:8px; }
+.notes strong { color:var(--text1); }
+.notes ul { margin:0.3rem 0 0 1.2rem; }
+
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100; display:none; align-items:flex-start; justify-content:center; padding:3rem 1rem; }
+.modal-bg.open { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:480px; padding:1.25rem; max-height:80vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
+.modal h3 { font-size:1rem; margin-bottom:0.5rem; }
+.modal .swap-sub { font-size:0.74rem; color:var(--muted); margin-bottom:0.85rem; }
+.modal input[type=text] { width:100%; padding:0.6rem 0.75rem; font-family:inherit; font-size:0.9rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:6px; outline:none; margin-bottom:0.85rem; }
+.modal input[type=text]:focus { border-color:var(--accent); }
+.swap-results { display:flex; flex-direction:column; gap:0.3rem; }
+.swap-result-item { padding:0.55rem 0.7rem; cursor:pointer; border:1px solid var(--border); border-radius:6px; transition:border-color .15s, background .15s; }
+.swap-result-item:hover { border-color:var(--accent); background:var(--accent-dim); }
+.swap-result-item .name { font-weight:600; font-size:0.84rem; }
+.swap-result-item .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.66rem; margin-top:0.15rem; }
+.modal .close-btn { width:100%; margin-top:0.5rem; padding:0.5rem; background:var(--surface2); color:var(--text2); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-family:inherit; font-size:0.82rem; }
+.modal .close-btn:hover { color:var(--text1); border-color:var(--accent); }
+
+/* ─── Forge Five game styles ─── */
+.game-intro { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:2rem 1.5rem; text-align:center; }
+.game-intro h2 { font-size:1.5rem; margin-bottom:0.6rem; }
+.game-intro p { color:var(--text2); margin-bottom:1.2rem; font-size:0.9rem; line-height:1.5; }
+.game-intro .rules { background:var(--surface2); border-radius:8px; padding:0.9rem 1.2rem; margin:1.2rem auto; max-width:520px; text-align:left; font-size:0.82rem; color:var(--text2); line-height:1.7; }
+.game-intro .rules strong { color:var(--text1); }
+
+.pool-status-bar { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.85rem 1.2rem; margin-bottom:1.25rem; display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,0.03); }
+.pool-status-bar .count { font-size:0.8rem; font-family:'JetBrains Mono',monospace; }
+.pool-status-bar .count strong { color:var(--text1); font-weight:700; }
+.pool-status-bar .count.ok strong { color:var(--green); }
+.pool-status-bar .count.over strong { color:var(--red); }
+.pool-status-bar .build-btn { margin-left:auto; }
+
+.pool-section { margin-bottom:1.5rem; }
+.pool-section-header { font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text1); margin-bottom:0.7rem; padding-bottom:0.4rem; border-bottom:1px solid var(--border); display:flex; align-items:baseline; gap:0.6rem; }
+.pool-section-header .needed { font-weight:500; font-size:0.7rem; color:var(--muted); text-transform:none; letter-spacing:0; }
+
+.pool-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:0.5rem; }
+
+.player-card { background:var(--surface); border:2px solid var(--border); border-radius:8px; padding:0.7rem 0.65rem; cursor:pointer; transition:border-color .15s, background .15s, transform .1s; display:flex; flex-direction:column; gap:0.3rem; position:relative; }
+.player-card:hover:not(.locked):not(.selected) { border-color:var(--accent); background:var(--accent-dim); }
+.player-card:active:not(.locked) { transform:translateY(1px); }
+.player-card.selected { border-color:var(--green); background:rgba(22,163,74,0.06); }
+.player-card.selected::after { content:'✓'; position:absolute; top:0.4rem; right:0.5rem; color:var(--green); font-weight:700; font-size:0.85rem; }
+.player-card.locked { opacity:0.45; cursor:not-allowed; }
+.player-card .name { font-size:0.8rem; font-weight:700; line-height:1.2; }
+.player-card .meta { font-size:0.62rem; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+.player-card .stats { font-size:0.62rem; color:var(--text2); font-family:'JetBrains Mono',monospace; line-height:1.5; }
+.player-card .stats .stat-label { color:var(--muted); }
+
+.results-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
+.results-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.4rem; }
+.results-card h3 { font-size:0.74rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:0.7rem; }
+.results-card.user { border-color:var(--accent); }
+.results-card.optimal { border-color:var(--green); }
+.results-card .lineup-names { font-size:0.85rem; font-weight:600; line-height:1.5; margin-bottom:0.85rem; }
+.results-card .stats-row { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:0.4rem; }
+.results-card .stat { font-family:'JetBrains Mono',monospace; }
+.results-card .stat .lbl { font-size:0.55rem; text-transform:uppercase; color:var(--muted); letter-spacing:0.05em; }
+.results-card .stat .val { font-size:1.5rem; font-weight:700; }
+.results-card .stat .val.green { color:var(--green); }
+.results-card .stat .val.red { color:var(--red); }
+.results-card .stat .val.orange { color:var(--orange); }
+.results-card .stat .val.accent { color:var(--accent); }
+
+.score-display { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.4rem 1.5rem; margin-bottom:1.25rem; text-align:center; }
+.score-display .verdict { font-size:1rem; font-weight:700; margin-bottom:0.4rem; }
+.score-display .score-num { font-family:'JetBrains Mono',monospace; font-size:3rem; font-weight:800; line-height:1; }
+.score-display .score-num.perfect { color:var(--green); }
+.score-display .score-num.good { color:var(--accent); }
+.score-display .score-num.meh { color:var(--orange); }
+.score-display .score-num.bad { color:var(--red); }
+.score-display .score-detail { color:var(--text2); font-size:0.82rem; margin-top:0.5rem; }
+
+.computing { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:2rem 1rem; text-align:center; color:var(--muted); font-size:0.85rem; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .pool-grid { grid-template-columns:repeat(3, 1fr); }
+  .results-row { grid-template-columns:1fr; }
+  .pool-status-bar { flex-direction:column; align-items:stretch; gap:0.5rem; }
+  .pool-status-bar .build-btn { margin-left:0; }
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .header { padding:1rem; }
+  .wrap { padding:1rem; }
+  .team-grid { grid-template-columns:repeat(4, 1fr); gap:0.4rem; }
+  .team-tile { padding:0.8rem 0.4rem; font-size:0.92rem; }
+  .lineup-card { grid-template-columns:1fr auto; row-gap:0.4rem; padding:0.7rem; }
+  .lineup-card .stat { flex-direction:row; align-items:baseline; gap:0.3rem; }
+  .lineup-card .stat .lbl { font-size:0.6rem; }
+  .lineup-card .stat .val { font-size:0.78rem; }
+  .lineup-grid { grid-template-columns:repeat(2, 1fr); }
+  .slot { padding:0.7rem 0.55rem; }
+  .proj-stat .value { font-size:1.2rem; }
+  .proj-stat.headline .value { font-size:1.6rem; }
+  .proj-row { gap:1rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Forge<span>Five</span></div>
+</div>
+
+<div id="status">Initializing...</div>
+
+<div class="wrap">
+  <div id="game"></div>
+</div>
+
+<div class="modal-bg" id="swapModal">
+  <div class="modal">
+    <h3 id="swapTitle">Swap player</h3>
+    <div class="swap-sub" id="swapSub"></div>
+    <input type="text" id="swapInput" placeholder="Type player name..." autocomplete="off">
+    <div class="swap-results" id="swapResults"></div>
+    <button class="close-btn" id="swapClose">Cancel</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+<script>
+// Data URLs are relative so the page works under any domain it's deployed to:
+//   - https://aderoa.github.io/lineup-forge/lineup_forge.html
+//   - https://forge.hoopsmatic.com/ (custom domain)
+//   - http://localhost:8000/ (local dev)
+// All data files live in the same directory as this HTML.
+const PLAYER_DB_URL  = 'player_stats.db.gz';
+const LINEUPS_DB_URL = 'lineups.db.gz';
+const COEFS_URL      = 'fit_coefficients.json';
+const NAMES_URL      = 'name_dictionary.json';
+const QUALITY_URL    = 'player_quality.json';
+
+// Defensive Rankings — fetched live from the same sheet Defense page uses
+const DEF_SHEET_ID   = '1JH2FUBIyQ1zEHzZBxgP8vHBZ7d8EtP5-fSVG3zMgCgg';
+const DEF_API_KEY    = 'AIzaSyB9g7c6llswswuZQ2I5y2MwGk6BzYEtHsY';
+const DEF_URL        = `https://sheets.googleapis.com/v4/spreadsheets/${DEF_SHEET_ID}/values/Defensive_Rankings?key=${DEF_API_KEY}`;
+
+const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
+const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
+
+// NBA team-ID mapping for the official logo CDN. URL pattern:
+//   https://cdn.nba.com/logos/nba/{team_id}/global/L/logo.svg
+// SVG renders with transparent background, sized via CSS. Mapping is stable;
+// every active franchise has a permanent team_id assigned by the league.
+const TEAM_LOGOS = {
+  ATL: 1610612737, BOS: 1610612738, CLE: 1610612739, NOP: 1610612740,
+  CHI: 1610612741, DAL: 1610612742, DEN: 1610612743, GSW: 1610612744,
+  HOU: 1610612745, LAC: 1610612746, LAL: 1610612747, MIA: 1610612748,
+  MIL: 1610612749, MIN: 1610612750, BKN: 1610612751, NYK: 1610612752,
+  ORL: 1610612753, IND: 1610612754, PHI: 1610612755, PHX: 1610612756,
+  POR: 1610612757, SAC: 1610612758, SAS: 1610612759, OKC: 1610612760,
+  TOR: 1610612761, UTA: 1610612762, MEM: 1610612763, WAS: 1610612764,
+  DET: 1610612765, CHA: 1610612766,
+};
+function teamLogoURL(abbr) {
+  const id = TEAM_LOGOS[abbr];
+  return id ? `https://cdn.nba.com/logos/nba/${id}/global/L/logo.svg` : null;
+}
+
+// Two-axis quality model
+const OFF_CALIB = 12, OFF_SCALE = 0.25;   // (rat365 - 12) × 0.25 = offense contribution per player
+const DEF_CALIB = 10, DEF_SCALE = 0.18;   // (DEF_SCORE - 10) × 0.18 = defense contribution per player
+const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
+
+// Boost gate (gradual GP-based taper): only apply the asymmetric historical boost
+// when current-season sample is limited. Linear taper between FULL and NONE:
+//   currentGP ≤ BOOST_GP_FULL: full boost (still ramping-up or injury-disrupted)
+//   currentGP ≥ BOOST_GP_NONE: no boost (full-season trust, healthy starter)
+//   in between: linearly tapered
+// Window centered on the "borderline" range (40-50 GP) where neither current nor
+// historical is fully right. Giannis at 36 GP still ramping up → full historical;
+// healthy starters at 60+ GP → trust their actual current performance.
+const BOOST_GP_FULL = 40;
+const BOOST_GP_NONE = 50;
+function boostFraction(currentGP) {
+  if (currentGP >= BOOST_GP_NONE) return 0;
+  if (currentGP <= BOOST_GP_FULL) return 1;
+  return (BOOST_GP_NONE - currentGP) / (BOOST_GP_NONE - BOOST_GP_FULL);
+}
+
+// Fit dampening: how much the learned lineup-composition coefficients are applied.
+// 1.0 = full strength (raw learned coefficients), 0.0 = ignore fit entirely (pure quality).
+// 0.5 means individual player quality is weighted ~2× more than empirical lineup effects.
+// Rationale: fit buckets average across all lineups with N high-USG players; they can't
+// distinguish a usage-stacking-with-Giannis from usage-stacking-with-three-iso-scorers.
+// Damping lets star talent override generic bucket penalties.
+const FIT_WEIGHT = 0.35;
+
+// Box-score composite weights (calibrated to roughly approximate DEF_SCORE scale)
+const COMP_BLK = 5, COMP_STL = 5, COMP_DREB = 40;
+
+// Lineup-context: usage redistribution. Each player's USG_PCT is their season-long
+// average across all the 5-man combos they played in. When five specific players
+// share a court, possessions are strictly zero-sum: Σ(USG) must equal 100%.
+// Without normalization, stacking multiple stars (whose individual season USGs each
+// reflect being the alpha on their team) gives a lineup with USG total >> 100%,
+// which is mathematically impossible and over-counts high-USG buckets in the fit
+// coefficient lookup. Normalization rescales each player's USG so the lineup sums
+// to TOTAL_USG_TARGET, capturing how their roles would actually compress.
+const TOTAL_USG_TARGET = 1.0;
+
+// TS% diminishing returns: empirically, TS% shifts by ~−0.6 percentage points per
+// +1 percentage point of USG. So when a player's USG is forced down (e.g., star on
+// a stacked lineup), they get easier shots → TS% rises. Forced up (role player
+// stretched into more creation) → TS% drops. We translate the lineup-wide net TS
+// shift into a small NetRtg adjustment.
+//   USG_TS_SLOPE      — TS percentage points per 1pp USG shift (basketball-research value)
+//   TS_EFFICIENCY_FACTOR — converts TS percentage point gain to NetRtg contribution
+//                          (small to avoid double-counting effects already in fit coefs)
+const USG_TS_SLOPE = -0.6;
+const TS_EFFICIENCY_FACTOR = 0.03;
+
+function normalizeLineupUsages(players) {
+  const total = players.reduce((s, p) => s + (p.usg || 0), 0);
+  if (total <= 0.01) {
+    // edge case: all-zero (shouldn't happen in real data); split evenly
+    return players.map(p => ({
+      ...p, usg_raw: p.usg, usg: 0.2,
+      ts_raw: p.ts, ts: p.ts, ts_delta_pp: 0,
+    }));
+  }
+  const scale = TOTAL_USG_TARGET / total;
+  return players.map(p => {
+    const usg_norm = (p.usg || 0) * scale;
+    // TS diminishing returns: ts shifts by -SLOPE per +1pp USG shift
+    // (forced-down USG ⇒ TS rises; forced-up ⇒ TS drops)
+    const usg_delta_pp = (usg_norm - (p.usg || 0)) * 100;
+    const ts_delta_pp = -USG_TS_SLOPE * usg_delta_pp;
+    const ts_norm = Math.max(0.30, Math.min(0.78, (p.ts || 0.55) + ts_delta_pp / 100));
+    return {
+      ...p,
+      usg_raw: p.usg,
+      usg: usg_norm,
+      ts_raw: p.ts,
+      ts: ts_norm,
+      ts_delta_pp,   // signed: positive when TS gained (USG forced down)
+    };
+  });
+}
+
+// Sum of per-player NetRtg contributions from TS diminishing returns.
+// Positive when stars are forced down in USG (lineup gets more efficient overall);
+// negative when a low-usage lineup is being asked to take more shots than usual.
+function tsEfficiencyBonus(normalized) {
+  return normalized.reduce((s, p) => s + (p.ts_delta_pp || 0) * TS_EFFICIENCY_FACTOR, 0);
+}
+
+// ── Structural viability adjustments ──
+// Additive penalties for catastrophic lineup compositions that the fit
+// coefficients can't capture. Fit averages across the (sparse) lineups in
+// each bucket — and real NBA teams basically never play 5-guard or
+// no-creator configurations, so the "0 rim protectors" or "all handlers"
+// buckets in training are dominated by *playable* small-ball / spacing
+// lineups rather than the catastrophic versions you can construct here.
+//
+// These penalties apply at FULL strength (no FIT_WEIGHT damping) since they
+// exist precisely to correct what fit can't. Calibrated so:
+//   - 5 elite guards no size:    ~−11 NetRtg vs naive prediction
+//   - Jokic + 4 wings:           ~−3.5 (light hit — actually playable)
+//   - All-bigs + no creator:     ~−5 to −6
+//   - 5 average bench guys:      ~0 (fit + low quality already handle it)
+function viabilityAdjustments(players) {
+  let ortg_pen = 0, drtg_pen = 0;
+  const notes = [];
+
+  // 1. Rim defense — needs at least one real shot blocker OR a big-bodied
+  //    rebounder. Pure "5 6'4" guards" gets the catastrophic version.
+  const hasRimProt = players.some(p => (p.blk || 0) >= 1.0);
+  const hasBigBody = players.some(p => (p.reb_pct || 0) >= 0.15);
+  if (!hasRimProt && !hasBigBody) {
+    drtg_pen += 7.0;
+    notes.push({ label: 'No rim protection or size', drtg: 7.0, ortg: 0 });
+  } else if (!hasRimProt) {
+    drtg_pen += 2.0;
+    notes.push({ label: 'Thin rim protection', drtg: 2.0, ortg: 0 });
+  }
+
+  // 2. Aggregate size — total rebounding capacity across the 5
+  const sumReb = players.reduce((s, p) => s + (p.reb_pct || 0), 0);
+  if (sumReb < 0.35) {
+    drtg_pen += 3.0;
+    ortg_pen += 1.5;
+    notes.push({ label: 'Tiny lineup', drtg: 3.0, ortg: 1.5 });
+  } else if (sumReb < 0.50) {
+    drtg_pen += 1.0;
+    ortg_pen += 0.5;
+    notes.push({ label: 'Undersized', drtg: 1.0, ortg: 0.5 });
+  }
+
+  // 3. Handler concentration — touches conflict when everyone wants the ball
+  const handlers = players.filter(p => (p.ast_pct || 0) >= AST_HIGH).length;
+  if (handlers >= 5) {
+    ortg_pen += 3.0;
+    notes.push({ label: 'All-handler lineup', drtg: 0, ortg: 3.0 });
+  } else if (handlers >= 4) {
+    ortg_pen += 1.5;
+    notes.push({ label: 'Handler stacking', drtg: 0, ortg: 1.5 });
+  }
+
+  // 4. Creation void — needs at least one primary creator
+  if (handlers === 0) {
+    ortg_pen += 3.0;
+    notes.push({ label: 'No primary creator', drtg: 0, ortg: 3.0 });
+  } else if (handlers === 1) {
+    ortg_pen += 0.7;
+    notes.push({ label: 'Thin creation', drtg: 0, ortg: 0.7 });
+  }
+
+  // 5. Spacing — without shooters, defense packs the paint and chokes drives
+  const shooters = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
+  if (shooters === 0) {
+    ortg_pen += 3.0;
+    notes.push({ label: 'No spacing', drtg: 0, ortg: 3.0 });
+  } else if (shooters === 1) {
+    ortg_pen += 1.0;
+    notes.push({ label: 'Thin spacing', drtg: 0, ortg: 1.0 });
+  }
+
+  return { ortg_pen, drtg_pen, notes };
+}
+
+let playerDb = null, lineupsDb = null, coefs = null;
+let NAME_DICT = {};
+let QUALITY = null;
+let DEFENSE = {};      // HH name → { def_score, team, gp }
+
+const STATE = {
+  season: null, season_type: 'Regular Season', team: null,
+  originalLineup: null,
+  currentSlots: [null, null, null, null, null],
+  swappedFrom: [null, null, null, null, null],
+};
+
+const $ = id => document.getElementById(id);
+const setStatus = (msg, cls = '') => {
+  const el = $('status');
+  if (cls === 'hidden') { el.className = 'hidden'; return; }
+  el.textContent = msg;
+  el.className = cls;
+};
+
+// ─── Forge Five game state ───
+const GAME = {
+  pool: null,           // { pgs: [], wings: [], bigs: [] }
+  selected: { pg: [], wing: [], big: [] },
+  optimal: null,        // { lineup, netrtg, projection } — best 1-PG/2-W/2-B from pool
+  worst: null,          // worst combination (for score scaling)
+  loading_optimal: false,
+};
+
+// Position classification heuristic based on stats (the player_advanced table
+// doesn't have POSITION). This is rough — it categorizes by how players ACTUALLY
+// play, not by listed position. Quirks:
+//   - Modern playmaking bigs (Jokic, Sabonis) may land as PG due to high AST_PCT
+//   - True-stretch fours with low rebounding may land as WING
+// Good enough for game variety; a player who shows up in a "wrong" bucket is
+// still valid to pick — the engine projects whatever lineup the user builds.
+function classifyPosition(p) {
+  const ast = p.ast_pct || 0;
+  const reb = p.reb_pct || 0;
+  const blk = p.blk || 0;
+  // Big: substantial rim presence (rebounding OR shot blocking)
+  if (reb >= 0.13 || blk >= 1.2) return 'BIG';
+  // PG: primary distributor (high AST, low rebounding)
+  if (ast >= 0.24 && reb < 0.11) return 'PG';
+  // Wing: everything else (2/3 archetypes, secondary scorers)
+  return 'WING';
+}
+
+// Fetch every eligible 2025-26 player with stats, then bucket and sample.
+// Min 20 MPG / 30 GP for rotation-quality filtering — fewer mismatches in the pool.
+function getAllEligiblePlayers() {
+  const r = playerDb.exec(`
+    SELECT a.PLAYER_ID, a.PLAYER_NAME, a.TEAM_ABBREVIATION, a.SEASON,
+           a.OFF_RATING, a.DEF_RATING, a.NET_RATING, a.USG_PCT, a.TS_PCT,
+           a.AST_PCT, a.REB_PCT, a.PIE, a.PACE, a.MIN, a.GP,
+           b.FG3_PCT, b.FG3A, b.BLK
+    FROM player_advanced a
+    LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
+    WHERE a.SEASON = '${STATE.season}'
+      AND a.SEASON_TYPE = 'Regular Season'
+      AND CAST(a.MIN AS FLOAT) >= 20
+      AND CAST(a.GP AS INTEGER) >= 30
+  `);
+  if (!r.length || !r[0].values.length) return [];
+  return r[0].values.map(v => ({
+    player_id: v[0], name: toDisplayName(v[1]), team: v[2], season: v[3],
+    ortg:+v[4], drtg:+v[5], netrtg:+v[6], usg:+v[7], ts:+v[8],
+    ast_pct:+v[9], reb_pct:+v[10], pie:+v[11], pace:+v[12], min:+v[13], gp:+v[14],
+    fg3p:+v[15], fg3a:+v[16], blk:+v[17],
+  }));
+}
+
+function sampleN(arr, n) {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+function generatePool() {
+  const all = getAllEligiblePlayers();
+  const pgs = all.filter(p => classifyPosition(p) === 'PG');
+  const wings = all.filter(p => classifyPosition(p) === 'WING');
+  const bigs = all.filter(p => classifyPosition(p) === 'BIG');
+  return {
+    pgs: sampleN(pgs, 5),
+    wings: sampleN(wings, 10),
+    bigs: sampleN(bigs, 10),
+  };
+}
+
+// Exhaustively project every valid 1-PG / 2-W / 2-B combination from the pool,
+// track best and worst. With 5×45×45 = 10,125 combinations and cached per-player
+// quality lookups, this runs in ~2-3s. Yields to the UI every 200 iterations so
+// the page stays responsive.
+async function findOptimalAndWorst(pool, onProgress) {
+  let best = null, worst = null, count = 0;
+  const total = pool.pgs.length * (pool.wings.length * (pool.wings.length - 1) / 2) * (pool.bigs.length * (pool.bigs.length - 1) / 2);
+  for (const pg of pool.pgs) {
+    for (let i = 0; i < pool.wings.length - 1; i++) {
+      for (let j = i + 1; j < pool.wings.length; j++) {
+        for (let k = 0; k < pool.bigs.length - 1; k++) {
+          for (let l = k + 1; l < pool.bigs.length; l++) {
+            const lineup = [pg, pool.wings[i], pool.wings[j], pool.bigs[k], pool.bigs[l]];
+            const proj = projectLineup(lineup);
+            if (!best || proj.netrtg > best.netrtg) {
+              best = { lineup, netrtg: proj.netrtg, projection: proj };
+            }
+            if (!worst || proj.netrtg < worst.netrtg) {
+              worst = { lineup, netrtg: proj.netrtg, projection: proj };
+            }
+            count++;
+            if (count % 200 === 0) {
+              onProgress?.(count, total);
+              await new Promise(r => setTimeout(r, 0));
+            }
+          }
+        }
+      }
+    }
+  }
+  return { best, worst };
+}
+
+// ─── UI rendering ───
+
+function renderIntro() {
+  $('game').innerHTML = `
+    <div class="game-intro">
+      <h2>Forge Five</h2>
+      <p>Build the best 5-man starting lineup from a randomly drawn pool of NBA players.</p>
+      <div class="rules">
+        <strong>How it works:</strong><br>
+        • You'll get a pool of 5 PGs, 10 wings, and 10 bigs from 2025-26 rotations<br>
+        • Pick exactly <strong>1 PG</strong>, <strong>2 wings</strong>, and <strong>2 bigs</strong><br>
+        • The model projects your lineup's record over an 82-game season<br>
+        • Then it reveals the best possible lineup from your pool — see how close you got
+      </div>
+      <button class="btn" id="startBtn">▶ Start new game</button>
+    </div>
+  `;
+  $('startBtn').addEventListener('click', startNewGame);
+}
+
+async function startNewGame() {
+  GAME.pool = generatePool();
+  GAME.selected = { pg: [], wing: [], big: [] };
+  GAME.optimal = null;
+  GAME.worst = null;
+  GAME.loading_optimal = true;
+  renderPool();
+  // Compute optimal in the background while user is selecting
+  findOptimalAndWorst(GAME.pool).then(({ best, worst }) => {
+    GAME.optimal = best;
+    GAME.worst = worst;
+    GAME.loading_optimal = false;
+  });
+}
+
+function renderPool() {
+  const needPG = 1 - GAME.selected.pg.length;
+  const needW = 2 - GAME.selected.wing.length;
+  const needB = 2 - GAME.selected.big.length;
+  const valid = needPG === 0 && needW === 0 && needB === 0;
+  const totalSel = GAME.selected.pg.length + GAME.selected.wing.length + GAME.selected.big.length;
+
+  $('game').innerHTML = `
+    <div class="pool-status-bar">
+      <div class="count ${needPG === 0 ? 'ok' : ''}">PG: <strong>${GAME.selected.pg.length}/1</strong></div>
+      <div class="count ${needW === 0 ? 'ok' : (GAME.selected.wing.length > 2 ? 'over' : '')}">Wings: <strong>${GAME.selected.wing.length}/2</strong></div>
+      <div class="count ${needB === 0 ? 'ok' : (GAME.selected.big.length > 2 ? 'over' : '')}">Bigs: <strong>${GAME.selected.big.length}/2</strong></div>
+      <button class="btn build-btn" id="buildBtn" ${valid ? '' : 'disabled style="opacity:0.4;cursor:not-allowed"'}>
+        Build my lineup ${valid ? '→' : `(${5 - totalSel} more)`}
+      </button>
+    </div>
+
+    <div class="pool-section">
+      <div class="pool-section-header">Point Guard <span class="needed">— pick 1 of 5</span></div>
+      <div class="pool-grid">${renderCards(GAME.pool.pgs, 'pg', 1)}</div>
+    </div>
+
+    <div class="pool-section">
+      <div class="pool-section-header">Wings <span class="needed">— pick 2 of 10</span></div>
+      <div class="pool-grid">${renderCards(GAME.pool.wings, 'wing', 2)}</div>
+    </div>
+
+    <div class="pool-section">
+      <div class="pool-section-header">Bigs <span class="needed">— pick 2 of 10</span></div>
+      <div class="pool-grid">${renderCards(GAME.pool.bigs, 'big', 2)}</div>
+    </div>
+  `;
+  document.querySelectorAll('.player-card').forEach(card => {
+    card.addEventListener('click', () => togglePlayer(card.dataset.bucket, +card.dataset.idx));
+  });
+  if (valid) $('buildBtn').addEventListener('click', showResults);
+}
+
+function renderCards(players, bucket, max) {
+  const sel = GAME.selected[bucket];
+  const sectionFull = sel.length >= max;
+  return players.map((p, idx) => {
+    const isSel = sel.some(s => s.player_id === p.player_id);
+    const locked = sectionFull && !isSel;
+    return `
+      <div class="player-card ${isSel ? 'selected' : ''} ${locked ? 'locked' : ''}" data-bucket="${bucket}" data-idx="${idx}">
+        <div class="name">${p.name}</div>
+        <div class="meta">${p.team || '—'}</div>
+        <div class="stats">
+          <span class="stat-label">USG</span> ${(p.usg * 100).toFixed(1)}%
+          <span class="stat-label">PIE</span> ${(p.pie * 100).toFixed(1)}
+          <br>
+          <span class="stat-label">REB%</span> ${(p.reb_pct * 100).toFixed(1)}
+          <span class="stat-label">AST%</span> ${(p.ast_pct * 100).toFixed(1)}
+          <span class="stat-label">BLK</span> ${p.blk.toFixed(1)}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function togglePlayer(bucket, idx) {
+  const player = GAME.pool[bucket + 's'][idx];
+  const sel = GAME.selected[bucket];
+  const max = bucket === 'pg' ? 1 : 2;
+  const existingIdx = sel.findIndex(p => p.player_id === player.player_id);
+  if (existingIdx >= 0) {
+    sel.splice(existingIdx, 1);
+  } else if (sel.length < max) {
+    sel.push(player);
+  }
+  renderPool();
+}
+
+async function showResults() {
+  const userLineup = [...GAME.selected.pg, ...GAME.selected.wing, ...GAME.selected.big];
+  const userProj = projectLineup(userLineup);
+
+  // If background optimal hasn't finished yet, wait + show spinner
+  if (GAME.loading_optimal) {
+    $('game').innerHTML = `<div class="computing">Calculating best possible lineup from your pool…</div>`;
+    while (GAME.loading_optimal) await new Promise(r => setTimeout(r, 50));
+  }
+
+  const optProj = GAME.optimal.projection;
+  const userRec = projectRecord(userProj.netrtg);
+  const optRec = projectRecord(optProj.netrtg);
+  const worstRec = projectRecord(GAME.worst.netrtg);
+
+  // Score: where on the range from worst to best did the user land
+  const range = optProj.netrtg - GAME.worst.netrtg;
+  const userPosition = userProj.netrtg - GAME.worst.netrtg;
+  const score = range > 0.5
+    ? Math.round(Math.max(0, Math.min(100, (userPosition / range) * 100)))
+    : 100;  // pool has no variation (unlikely) → perfect score
+
+  const isOptimal = userProj.netrtg >= optProj.netrtg - 0.05;
+  let scoreCls, verdict;
+  if (isOptimal) { scoreCls = 'perfect'; verdict = '🏆 Perfect pick — you found the optimal lineup!'; }
+  else if (score >= 90) { scoreCls = 'good'; verdict = '⭐ Excellent — very close to optimal'; }
+  else if (score >= 70) { scoreCls = 'good'; verdict = '✓ Good pick — solid choice'; }
+  else if (score >= 40) { scoreCls = 'meh'; verdict = '○ Decent — room to improve'; }
+  else { scoreCls = 'bad'; verdict = '✗ Tough pick — much better lineup available'; }
+
+  $('game').innerHTML = `
+    <div class="score-display">
+      <div class="verdict">${verdict}</div>
+      <div class="score-num ${scoreCls}">${score}<span style="font-size:1.5rem;color:var(--muted)">/100</span></div>
+      <div class="score-detail">
+        Your lineup: <strong>${userRec.wins}-${userRec.losses}</strong> projected ·
+        Optimal: <strong>${optRec.wins}-${optRec.losses}</strong>
+        ${isOptimal ? '' : ` · You're ${optRec.wins - userRec.wins} win${optRec.wins - userRec.wins === 1 ? '' : 's'} behind`}
+      </div>
+    </div>
+
+    <div class="results-row">
+      <div class="results-card user">
+        <h3>Your Lineup</h3>
+        <div class="lineup-names">${userLineup.map(p => p.name).join(' · ')}</div>
+        <div class="stats-row">
+          <div class="stat"><div class="lbl">Net Rtg</div><div class="val ${userProj.netrtg >= 7 ? 'green' : userProj.netrtg <= -3 ? 'red' : 'orange'}">${userProj.netrtg >= 0 ? '+' : ''}${userProj.netrtg.toFixed(1)}</div></div>
+          <div class="stat"><div class="lbl">82-game record</div><div class="val accent">${userRec.wins}-${userRec.losses}</div></div>
+        </div>
+        ${userProj.viability.notes.length > 0 ? `
+          <div style="margin-top:0.8rem;font-size:0.7rem;color:var(--orange);font-style:italic">
+            ⚠ ${userProj.viability.notes.map(n => n.label).join(' · ')}
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="results-card optimal">
+        <h3>Optimal from Pool</h3>
+        <div class="lineup-names">${GAME.optimal.lineup.map(p => p.name).join(' · ')}</div>
+        <div class="stats-row">
+          <div class="stat"><div class="lbl">Net Rtg</div><div class="val ${optProj.netrtg >= 7 ? 'green' : optProj.netrtg <= -3 ? 'red' : 'orange'}">${optProj.netrtg >= 0 ? '+' : ''}${optProj.netrtg.toFixed(1)}</div></div>
+          <div class="stat"><div class="lbl">82-game record</div><div class="val accent">${optRec.wins}-${optRec.losses}</div></div>
+        </div>
+        ${optProj.viability.notes.length > 0 ? `
+          <div style="margin-top:0.8rem;font-size:0.7rem;color:var(--orange);font-style:italic">
+            ⚠ ${optProj.viability.notes.map(n => n.label).join(' · ')}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:1.5rem">
+      <button class="btn" id="playAgainBtn">▶ Play again</button>
+    </div>
+  `;
+  $('playAgainBtn').addEventListener('click', startNewGame);
+}
+
+// ─── Boot ───
+async function boot() {
+  try {
+    setStatus('Loading SQL engine...');
+    const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+
+    setStatus('Downloading data...');
+    const [playerBuf, lineupsBuf, coefsJson, namesJson, qualityJson, defenseData] = await Promise.all([
+      fetchDb(PLAYER_DB_URL),
+      fetchDb(LINEUPS_DB_URL),
+      fetch(COEFS_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch(NAMES_URL).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch(QUALITY_URL).then(r => r.ok ? r.json() : null).catch(() => null),
+      loadDefenseData().catch(e => { console.warn('Defense data failed:', e); return {}; }),
+    ]);
+
+    playerDb  = new SQL.Database(new Uint8Array(playerBuf));
+    lineupsDb = new SQL.Database(new Uint8Array(lineupsBuf));
+    coefs = coefsJson;
+    NAME_DICT = namesJson || {};
+    QUALITY = qualityJson;
+    DEFENSE = defenseData || {};
+
+    const commonSeasons = getCommonSeasons();
+    STATE.season = commonSeasons[0];
+
+    setStatus('', 'hidden');
+    if (!QUALITY) {
+      setStatus('⚠ player_quality.json failed to load — projections falling back to watermark-only.', 'error');
+    }
+    renderIntro();
+  } catch (err) {
+    console.error(err);
+    setStatus('Failed to load: ' + err.message, 'error');
+  }
+}
+
+async function fetchDb(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${url}`);
+  if (url.endsWith('.gz')) {
+    const ds = new DecompressionStream('gzip');
+    return await new Response(r.body.pipeThrough(ds)).arrayBuffer();
+  }
+  return await r.arrayBuffer();
+}
+
+// loadDefenseData is unchanged from Lineup Forge — fetches the Defensive_Rankings sheet
+async function loadDefenseData() {
+  const res = await fetch(DEF_URL);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching defense sheet`);
+  const data = await res.json();
+  const rows = data.values || [];
+  if (!rows.length) return {};
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    if (((rows[i][0] || '').trim()) === 'PLAYER') { headerIdx = i; break; }
+  }
+  if (headerIdx === -1) return {};
+  const headers = rows[headerIdx];
+  const idx = {};
+  headers.forEach((h, i) => { idx[(h || '').trim()] = i; });
+  if (idx.PLAYER === undefined || idx.DEF_SCORE === undefined) return {};
+  const STOP_MARKERS = ['[LAST_DAY]', '[LAST_7D]', '[LAST_30D]'];
+  const result = {};
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    const first = (row[0] || '').trim();
+    if (STOP_MARKERS.includes(first)) break;
+    const name = (row[idx.PLAYER] || '').trim();
+    if (!name) continue;
+    const score = parseFloat(row[idx.DEF_SCORE]);
+    if (isNaN(score)) continue;
+    result[name] = {
+      def_score: score,
+      team: (row[idx.TEAM] || '').trim(),
+      gp: parseInt(row[idx.GP]) || 0,
+    };
+  }
+  return result;
+}
+
+function getCommonSeasons() {
+  const p = playerDb.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC")[0].values.map(r => r[0]);
+  const l = lineupsDb.exec("SELECT DISTINCT SEASON FROM lineups_5man ORDER BY SEASON DESC")[0].values.map(r => r[0]);
+  const common = p.filter(s => l.includes(s));
+  return common.length > 0 ? [common[0]] : [];
+}
+
+function toDisplayName(nbaName) {
+  if (!nbaName) return nbaName;
+  return NAME_DICT[nbaName] || nbaName;
+}
+
+// Cache the weighted rat365 computation per (player_id, current_season).
+const _weightedRatCache = {};
+
+// Constants for the weighted historical model.
+const RECENCY_DECAY     = 0.65;  // each older season weight × this factor
+const MIN_SEASON_GP     = 5;     // skip seasons below this GP (too noisy)
+// PIE → rat365 conversion: rat365 ≈ (PIE_percent − SHIFT) × SCALE
+// Calibrated against two anchor points: league-avg PIE 10% → rat365 4.7,
+// elite PIE 21% → rat365 ~27. Players below PIE 7.68% map to rat365 0.
+const PIE_SHIFT = 7.68;
+const PIE_SCALE = 2.03;
+const PIE_DERIVED_CAP = 35;  // hard ceiling so a fluky high-PIE season doesn't dominate
+
+function seasonStartYear(s) { return parseInt(String(s).slice(0, 4), 10); }
+
+function pieToRat365(pieDecimal) {
+  const piePct = pieDecimal * 100;
+  return Math.min(PIE_DERIVED_CAP, Math.max(0, (piePct - PIE_SHIFT) * PIE_SCALE));
+}
+
+// Compute a player's effective rat365 by weighting all available seasons.
+// Returns: { effective, blended, current_rat365, seasons, n_seasons }
+//   effective = max(current_rat365, blended) — asymmetric, only boost
+//   blended   = weighted historical average (informational)
+function computeWeightedRat365(playerId, nbaName, currentSeason) {
+  if (!playerId || !playerDb) return null;
+  const cacheKey = `${playerId}_${currentSeason}`;
+  if (_weightedRatCache[cacheKey] !== undefined) return _weightedRatCache[cacheKey];
+
+  const r = playerDb.exec(`
+    SELECT SEASON, CAST(GP AS INTEGER) AS GP, CAST(MIN AS FLOAT) AS MIN, CAST(PIE AS REAL) AS PIE
+    FROM player_advanced
+    WHERE PLAYER_ID = ${playerId}
+      AND SEASON_TYPE = 'Regular Season'
+      AND CAST(GP AS INTEGER) >= ${MIN_SEASON_GP}
+    ORDER BY SEASON DESC
+  `);
+  if (!r.length || !r[0].values.length) {
+    _weightedRatCache[cacheKey] = null;
+    return null;
+  }
+
+  let current_rat365 = null;
+  if (QUALITY) {
+    const hh = NAME_DICT[nbaName] || nbaName;
+    if (QUALITY.players[hh]) current_rat365 = QUALITY.players[hh].rat365;
+  }
+
+  const currentYear = seasonStartYear(currentSeason);
+  let totalWeighted = 0;
+  let totalWeight = 0;
+  const seasons = [];
+
+  for (const [season, gp, min, pie] of r[0].values) {
+    const yearDelta = currentYear - seasonStartYear(season);
+    if (yearDelta < 0) continue;
+    const recencyWeight = Math.pow(RECENCY_DECAY, yearDelta);
+    const weight = gp * recencyWeight;
+
+    let seasonRat, source;
+    if (season === currentSeason && current_rat365 !== null) {
+      seasonRat = current_rat365;
+      source = 'rv';
+    } else {
+      seasonRat = pieToRat365(pie);
+      source = 'pie';
+    }
+    totalWeighted += seasonRat * weight;
+    totalWeight += weight;
+    seasons.push({ season, gp, rat: seasonRat, weight, source });
+  }
+
+  if (totalWeight === 0) {
+    _weightedRatCache[cacheKey] = null;
+    return null;
+  }
+  const blended = totalWeighted / totalWeight;
+
+  // Find current-season GP for the boost gate
+  const currentSeasonEntry = seasons.find(s => s.season === currentSeason);
+  const currentGP = currentSeasonEntry ? currentSeasonEntry.gp : 0;
+
+  // Asymmetric rule with gradual GP-based taper: boost is fractional based on currentGP.
+  //   - No current rat365 at all: use blend entirely.
+  //   - Current data + below BOOST_GP_FULL: full boost (effective = blended).
+  //   - Current data + above BOOST_GP_NONE: no boost (effective = current).
+  //   - In between: effective = current + fraction × (blended − current), clamped non-negative.
+  let effective;
+  if (current_rat365 === null) {
+    effective = blended;
+  } else if (blended > current_rat365) {
+    const f = boostFraction(currentGP);
+    effective = current_rat365 + f * (blended - current_rat365);
+  } else {
+    effective = current_rat365;
+  }
+  const result = { effective, blended, current_rat365, currentGP, seasons, n_seasons: seasons.length };
+  _weightedRatCache[cacheKey] = result;
+  return result;
+}
+
+// Quality lookup with asymmetric weighted-historical model.
+function getQuality(nbaName, playerId) {
+  const w = computeWeightedRat365(playerId, nbaName, STATE.season);
+  if (!w) return null;
+  const hh = NAME_DICT[nbaName] || nbaName;
+  // "Blended" = we actually used the historical boost (weighted > current).
+  // For players with no current rat365 at all, the blend is what we use.
+  const usingBlend = (w.current_rat365 === null) || (w.blended > w.current_rat365 + 1.0);
+  return {
+    hh_name: hh,
+    rat365: w.effective,
+    rat365_current: w.current_rat365,
+    rat365_blended: w.blended,
+    seasons: w.seasons,
+    n_seasons: w.n_seasons,
+    blended: usingBlend,
+    source: w.current_rat365 !== null ? (usingBlend ? 'boosted' : 'current') : 'history-only',
+  };
+}
+
+// ─── Defense quality: similar architecture, using DEF_SCORE + box-score composite ───
+
+const _defScoreCache = {};
+
+// Box-score derived defensive composite, calibrated to roughly approximate DEF_SCORE scale.
+// Inputs: BLK/game, STL/game, DREB_PCT (decimal 0-0.30).
+// Used as historical proxy when DEF_SCORE isn't available for older seasons.
+function boxScoreDefComposite(blk, stl, dreb_pct) {
+  return COMP_BLK * (blk || 0) + COMP_STL * (stl || 0) + COMP_DREB * (dreb_pct || 0);
+}
+
+function computeWeightedDefScore(playerId, nbaName, currentSeason) {
+  if (!playerId || !playerDb) return null;
+  const cacheKey = `${playerId}_${currentSeason}`;
+  if (_defScoreCache[cacheKey] !== undefined) return _defScoreCache[cacheKey];
+
+  const r = playerDb.exec(`
+    SELECT a.SEASON, CAST(a.GP AS INTEGER) AS GP,
+           CAST(a.DREB_PCT AS REAL) AS DREB_PCT,
+           CAST(b.BLK AS REAL) AS BLK, CAST(b.STL AS REAL) AS STL
+    FROM player_advanced a
+    LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
+    WHERE a.PLAYER_ID = ${playerId}
+      AND a.SEASON_TYPE = 'Regular Season'
+      AND CAST(a.GP AS INTEGER) >= ${MIN_SEASON_GP}
+    ORDER BY a.SEASON DESC
+  `);
+  if (!r.length || !r[0].values.length) {
+    _defScoreCache[cacheKey] = null;
+    return null;
+  }
+
+  // Get current DEF_SCORE from sheet if present
+  let current_def_score = null;
+  const hh = NAME_DICT[nbaName] || nbaName;
+  if (DEFENSE[hh]) current_def_score = DEFENSE[hh].def_score;
+
+  const currentYear = seasonStartYear(currentSeason);
+  let totalWeighted = 0;
+  let totalWeight = 0;
+  const seasons = [];
+
+  for (const [season, gp, dreb_pct, blk, stl] of r[0].values) {
+    const yearDelta = currentYear - seasonStartYear(season);
+    if (yearDelta < 0) continue;
+    const recencyWeight = Math.pow(RECENCY_DECAY, yearDelta);
+    const weight = gp * recencyWeight;
+    const composite = boxScoreDefComposite(+blk, +stl, +dreb_pct);
+    totalWeighted += composite * weight;
+    totalWeight += weight;
+    seasons.push({ season, gp, composite, weight });
+  }
+
+  if (totalWeight === 0) {
+    _defScoreCache[cacheKey] = null;
+    return null;
+  }
+  const blended = totalWeighted / totalWeight;
+
+  // Find current-season GP for boost gate (same logic as rat365)
+  const currentSeasonEntry = seasons.find(s => s.season === currentSeason);
+  const currentGP = currentSeasonEntry ? currentSeasonEntry.gp : 0;
+
+  let effective;
+  if (current_def_score === null) {
+    effective = blended;
+  } else if (blended > current_def_score) {
+    const f = boostFraction(currentGP);
+    effective = current_def_score + f * (blended - current_def_score);
+  } else {
+    effective = current_def_score;
+  }
+  const result = { effective, blended, current_def_score, currentGP, seasons, n_seasons: seasons.length };
+  _defScoreCache[cacheKey] = result;
+  return result;
+}
+
+function getDefenseQuality(nbaName, playerId) {
+  const d = computeWeightedDefScore(playerId, nbaName, STATE.season);
+  if (!d) return null;
+  const usingBlend = (d.current_def_score === null) || (d.blended > d.current_def_score + 1.5);
+  return {
+    def_score: d.effective,
+    def_score_current: d.current_def_score,
+    def_score_blended: d.blended,
+    seasons: d.seasons,
+    n_seasons: d.n_seasons,
+    blended: usingBlend,
+    source: d.current_def_score !== null ? (usingBlend ? 'boosted' : 'current') : 'history-only',
+  };
+}
+
+function projectLineup(players) {
+  // ── Layer 0: traditional additive (informational only) ──
+  const add_ortg = mean(players.map(p => p.ortg));
+  const add_drtg = mean(players.map(p => p.drtg));
+  const pace = mean(players.map(p => p.pace));
+
+  // ── Layer 1: two-axis quality ──
+  // Offense per player:  (rat365 − 10) × 0.20
+  // Defense per player:  (DEF_SCORE − 8) × 0.15
+  // Each uses asymmetric weighted historical (peak boost for injured players).
+  const quality_per_player = players.map(p => {
+    const q = getQuality(p.name, p.player_id);
+    const d = getDefenseQuality(p.name, p.player_id);
+
+    // Offense contribution from rat365
+    let rat365 = null, rat365_current = null, off_blended = false, off_n_seasons = 0;
+    let off_contrib;
+    if (q) {
+      rat365 = q.rat365;
+      rat365_current = q.rat365_current;
+      off_blended = q.blended;
+      off_n_seasons = q.n_seasons;
+      off_contrib = (rat365 - OFF_CALIB) * OFF_SCALE;
+    } else {
+      off_contrib = (p.netrtg || 0) / 12;
+    }
+
+    // Defense contribution from DEF_SCORE
+    let def_score = null, def_current = null, def_blended = false, def_n_seasons = 0;
+    let def_contrib = 0;
+    if (d) {
+      def_score = d.def_score;
+      def_current = d.def_score_current;
+      def_blended = d.blended;
+      def_n_seasons = d.n_seasons;
+      def_contrib = (def_score - DEF_CALIB) * DEF_SCALE;
+    }
+
+    return {
+      hh_name: q ? q.hh_name : (NAME_DICT[p.name] || p.name),
+      rat365, rat365_current, off_blended, off_n_seasons,
+      def_score, def_current, def_blended, def_n_seasons,
+      off_contrib, def_contrib,
+      net_contrib: off_contrib + def_contrib,
+      fallback: !q,
+    };
+  });
+
+  const total_off = quality_per_player.reduce((s, q) => s + q.off_contrib, 0);
+  const total_def = quality_per_player.reduce((s, q) => s + q.def_contrib, 0);
+  const quality_net_baseline = total_off + total_def;
+
+  // ── Layer 2: fit coefficients (existing) ──
+  // Normalize USG first — when stars share court, possessions redistribute (sum = 100%).
+  // Without this, stacking multiple stars over-counts the high-USG bucket.
+  // AST_PCT and REB_PCT aren't strictly zero-sum, so we leave them as raw season values.
+  const normalized = normalizeLineupUsages(players);
+  const n_high_usg    = normalized.filter(p => p.usg >= USG_HIGH).length;
+  const n_shooters    = players.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
+  const n_rim_protect = players.filter(p => p.blk >= BLK_HIGH).length;
+  const n_playmakers  = players.filter(p => p.ast_pct >= AST_HIGH).length;
+  const n_rebounders  = players.filter(p => p.reb_pct >= REB_HIGH).length;
+  const oBase = coefs.meta.baseline_ortg_resid_mean || 0;
+  const dBase = coefs.meta.baseline_drtg_resid_mean || 0;
+  const dims = [
+    ['n_high_usg', n_high_usg, 'Usage stacking'],
+    ['n_shooters', n_shooters, 'Spacing (shooters)'],
+    ['n_rim_protect', n_rim_protect, 'Rim protection'],
+    ['n_playmakers', n_playmakers, 'Playmaking depth'],
+    ['n_rebounders', n_rebounders, 'Rebound depth'],
+  ];
+  let ortg_adj = 0, drtg_adj = 0;
+  const breakdown = [];
+  for (const [key, value, label] of dims) {
+    const dim = coefs.dimensions[key];
+    if (!dim) continue;
+    const bucket = dim.buckets[String(value)];
+    if (!bucket) { breakdown.push({ label, value, ortg_adj: 0, drtg_adj: 0, note: 'no data' }); continue; }
+    const o = (bucket.ortg_adj - oBase) * FIT_WEIGHT;
+    const d = (bucket.drtg_adj - dBase) * FIT_WEIGHT;
+    ortg_adj += o; drtg_adj += d;
+    breakdown.push({ label, value, ortg_adj: o, drtg_adj: d, n: bucket.n_samples });
+  }
+  const fit_net = ortg_adj - drtg_adj;
+
+  // ── Combine: ORtg / DRtg / NetRtg ──
+  // ORtg = LEAGUE_BASE + sum(offense contributions) + fit_ortg_adj
+  // DRtg = LEAGUE_BASE − sum(defense contributions) + fit_drtg_adj
+  //   (higher def_contrib → lower DRtg → better defense)
+  // NetRtg = ORtg − DRtg = (total_off + total_def) + fit_net
+  const display_ortg = LEAGUE_BASE + total_off + ortg_adj;
+  const display_drtg = LEAGUE_BASE - total_def + drtg_adj;
+
+  // TS diminishing-returns efficiency bonus from the USG normalization.
+  // Star-stacked lineups: USGs forced down → TS up → small positive.
+  // Low-usage lineups stretched: USGs forced up → TS down → small negative.
+  const ts_bonus = tsEfficiencyBonus(normalized);
+
+  // Structural viability penalties — catastrophic compositions that fit can't
+  // capture (e.g., 5 guards with no rim protection). Applied at full strength.
+  const via = viabilityAdjustments(players);
+
+  return {
+    add_ortg, add_drtg, pace,
+    quality_per_player,
+    normalized_players: normalized,
+    total_off, total_def,
+    quality_net_baseline,
+    ts_bonus,
+    viability: via,
+    n_with_quality: quality_per_player.filter(q => !q.fallback).length,
+    n_off_blended: quality_per_player.filter(q => q.off_blended).length,
+    n_def_blended: quality_per_player.filter(q => q.def_blended).length,
+    ortg_adj, drtg_adj, fit_net,
+    ortg: display_ortg + ts_bonus - via.ortg_pen,   // efficiency lift, viability cuts ORtg
+    drtg: display_drtg + via.drtg_pen,              // viability adds to DRtg (worse)
+    netrtg: quality_net_baseline + fit_net + ts_bonus - via.ortg_pen - via.drtg_pen,
+    breakdown,
+  };
+}
+
+function classifyLineup(netrtg) {
+  if (netrtg >= 12) return '🏆 Championship-tier — elite both ways';
+  if (netrtg >= 7)  return '⭐ Top-tier lineup — strong outlier expected';
+  if (netrtg >= 3)  return '✓ Above-average lineup — solid net positive';
+  if (netrtg >= -3) return '○ Average lineup — near league mean';
+  if (netrtg >= -7) return '⚠ Below-average lineup — likely gets outscored';
+  return '✗ Weak lineup — projects well below average';
+}
+
+// 82-game record estimate from a NetRtg projection.
+// Lineup NetRtg systematically overstates team NetRtg because lineups are short
+// bursts in favorable contexts. The 2015-16 Warriors (73-9, all-time wins record)
+// had a *team* NetRtg of +10.8 — yet their best 5-man lineup ran +20+. To convert
+// a hypothetical "what if this 5 played 82 games" projection into a realistic
+// record, we damp the lineup NetRtg by ~50% to approximate sustained team-level
+// performance, then apply the empirical NBA slope (~0.0353 win% per NetRtg point).
+// Clamped at 0.92 so 75-7 is the achievable ceiling — anything beyond would
+// require an unprecedented All-NBA 1st team lineup playing every minute.
+function projectRecord(netrtg) {
+  const teamNetRtg = netrtg * 0.5;
+  const winPct = Math.max(0.08, Math.min(0.92, 0.5 + teamNetRtg * 0.0353));
+  const wins = Math.round(winPct * 82);
+  return { wins, losses: 82 - wins, winPct };
+}
+
+function mean(arr) {
+  const valid = arr.filter(v => isFinite(v));
+  return valid.reduce((s, v) => s + v, 0) / valid.length;
+}
+
+boot();
+</script>
+</body>
+</html>
