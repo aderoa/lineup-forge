@@ -677,6 +677,10 @@ async function renderLineupPicker() {
   document.querySelectorAll('.lineup-card').forEach(card => {
     card.addEventListener('click', () => loadOriginalLineup(card.dataset.gid));
   });
+  // Re-scroll now that the section has its full height. The first scroll (before
+  // the SQL+projection loop ran) was clamped because the document hadn't grown
+  // enough to push the team grid fully out of view yet.
+  scrollToSection('lineupSection');
 }
 
 function loadOriginalLineup(groupId) {
