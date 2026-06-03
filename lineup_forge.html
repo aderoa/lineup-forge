@@ -188,11 +188,16 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
 <script>
-const PLAYER_DB_URL  = 'https://aderoa.github.io/lineup-forge/player_stats.db.gz';
-const LINEUPS_DB_URL = 'https://aderoa.github.io/lineup-forge/lineups.db.gz';
-const COEFS_URL      = 'https://aderoa.github.io/lineup-forge/fit_coefficients.json';
-const NAMES_URL      = 'https://aderoa.github.io/lineup-forge/name_dictionary.json';
-const QUALITY_URL    = 'https://aderoa.github.io/lineup-forge/player_quality.json';
+// Data URLs are relative so the page works under any domain it's deployed to:
+//   - https://aderoa.github.io/lineup-forge/lineup_forge.html
+//   - https://forge.hoopsmatic.com/ (custom domain)
+//   - http://localhost:8000/ (local dev)
+// All data files live in the same directory as this HTML.
+const PLAYER_DB_URL  = 'player_stats.db.gz';
+const LINEUPS_DB_URL = 'lineups.db.gz';
+const COEFS_URL      = 'fit_coefficients.json';
+const NAMES_URL      = 'name_dictionary.json';
+const QUALITY_URL    = 'player_quality.json';
 
 // Defensive Rankings — fetched live from the same sheet Defense page uses
 const DEF_SHEET_ID   = '1JH2FUBIyQ1zEHzZBxgP8vHBZ7d8EtP5-fSVG3zMgCgg';
