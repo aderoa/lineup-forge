@@ -401,9 +401,13 @@ async function loadDefenseData() {
 }
 
 function getCommonSeasons() {
+  // Lineup Forge is locked to the current season only. We still derive it from
+  // the data (most recent common season between player & lineup DBs) so future
+  // refreshes auto-advance to 2026-27 once that data exists.
   const p = playerDb.exec("SELECT DISTINCT SEASON FROM player_advanced ORDER BY SEASON DESC")[0].values.map(r => r[0]);
   const l = lineupsDb.exec("SELECT DISTINCT SEASON FROM lineups_5man ORDER BY SEASON DESC")[0].values.map(r => r[0]);
-  return p.filter(s => l.includes(s));
+  const common = p.filter(s => l.includes(s));
+  return common.length > 0 ? [common[0]] : [];
 }
 
 function getAvailableSeasonTypes(season) {
@@ -437,8 +441,10 @@ function seasonTypeLabel() {
 
 function renderBreadcrumb() {
   const commonSeasons = getCommonSeasons();
-  const seasonOpts = commonSeasons.map(s => `<option value="${s}" ${s === STATE.season ? 'selected' : ''}>${s}</option>`).join('');
-  const seasonSel = `<select id="seasonSelect">${seasonOpts}</select>`;
+  // Season is locked to one value; render as static text rather than a 1-option dropdown.
+  const seasonSel = commonSeasons.length === 1
+    ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:600;color:var(--text);padding:0.15rem 0.45rem;background:var(--surface2);border-radius:4px">${commonSeasons[0]}</span>`
+    : `<select id="seasonSelect">${commonSeasons.map(s => `<option value="${s}" ${s === STATE.season ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
 
   // Season type selector — only show types that have data in this season
   const types = getAvailableSeasonTypes(STATE.season);
@@ -600,8 +606,6 @@ async function renderLineupPicker() {
     return `
       <div class="lineup-card" data-gid="${row.gid}">
         <div class="names">${namesHtml}</div>
-        <div class="stat"><div class="lbl">GP</div><div class="val">${Math.round(row.gp)}</div></div>
-        <div class="stat"><div class="lbl">MIN</div><div class="val">${Math.round(row.min)}</div></div>
         <div class="stat net"><div class="lbl">${isProjected ? 'Proj NetRtg' : 'NetRtg'}</div><div class="val ${netCls}">${displayNet >= 0 ? '+' : ''}${Number(displayNet).toFixed(1)}</div></div>
         <div class="stat"><div class="lbl">82g</div><div class="val" style="font-size:0.85rem">${recordStr}</div></div>
         <div class="stat"><div class="lbl">→</div><div class="val">▸</div></div>
@@ -611,7 +615,7 @@ async function renderLineupPicker() {
 
   $('content').innerHTML = `
     <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
-      ${STATE.team} 5-man lineups — ${STATE.season} ${seasonTypeLabel()} — sorted by minutes played, NetRtg from projection model. Click any to start swapping.
+      ${STATE.team} 5-man lineups — ${STATE.season} ${seasonTypeLabel()} — top 20 by minutes played, NetRtg from projection model. Click any to start swapping.
     </div>
     <div class="lineup-list">${cards}</div>
   `;
@@ -824,13 +828,6 @@ function renderEditView() {
         </div>
       </div>
       <div class="proj-tier">${classifyLineup(projCurr.netrtg)}${(() => { const r = projectRecord(projCurr.netrtg); const o = projectRecord(projOrig.netrtg); return ` · projected ${r.wins}-${r.losses} (vs original ${o.wins}-${o.losses}, ${r.wins-o.wins >= 0 ? '+' : ''}${r.wins-o.wins} wins)`; })()}</div>
-      <div class="proj-tier" style="border-left-color:var(--gold)">
-        <strong>Original lineup actual (${STATE.season} ${seasonTypeLabel()}):</strong>
-        ORtg ${orig.stats.ortg.toFixed(1)} · DRtg ${orig.stats.drtg.toFixed(1)} ·
-        NetRtg ${orig.stats.netrtg >= 0 ? '+' : ''}${orig.stats.netrtg.toFixed(1)} ·
-        ${Math.round(orig.stats.min)} MIN in ${Math.round(orig.stats.gp)} games
-        (model projected this lineup at NetRtg ${projOrig.netrtg >= 0 ? '+' : ''}${projOrig.netrtg.toFixed(1)})
-      </div>
     </div>
 
     <div class="lineup-grid">${slotsHtml}</div>
@@ -897,25 +894,23 @@ function wireModal() {
 }
 function renderSwapResults(query) {
   if (!query || query.length < 2) { $('swapResults').innerHTML = ''; return; }
-  // Search across ALL seasons — preference current, fall back to most recent
-  // healthy season per player. This is what lets you swap in a player who
-  // didn't play in the selected season (e.g., injured stars).
+  // Search is locked to the current (only) season — Lineup Forge only surfaces
+  // players who logged rotation minutes in 2025-26.
   const r = playerDb.exec(`
     SELECT PLAYER_ID, PLAYER_NAME, TEAM_ABBREVIATION, SEASON, GP, MIN, OFF_RATING, USG_PCT
     FROM player_advanced
     WHERE PLAYER_NAME LIKE '%${query.replace(/'/g, "''")}%'
+      AND SEASON = '${STATE.season}'
       AND SEASON_TYPE = 'Regular Season'
       AND CAST(MIN AS FLOAT) >= 10
       AND CAST(GP AS INTEGER) >= 5
-    ORDER BY PLAYER_NAME,
-      CASE WHEN SEASON = '${STATE.season}' THEN 0 ELSE 1 END,
-      SEASON DESC
+    ORDER BY CAST(MIN AS FLOAT) * CAST(GP AS INTEGER) DESC
   `);
   if (!r.length || !r[0].values.length) {
     $('swapResults').innerHTML = `<div class="empty-state" style="padding:1rem">No matches found</div>`;
     return;
   }
-  // Group by player — first row wins (we already sorted preferred season first)
+  // Deduplicate by player (one row per player; first wins since we sorted by total mins)
   const byPlayer = {};
   for (const v of r[0].values) {
     const pid = v[0];
@@ -923,11 +918,9 @@ function renderSwapResults(query) {
   }
   const top = Object.values(byPlayer).slice(0, 8);
   const items = top.map(([pid, name, team, season, gp, min, ortg, usg]) => {
-    const seasonTag = season === STATE.season ? '' :
-      `<span style="color:var(--orange);margin-left:0.3rem">↶ ${season}</span>`;
     return `
       <div class="swap-result-item" data-pid="${pid}">
-        <div class="name">${name}${seasonTag}</div>
+        <div class="name">${name}</div>
         <div class="meta">${team || '—'} · ORtg ${Number(ortg).toFixed(0)} · USG ${(Number(usg) * 100).toFixed(1)}% · ${Number(gp).toFixed(0)}G ${Number(min).toFixed(0)} MIN</div>
       </div>
     `;
