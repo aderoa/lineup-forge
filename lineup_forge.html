@@ -9,26 +9,25 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 :root {
-  --bg: #0c0f14; --surface: #141820; --surface2: #1a1f2b; --border: #252b38;
-  --text1: #e8eaed; --text2: #9aa0ad; --muted: #5e6577;
-  --accent: #3b82f6; --accent-dim: rgba(59,130,246,0.12);
-  --green: #22c55e; --red: #ef4444; --orange: #f59e0b; --gold: #f0b637; --purple: #a78bfa;
+  --bg: #f5f7fa; --surface: #ffffff; --surface2: #f3f4f6; --border: #e5e7eb;
+  --text1: #111827; --text2: #4b5563; --muted: #9ca3af;
+  --accent: #2563eb; --accent-dim: rgba(37,99,235,0.06);
+  --green: #16a34a; --red: #dc2626; --orange: #ea580c; --gold: #ca8a04; --purple: #7c3aed;
 }
 body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1); min-height:100vh; padding-bottom:4rem; }
 ::-webkit-scrollbar { height:6px; width:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:#2a3142; border-radius:3px; }
+::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
 
-.header { background:linear-gradient(135deg,#1a1f2b 0%,#0c0f14 100%); border-bottom:1px solid var(--border); padding:1.25rem 2rem; display:flex; align-items:center; gap:1rem; }
-.header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; cursor:pointer; transition:opacity 0.15s; user-select:none; }
+.header { background:#ffffff; border-bottom:1px solid var(--border); padding:1.25rem 2rem; display:flex; align-items:center; gap:1rem; }
+.header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; cursor:pointer; transition:opacity 0.15s; user-select:none; color:var(--text1); }
 .header .logo:hover { opacity:0.75; }
 .header .logo span { color:var(--accent); }
-.header .badge { font-size:0.6rem; padding:0.2rem 0.5rem; background:rgba(59,130,246,0.15); color:var(--accent); border-radius:4px; font-weight:600; letter-spacing:0.05em; }
 .header .sub { font-size:0.7rem; color:var(--muted); margin-left:auto; font-family:'JetBrains Mono',monospace; }
 
-#status { padding:0.6rem 2rem; background:rgba(245,158,11,0.08); color:var(--orange); font-size:0.78rem; border-bottom:1px solid var(--border); }
-#status.ready { background:rgba(34,197,94,0.06); color:var(--green); }
-#status.error { background:rgba(239,68,68,0.08); color:var(--red); }
+#status { padding:0.6rem 2rem; background:rgba(234,88,12,0.08); color:var(--orange); font-size:0.78rem; border-bottom:1px solid var(--border); }
+#status.ready { background:rgba(22,163,74,0.06); color:var(--green); }
+#status.error { background:rgba(220,38,38,0.08); color:var(--red); }
 #status.hidden { display:none; }
 
 .wrap { max-width:1200px; margin:0 auto; padding:1.5rem 2rem; }
@@ -38,10 +37,10 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 .breadcrumb .crumb.active { color:var(--accent); font-weight:600; cursor:default; }
 .breadcrumb .crumb:hover:not(.active) { color:var(--text1); }
 .breadcrumb .sep { color:var(--muted); }
-.breadcrumb select { font-family:inherit; font-size:0.8rem; padding:0.3rem 0.5rem; margin-left:0.5rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; outline:none; }
+.breadcrumb select { font-family:inherit; font-size:0.8rem; padding:0.3rem 0.5rem; margin-left:0.5rem; background:var(--surface); color:var(--text1); border:1px solid var(--border); border-radius:5px; outline:none; }
 
 .team-grid { display:grid; grid-template-columns:repeat(6, 1fr); gap:0.6rem; }
-.team-tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:0.9rem 0.5rem; text-align:center; cursor:pointer; transition:border-color .15s, transform .1s, background .15s; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.95rem; letter-spacing:0.02em; display:flex; flex-direction:column; align-items:center; gap:0.4rem; }
+.team-tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:0.9rem 0.5rem; text-align:center; cursor:pointer; transition:border-color .15s, transform .1s, background .15s; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.95rem; letter-spacing:0.02em; display:flex; flex-direction:column; align-items:center; gap:0.4rem; color:var(--text1); }
 .team-tile:hover { border-color:var(--accent); background:var(--accent-dim); }
 .team-tile:active { transform:translateY(1px); }
 .team-tile .team-logo { width:42px; height:42px; object-fit:contain; flex-shrink:0; }
@@ -49,7 +48,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 
 .lineup-list { display:flex; flex-direction:column; gap:0.5rem; }
 .lineup-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color .15s, background .15s; display:grid; grid-template-columns:1fr auto auto auto auto; gap:1rem; align-items:center; }
-.lineup-card:hover { border-color:var(--accent); background:rgba(59,130,246,0.04); }
+.lineup-card:hover { border-color:var(--accent); background:var(--accent-dim); }
 .lineup-card .names { font-size:0.84rem; font-weight:600; line-height:1.4; }
 .lineup-card .names .sep { color:var(--muted); margin:0 0.25rem; font-weight:400; }
 .lineup-card .stat { display:flex; flex-direction:column; gap:0.1rem; text-align:right; font-family:'JetBrains Mono',monospace; }
@@ -79,20 +78,20 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 
 .lineup-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:0.6rem; margin-bottom:1.25rem; }
 .slot { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:0.9rem 0.75rem; position:relative; display:flex; flex-direction:column; gap:0.45rem; transition:border-color .15s; }
-.slot.swapped { border-color:var(--purple); background:rgba(167,139,250,0.04); }
+.slot.swapped { border-color:var(--purple); background:rgba(124,58,237,0.05); }
 .slot .slot-num { font-size:0.55rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
-.slot .name { font-weight:700; font-size:0.85rem; line-height:1.2; }
+.slot .name { font-weight:700; font-size:0.85rem; line-height:1.2; color:var(--text1); }
 .slot .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.62rem; }
 .slot .stats { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text2); line-height:1.5; }
 .slot .swap-btn { margin-top:auto; padding:0.4rem 0.6rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; cursor:pointer; font-family:inherit; font-size:0.7rem; font-weight:600; transition:border-color .15s, color .15s; }
 .slot .swap-btn:hover { border-color:var(--accent); color:var(--accent); }
-.slot .from-tag { position:absolute; top:0.4rem; right:0.4rem; font-family:'JetBrains Mono',monospace; font-size:0.5rem; color:var(--purple); background:rgba(167,139,250,0.1); padding:0.15rem 0.35rem; border-radius:3px; letter-spacing:0.04em; font-weight:600; }
+.slot .from-tag { position:absolute; top:0.4rem; right:0.4rem; font-family:'JetBrains Mono',monospace; font-size:0.5rem; color:var(--purple); background:rgba(124,58,237,0.1); padding:0.15rem 0.35rem; border-radius:3px; letter-spacing:0.04em; font-weight:600; }
 
 .action-row { display:flex; gap:0.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
 .btn { font-family:inherit; font-size:0.82rem; font-weight:700; padding:0.6rem 1.2rem; border:none; border-radius:6px; cursor:pointer; transition:background .15s, transform .1s; background:var(--accent); color:#fff; }
-.btn:hover { background:#2563eb; }
+.btn:hover { background:#1d4ed8; }
 .btn:active { transform:translateY(1px); }
-.btn.secondary { background:var(--surface2); color:var(--text1); border:1px solid var(--border); }
+.btn.secondary { background:var(--surface); color:var(--text1); border:1px solid var(--border); }
 .btn.secondary:hover { border-color:var(--accent); color:var(--accent); }
 
 .breakdown { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; }
@@ -110,9 +109,9 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 .notes strong { color:var(--text1); }
 .notes ul { margin:0.3rem 0 0 1.2rem; }
 
-.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:none; align-items:flex-start; justify-content:center; padding:3rem 1rem; }
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100; display:none; align-items:flex-start; justify-content:center; padding:3rem 1rem; }
 .modal-bg.open { display:flex; }
-.modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:480px; padding:1.25rem; max-height:80vh; overflow-y:auto; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:480px; padding:1.25rem; max-height:80vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
 .modal h3 { font-size:1rem; margin-bottom:0.5rem; }
 .modal .swap-sub { font-size:0.74rem; color:var(--muted); margin-bottom:0.85rem; }
 .modal input[type=text] { width:100%; padding:0.6rem 0.75rem; font-family:inherit; font-size:0.9rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:6px; outline:none; margin-bottom:0.85rem; }
@@ -146,7 +145,6 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 
 <div class="header">
   <div class="logo">Lineup<span>Forge</span></div>
-  <div class="badge">HOOPSMATIC</div>
   <div class="sub" id="meta">Loading...</div>
 </div>
 
@@ -680,7 +678,7 @@ async function renderLineupPicker() {
 
   $('content').innerHTML = `
     <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
-      ${STATE.team} 5-man lineups — ${STATE.season} ${seasonTypeLabel()} — top 50 by minutes played, NetRtg from projection model. Click any to start swapping.
+      ${STATE.team} 5-man lineups — ${seasonTypeLabel()} — top 50 by minutes played, NetRtg from projection model. Click any to start swapping.
     </div>
     <div class="lineup-list">${cards}</div>
   `;
@@ -777,44 +775,17 @@ function renderEditView() {
   const slotsHtml = STATE.currentSlots.map((p, i) => {
     const swapped = STATE.swappedFrom[i] !== null;
     const fromName = swapped ? STATE.swappedFrom[i].name.split(' ').slice(-1)[0] : null;
-    const q = projCurr.quality_per_player[i];
     const np = projCurr.normalized_players[i];  // has .usg (lineup-normalized) and .usg_raw (season)
-
-    // Offense line: rat365 + offense contribution
-    let offLine;
-    if (q.fallback) {
-      offLine = `<span style="color:var(--orange)">rat365 N/A</span>`;
-    } else if (q.off_blended) {
-      const curText = q.rat365_current !== null ? `cur ${q.rat365_current.toFixed(1)}` : `no current`;
-      const tip = q.rat365_current !== null
-        ? `Current ${q.rat365_current.toFixed(1)} below career; using ${q.off_n_seasons}-season weighted ${q.rat365.toFixed(1)}`
-        : `Using ${q.off_n_seasons}-season weighted history`;
-      offLine = `<span style="color:var(--purple)" title="${tip}">↺ rat365 ${q.rat365.toFixed(1)} <span style="color:${q.off_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(off ${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(1)})</span></span> <span style="color:var(--muted);font-size:0.6rem">(${curText})</span>`;
-    } else {
-      offLine = `rat365 ${q.rat365.toFixed(1)} <span style="color:${q.off_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(off ${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(1)})</span>`;
-    }
-
-    // Defense line: DEF_SCORE + defense contribution
-    let defLine;
-    if (q.def_score === null) {
-      defLine = `<span style="color:var(--muted)">DEF N/A</span>`;
-    } else if (q.def_blended) {
-      const curText = q.def_current !== null ? `cur ${q.def_current.toFixed(1)}` : `no current`;
-      defLine = `<span style="color:var(--purple)" title="Defensive history blended">↺ DEF ${q.def_score.toFixed(1)} <span style="color:${q.def_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(def ${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(1)})</span></span> <span style="color:var(--muted);font-size:0.6rem">(${curText})</span>`;
-    } else {
-      defLine = `DEF ${q.def_score.toFixed(1)} <span style="color:${q.def_contrib >= 0 ? 'var(--green)' : 'var(--red)'}">(def ${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(1)})</span>`;
-    }
 
     return `
       <div class="slot ${swapped ? 'swapped' : ''}">
         ${swapped ? `<div class="from-tag">was ${fromName}</div>` : ''}
         <div class="slot-num">Slot ${i + 1}</div>
         <div class="name">${p.name}</div>
-        <div class="meta">${p.team || '—'} · ${p.season}</div>
+        <div class="meta">${p.team || '—'}</div>
         <div class="stats">
-          ${offLine}<br>
-          ${defLine}<br>
-          USG ${(np.usg * 100).toFixed(1)}%${Math.abs(np.usg - np.usg_raw) > 0.005 ? ` <span style="color:var(--muted);font-size:0.6rem">(season ${(np.usg_raw * 100).toFixed(1)}%)</span>` : ''} · TS ${(np.ts * 100).toFixed(1)}%${Math.abs(np.ts - np.ts_raw) > 0.005 ? ` <span style="color:var(--muted);font-size:0.6rem">(season ${(np.ts_raw * 100).toFixed(1)}%)</span>` : ''}
+          USG ${(np.usg * 100).toFixed(1)}%${Math.abs(np.usg - np.usg_raw) > 0.005 ? ` <span style="color:var(--muted);font-size:0.6rem">(season ${(np.usg_raw * 100).toFixed(1)}%)</span>` : ''}<br>
+          TS ${(np.ts * 100).toFixed(1)}%${Math.abs(np.ts - np.ts_raw) > 0.005 ? ` <span style="color:var(--muted);font-size:0.6rem">(season ${(np.ts_raw * 100).toFixed(1)}%)</span>` : ''}
         </div>
         <button class="swap-btn" data-slot="${i}">↔ Swap</button>
       </div>
@@ -892,7 +863,14 @@ function renderEditView() {
           <div class="delta" style="color:var(--muted);font-size:0.65rem">team built around this 5</div>
         </div>
       </div>
-      <div class="proj-tier">${classifyLineup(projCurr.netrtg)}${(() => { const r = projectRecord(projCurr.netrtg); const o = projectRecord(projOrig.netrtg); return ` · projected ${r.wins}-${r.losses} (vs original ${o.wins}-${o.losses}, ${r.wins-o.wins >= 0 ? '+' : ''}${r.wins-o.wins} wins)`; })()}</div>
+      <div class="proj-tier">${classifyLineup(projCurr.netrtg)}${(() => {
+        const r = projectRecord(projCurr.netrtg);
+        const hasSwap = STATE.swappedFrom.some(s => s !== null);
+        if (!hasSwap) return ` · projected ${r.wins}-${r.losses}`;
+        const o = projectRecord(projOrig.netrtg);
+        const winDelta = r.wins - o.wins;
+        return ` · projected ${r.wins}-${r.losses} (vs original ${o.wins}-${o.losses}, ${winDelta >= 0 ? '+' : ''}${winDelta} wins)`;
+      })()}</div>
     </div>
 
     <div class="lineup-grid">${slotsHtml}</div>
