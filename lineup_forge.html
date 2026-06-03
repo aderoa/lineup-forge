@@ -20,7 +20,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 ::-webkit-scrollbar-thumb { background:#2a3142; border-radius:3px; }
 
 .header { background:linear-gradient(135deg,#1a1f2b 0%,#0c0f14 100%); border-bottom:1px solid var(--border); padding:1.25rem 2rem; display:flex; align-items:center; gap:1rem; }
-.header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; }
+.header .logo { font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; cursor:pointer; transition:opacity 0.15s; user-select:none; }
+.header .logo:hover { opacity:0.75; }
 .header .logo span { color:var(--accent); }
 .header .badge { font-size:0.6rem; padding:0.2rem 0.5rem; background:rgba(59,130,246,0.15); color:var(--accent); border-radius:4px; font-weight:600; letter-spacing:0.05em; }
 .header .sub { font-size:0.7rem; color:var(--muted); margin-left:auto; font-family:'JetBrains Mono',monospace; }
@@ -327,6 +328,20 @@ async function boot() {
     }
     renderTeamPicker();
     wireModal();
+
+    // Logo click → reset to team picker (preserves season/season_type selections)
+    const logoEl = document.querySelector('.header .logo');
+    if (logoEl) {
+      logoEl.addEventListener('click', () => {
+        STATE.page = 'team';
+        STATE.team = null;
+        STATE.originalSlots = null;
+        STATE.currentSlots = null;
+        STATE.swappedFrom = [null, null, null, null, null];
+        STATE.originalLineupRow = null;
+        renderTeamPicker();
+      });
+    }
   } catch (err) {
     console.error(err);
     setStatus('Failed to load: ' + err.message, 'error');
@@ -400,7 +415,24 @@ function getAvailableSeasonTypes(season) {
     ORDER BY n DESC
   `);
   if (!r.length || !r[0].values.length) return [];
-  return r[0].values.map(([type, n]) => ({ type, n }));
+  const types = r[0].values.map(([type, n]) => ({ type, n }));
+  // If both Regular Season and Playoffs exist, expose a synthetic "Combined" option
+  // that aggregates rows across both season_types (weighted by MIN for ratings).
+  const hasRS = types.find(t => t.type === 'Regular Season');
+  const hasPO = types.find(t => t.type === 'Playoffs');
+  if (hasRS && hasPO) {
+    types.unshift({ type: '__COMBINED__', n: hasRS.n + hasPO.n, label: 'Reg Season + Playoffs' });
+  }
+  return types;
+}
+
+// SQL fragment for filtering by STATE.season_type. Combined uses IN(); single uses =.
+function seasonTypeWhere() {
+  if (STATE.season_type === '__COMBINED__') return `SEASON_TYPE IN ('Regular Season', 'Playoffs')`;
+  return `SEASON_TYPE = '${STATE.season_type}'`;
+}
+function seasonTypeLabel() {
+  return STATE.season_type === '__COMBINED__' ? 'RS+PO' : STATE.season_type;
 }
 
 function renderBreadcrumb() {
@@ -411,14 +443,16 @@ function renderBreadcrumb() {
   // Season type selector — only show types that have data in this season
   const types = getAvailableSeasonTypes(STATE.season);
   if (!types.find(t => t.type === STATE.season_type) && types.length > 0) {
-    STATE.season_type = types[0].type;  // fall back to whatever's available
+    // Prefer Combined when available, else first available
+    const combinedOpt = types.find(t => t.type === '__COMBINED__');
+    STATE.season_type = combinedOpt ? '__COMBINED__' : types[0].type;
   }
   let typeSel = '';
   if (types.length > 1) {
-    const typeOpts = types.map(({type, n}) => `<option value="${type}" ${type === STATE.season_type ? 'selected' : ''}>${type} (${n.toLocaleString()})</option>`).join('');
+    const typeOpts = types.map(({type, n, label}) => `<option value="${type}" ${type === STATE.season_type ? 'selected' : ''}>${label || type} (${n.toLocaleString()})</option>`).join('');
     typeSel = `<select id="typeSelect" style="margin-left:0.35rem">${typeOpts}</select>`;
   } else if (types.length === 1) {
-    typeSel = `<span style="margin-left:0.35rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted)">${types[0].type}</span>`;
+    typeSel = `<span style="margin-left:0.35rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted)">${types[0].label || types[0].type}</span>`;
   }
 
   const crumbs = [];
@@ -469,15 +503,15 @@ function renderTeamPicker() {
   renderBreadcrumb();
 
   const teams = lineupsDb.exec(`
-    SELECT TEAM_ABBREVIATION, COUNT(*) AS n_lineups
+    SELECT TEAM_ABBREVIATION, COUNT(DISTINCT GROUP_ID) AS n_lineups
     FROM lineups_5man
     WHERE SEASON = '${STATE.season}'
-      AND SEASON_TYPE = '${STATE.season_type}'
+      AND ${seasonTypeWhere()}
     GROUP BY TEAM_ABBREVIATION
     ORDER BY TEAM_ABBREVIATION
   `);
   if (!teams.length || !teams[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No ${STATE.season_type.toLowerCase()} lineup data for ${STATE.season}. Try another season or season type.</div>`;
+    $('content').innerHTML = `<div class="empty-state">No ${seasonTypeLabel().toLowerCase()} lineup data for ${STATE.season}. Try another season or season type.</div>`;
     return;
   }
 
@@ -497,7 +531,25 @@ function renderLineupPicker() {
   STATE.page = 'lineup';
   renderBreadcrumb();
 
-  const r = lineupsDb.exec(`
+  // When Combined, aggregate GP/MIN as sums and ratings as MIN-weighted means
+  // across both season_types. When single, simple filter and sort by MIN.
+  const isCombined = STATE.season_type === '__COMBINED__';
+  const r = lineupsDb.exec(isCombined ? `
+    SELECT GROUP_ID,
+           MAX(GROUP_NAME) AS GROUP_NAME,
+           SUM(GP) AS GP,
+           SUM(MIN) AS MIN,
+           SUM(OFF_RATING * MIN) / NULLIF(SUM(MIN), 0) AS OFF_RATING,
+           SUM(DEF_RATING * MIN) / NULLIF(SUM(MIN), 0) AS DEF_RATING,
+           SUM(NET_RATING * MIN) / NULLIF(SUM(MIN), 0) AS NET_RATING,
+           SUM(PACE * MIN)       / NULLIF(SUM(MIN), 0) AS PACE
+    FROM lineups_5man
+    WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
+      AND SEASON_TYPE IN ('Regular Season', 'Playoffs')
+    GROUP BY GROUP_ID
+    ORDER BY SUM(MIN) DESC
+    LIMIT 20
+  ` : `
     SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
     FROM lineups_5man
     WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
@@ -507,7 +559,7 @@ function renderLineupPicker() {
   `);
 
   if (!r.length || !r[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No ${STATE.season_type.toLowerCase()} lineups for ${STATE.team} in ${STATE.season}.</div>`;
+    $('content').innerHTML = `<div class="empty-state">No ${seasonTypeLabel().toLowerCase()} lineups for ${STATE.team} in ${STATE.season}.</div>`;
     return;
   }
 
@@ -528,7 +580,7 @@ function renderLineupPicker() {
 
   $('content').innerHTML = `
     <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
-      ${STATE.team} 5-man lineups — ${STATE.season} ${STATE.season_type} — sorted by minutes. Click any to start swapping.
+      ${STATE.team} 5-man lineups — ${STATE.season} ${seasonTypeLabel()} — sorted by minutes. Click any to start swapping.
     </div>
     <div class="lineup-list">${cards}</div>
   `;
@@ -538,7 +590,23 @@ function renderLineupPicker() {
 }
 
 function loadOriginalLineup(groupId) {
-  const r = lineupsDb.exec(`
+  const isCombined = STATE.season_type === '__COMBINED__';
+  const r = lineupsDb.exec(isCombined ? `
+    SELECT GROUP_ID,
+           MAX(GROUP_NAME) AS GROUP_NAME,
+           SUM(GP) AS GP,
+           SUM(MIN) AS MIN,
+           SUM(OFF_RATING * MIN) / NULLIF(SUM(MIN), 0) AS OFF_RATING,
+           SUM(DEF_RATING * MIN) / NULLIF(SUM(MIN), 0) AS DEF_RATING,
+           SUM(NET_RATING * MIN) / NULLIF(SUM(MIN), 0) AS NET_RATING,
+           SUM(PACE * MIN)       / NULLIF(SUM(MIN), 0) AS PACE
+    FROM lineups_5man
+    WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
+      AND SEASON_TYPE IN ('Regular Season', 'Playoffs')
+      AND GROUP_ID = '${groupId.replace(/'/g, "''")}'
+    GROUP BY GROUP_ID
+    LIMIT 1
+  ` : `
     SELECT GROUP_ID, GROUP_NAME, GP, MIN, OFF_RATING, DEF_RATING, NET_RATING, PACE
     FROM lineups_5man
     WHERE TEAM_ABBREVIATION = '${STATE.team}' AND SEASON = '${STATE.season}'
@@ -655,6 +723,9 @@ function renderEditView() {
 
   const playersTable = STATE.currentSlots.map((p, i) => {
     const q = projCurr.quality_per_player[i];
+    const swapped = STATE.swappedFrom[i] !== null;
+    const origQ = projOrig?.quality_per_player?.[i];
+    const swapDelta = (swapped && origQ) ? ((q.off_contrib + q.def_contrib) - (origQ.off_contrib + origQ.def_contrib)) : null;
     let rat365Cell, defCell, offContribCell, defContribCell;
     if (q.fallback) {
       rat365Cell = `<span style="color:var(--orange)">N/A</span>`;
@@ -673,14 +744,23 @@ function renderEditView() {
       offContribCell = `<span class="${q.off_contrib > 0.1 ? 'adj-pos' : q.off_contrib < -0.1 ? 'adj-neg' : ''}">${q.off_contrib >= 0 ? '+' : ''}${q.off_contrib.toFixed(2)}</span>`;
       defContribCell = `<span class="${q.def_contrib > 0.1 ? 'adj-pos' : q.def_contrib < -0.1 ? 'adj-neg' : ''}">${q.def_contrib >= 0 ? '+' : ''}${q.def_contrib.toFixed(2)}</span>`;
     }
+    const fromName = swapped ? STATE.swappedFrom[i].name.split(' ').slice(-1)[0] : null;
+    const playerLabel = swapped
+      ? `${i + 1}. <span style="color:var(--accent);font-weight:700">↻</span> ${p.name} <span style="color:var(--muted);font-size:0.7rem">(was ${fromName})</span>`
+      : `${i + 1}. ${p.name}`;
+    const vsPrevCell = swapDelta === null
+      ? `<span style="color:var(--muted)">—</span>`
+      : `<span class="${swapDelta > 0.1 ? 'adj-pos' : swapDelta < -0.1 ? 'adj-neg' : ''}" style="font-weight:700">${swapDelta >= 0 ? '+' : ''}${swapDelta.toFixed(2)}</span>`;
+    const rowStyle = swapped ? ' style="background:rgba(99,102,241,0.07)"' : '';
     return `
-      <tr>
-        <td>${i + 1}. ${p.name}</td>
+      <tr${rowStyle}>
+        <td>${playerLabel}</td>
         <td class="num">${rat365Cell}</td>
         <td class="num">${defCell}</td>
         <td class="num">${offContribCell}</td>
         <td class="num">${defContribCell}</td>
         <td class="num">${(q.off_contrib + q.def_contrib >= 0 ? '+' : '') + (q.off_contrib + q.def_contrib).toFixed(2)}</td>
+        <td class="num">${vsPrevCell}</td>
       </tr>
     `;
   }).join('');
@@ -718,10 +798,15 @@ function renderEditView() {
           <div class="label">Pace</div>
           <div class="value">${projCurr.pace.toFixed(1)}</div>
         </div>
+        <div class="proj-stat" title="82-game record if this 5-man lineup played every minute of every game. Linear approximation calibrated to recent NBA seasons (clamped 5–95%).">
+          <div class="label">Proj 82-game record</div>
+          <div class="value" style="font-size:1.3rem">${(() => { const r = projectRecord(projCurr.netrtg); return `${r.wins}-${r.losses}`; })()}</div>
+          <div class="delta" style="color:var(--muted);font-size:0.65rem">if this 5 played all 82</div>
+        </div>
       </div>
-      <div class="proj-tier">${classifyLineup(projCurr.netrtg)}</div>
+      <div class="proj-tier">${classifyLineup(projCurr.netrtg)}${(() => { const r = projectRecord(projCurr.netrtg); const o = projectRecord(projOrig.netrtg); return ` · projected ${r.wins}-${r.losses} (vs original ${o.wins}-${o.losses}, ${r.wins-o.wins >= 0 ? '+' : ''}${r.wins-o.wins} wins)`; })()}</div>
       <div class="proj-tier" style="border-left-color:var(--gold)">
-        <strong>Original lineup actual (${STATE.season} ${STATE.season_type}):</strong>
+        <strong>Original lineup actual (${STATE.season} ${seasonTypeLabel()}):</strong>
         ORtg ${orig.stats.ortg.toFixed(1)} · DRtg ${orig.stats.drtg.toFixed(1)} ·
         NetRtg ${orig.stats.netrtg >= 0 ? '+' : ''}${orig.stats.netrtg.toFixed(1)} ·
         ${Math.round(orig.stats.min)} MIN in ${Math.round(orig.stats.gp)} games
@@ -738,7 +823,7 @@ function renderEditView() {
     <div class="breakdown">
       <h3>Player ingredients (two-axis quality)</h3>
       <table>
-        <thead><tr><th>Player</th><th class="num">rat365</th><th class="num">DEF</th><th class="num">Off Δ</th><th class="num">Def Δ</th><th class="num">Net Δ</th></tr></thead>
+        <thead><tr><th>Player</th><th class="num">rat365</th><th class="num">DEF</th><th class="num">Off Δ</th><th class="num">Def Δ</th><th class="num">Net Δ</th><th class="num" title="Swap impact: this player's Net Δ minus the original player's Net Δ at this slot">vs prev</th></tr></thead>
         <tbody>
           ${playersTable}
           <tr class="total"><td>Lineup totals ${projCurr.n_off_blended > 0 || projCurr.n_def_blended > 0 ? `<span style="color:var(--purple);font-weight:normal">(↺ ${projCurr.n_off_blended} off / ${projCurr.n_def_blended} def blended)</span>` : ''} ${5 - projCurr.n_with_quality > 0 ? `<span style="color:var(--orange);font-weight:normal">(${5 - projCurr.n_with_quality} fallback*)</span>` : ''}</td>
@@ -746,6 +831,7 @@ function renderEditView() {
             <td class="num ${projCurr.total_off > 0 ? 'adj-pos' : projCurr.total_off < 0 ? 'adj-neg' : ''}">${projCurr.total_off >= 0 ? '+' : ''}${projCurr.total_off.toFixed(1)}</td>
             <td class="num ${projCurr.total_def > 0 ? 'adj-pos' : projCurr.total_def < 0 ? 'adj-neg' : ''}">${projCurr.total_def >= 0 ? '+' : ''}${projCurr.total_def.toFixed(1)}</td>
             <td class="num ${projCurr.quality_net_baseline > 0 ? 'adj-pos' : projCurr.quality_net_baseline < 0 ? 'adj-neg' : ''}">${projCurr.quality_net_baseline >= 0 ? '+' : ''}${projCurr.quality_net_baseline.toFixed(1)}</td>
+            <td class="num ${(projCurr.quality_net_baseline - projOrig.quality_net_baseline) > 0.1 ? 'adj-pos' : (projCurr.quality_net_baseline - projOrig.quality_net_baseline) < -0.1 ? 'adj-neg' : ''}" style="font-weight:700">${(projCurr.quality_net_baseline - projOrig.quality_net_baseline) >= 0 ? '+' : ''}${(projCurr.quality_net_baseline - projOrig.quality_net_baseline).toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -1216,6 +1302,16 @@ function classifyLineup(netrtg) {
   if (netrtg >= -3) return '○ Average lineup — near league mean';
   if (netrtg >= -7) return '⚠ Below-average lineup — likely gets outscored';
   return '✗ Weak lineup — projects well below average';
+}
+
+// 82-game record estimate from a NetRtg projection.
+// Empirical NBA slope: ~0.0353 win% per NetRtg point (recent dominant teams +10→~66 wins,
+// bottom teams -9→~14 wins). Clamped so even theoretical super-lineups don't exceed 95%.
+function projectRecord(netrtg) {
+  const winPct = Math.max(0.05, Math.min(0.95, 0.5 + netrtg * 0.0353));
+  const wins = Math.round(winPct * 82);
+  const losses = 82 - wins;
+  return { wins, losses, winPct };
 }
 
 function mean(arr) {
