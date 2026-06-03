@@ -32,6 +32,14 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 
 .wrap { max-width:1200px; margin:0 auto; padding:1.5rem 2rem; }
 
+.section { margin-bottom:2.5rem; scroll-margin-top:1rem; }
+.section[hidden] { display:none; }
+.section-header { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size:0.78rem; margin-bottom:1.25rem; padding-bottom:0.7rem; border-bottom:1px solid var(--border); }
+.section-header .current { font-weight:700; color:var(--text1); text-transform:uppercase; letter-spacing:0.06em; font-size:0.82rem; }
+.section-header .back-link { color:var(--text2); cursor:pointer; transition:color .15s; }
+.section-header .back-link:hover { color:var(--accent); }
+.section-header .sep { color:var(--muted); }
+
 .breadcrumb { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size:0.78rem; color:var(--text2); margin-bottom:1.25rem; }
 .breadcrumb .crumb { color:var(--text2); cursor:pointer; transition:color .15s; }
 .breadcrumb .crumb.active { color:var(--accent); font-weight:600; cursor:default; }
@@ -83,8 +91,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 .slot .name { font-weight:700; font-size:0.85rem; line-height:1.2; color:var(--text1); }
 .slot .meta { font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:0.62rem; }
 .slot .stats { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text2); line-height:1.5; }
-.slot .swap-btn { margin-top:auto; padding:0.4rem 0.6rem; background:var(--surface2); color:var(--text1); border:1px solid var(--border); border-radius:5px; cursor:pointer; font-family:inherit; font-size:0.7rem; font-weight:600; transition:border-color .15s, color .15s; }
-.slot .swap-btn:hover { border-color:var(--accent); color:var(--accent); }
+.slot .swap-btn { margin-top:auto; padding:0.45rem 0.6rem; background:var(--green); color:#fff; border:1px solid var(--green); border-radius:5px; cursor:pointer; font-family:inherit; font-size:0.72rem; font-weight:700; transition:background .15s, border-color .15s; }
+.slot .swap-btn:hover { background:#15803d; border-color:#15803d; }
 .slot .from-tag { position:absolute; top:0.4rem; right:0.4rem; font-family:'JetBrains Mono',monospace; font-size:0.5rem; color:var(--purple); background:rgba(124,58,237,0.1); padding:0.15rem 0.35rem; border-radius:3px; letter-spacing:0.04em; font-weight:600; }
 
 .action-row { display:flex; gap:0.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
@@ -145,14 +153,27 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 
 <div class="header">
   <div class="logo">Lineup<span>Forge</span></div>
-  <div class="sub" id="meta">Loading...</div>
 </div>
 
 <div id="status">Initializing...</div>
 
 <div class="wrap">
-  <div class="breadcrumb" id="breadcrumb"><span class="crumb active">Choose team</span></div>
-  <div id="content"></div>
+  <section id="teamSection" class="section">
+    <div class="section-header" id="teamHeader">
+      <span class="current">CHOOSE TEAM</span>
+    </div>
+    <div id="teamContent"></div>
+  </section>
+
+  <section id="lineupSection" class="section" hidden>
+    <div class="section-header" id="lineupHeader"></div>
+    <div id="lineupContent"></div>
+  </section>
+
+  <section id="swapSection" class="section" hidden>
+    <div class="section-header" id="swapHeader"></div>
+    <div id="swapContent"></div>
+  </section>
 </div>
 
 <div class="modal-bg" id="swapModal">
@@ -294,7 +315,7 @@ let QUALITY = null;
 let DEFENSE = {};      // HH name → { def_score, team, gp }
 
 const STATE = {
-  page: 'team', season: null, season_type: 'Regular Season', team: null,
+  season: null, season_type: 'Regular Season', team: null,
   originalLineup: null,
   currentSlots: [null, null, null, null, null],
   swappedFrom: [null, null, null, null, null],
@@ -332,11 +353,7 @@ async function boot() {
 
     const commonSeasons = getCommonSeasons();
     STATE.season = commonSeasons[0];
-
-    const totalMB = ((playerBuf.byteLength + lineupsBuf.byteLength) / 1024 / 1024).toFixed(1);
-    const qNote = QUALITY ? `${QUALITY._meta.n_players} quality scores` : 'NO QUALITY DATA — fix';
-    const dNote = Object.keys(DEFENSE).length > 0 ? `${Object.keys(DEFENSE).length} defense scores` : 'no defense data';
-    $('meta').textContent = `${totalMB}MB · ${commonSeasons.length} seasons · ${qNote} · ${dNote} · ${coefs.meta.n_lineups.toLocaleString()} lineups trained`;
+    autoSelectSeasonType();
 
     setStatus('', 'hidden');
     if (!QUALITY) {
@@ -347,17 +364,17 @@ async function boot() {
     renderTeamPicker();
     wireModal();
 
-    // Logo click → reset to team picker (preserves season/season_type selections)
+    // Logo click → reset everything and scroll to top
     const logoEl = document.querySelector('.header .logo');
     if (logoEl) {
       logoEl.addEventListener('click', () => {
-        STATE.page = 'team';
         STATE.team = null;
-        STATE.originalSlots = null;
-        STATE.currentSlots = null;
+        STATE.originalLineup = null;
+        STATE.currentSlots = [null, null, null, null, null];
         STATE.swappedFrom = [null, null, null, null, null];
-        STATE.originalLineupRow = null;
-        renderTeamPicker();
+        hideSection('lineupSection');
+        hideSection('swapSection');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
   } catch (err) {
@@ -483,75 +500,38 @@ function seasonTypeLabel() {
   return STATE.season_type === '__COMBINED__' ? 'RS+PO' : STATE.season_type;
 }
 
-function renderBreadcrumb() {
-  const commonSeasons = getCommonSeasons();
-  // Season is locked to one value; render as static text rather than a 1-option dropdown.
-  const seasonSel = commonSeasons.length === 1
-    ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:600;color:var(--text);padding:0.15rem 0.45rem;background:var(--surface2);border-radius:4px">${commonSeasons[0]}</span>`
-    : `<select id="seasonSelect">${commonSeasons.map(s => `<option value="${s}" ${s === STATE.season ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
-
-  // Season type selector — only show types that have data in this season
+// ─── Section visibility + smooth-scroll helpers ───
+function showSection(id) { const el = document.getElementById(id); if (el) el.hidden = false; }
+function hideSection(id) { const el = document.getElementById(id); if (el) el.hidden = true; }
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+// Build markup for section header crumbs. Each crumb is either
+//   { text, current: true }        — bolded current section
+//   { text, scroll: 'sectionId' }  — clickable back-link that scrolls to that section
+function buildSectionHeader(crumbs) {
+  return crumbs.map((c, i) => {
+    const sep = i === 0 ? '' : '<span class="sep">›</span>';
+    if (c.current) return `${sep}<span class="current">${c.text}</span>`;
+    return `${sep}<span class="back-link" data-scroll="${c.scroll}">${c.text}</span>`;
+  }).join('');
+}
+function wireSectionBackLinks(headerEl) {
+  headerEl.querySelectorAll('.back-link[data-scroll]').forEach(el => {
+    el.addEventListener('click', () => scrollToSection(el.dataset.scroll));
+  });
+}
+// Auto-select season_type on first render. Prefers Combined when both RS and
+// Playoffs exist, else falls back to whatever's available. No user-facing toggle.
+function autoSelectSeasonType() {
   const types = getAvailableSeasonTypes(STATE.season);
   if (!types.find(t => t.type === STATE.season_type) && types.length > 0) {
-    // Prefer Combined when available, else first available
     const combinedOpt = types.find(t => t.type === '__COMBINED__');
     STATE.season_type = combinedOpt ? '__COMBINED__' : types[0].type;
   }
-  let typeSel = '';
-  if (types.length > 1) {
-    const typeOpts = types.map(({type, n, label}) => `<option value="${type}" ${type === STATE.season_type ? 'selected' : ''}>${label || type} (${n.toLocaleString()})</option>`).join('');
-    typeSel = `<select id="typeSelect" style="margin-left:0.35rem">${typeOpts}</select>`;
-  } else if (types.length === 1) {
-    typeSel = `<span style="margin-left:0.35rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted)">${types[0].label || types[0].type}</span>`;
-  }
-
-  const crumbs = [];
-  if (STATE.page === 'team') {
-    crumbs.push(`<span class="crumb active">Choose team</span>`);
-    crumbs.push(`<span class="sep">·</span>${seasonSel}${typeSel}`);
-  } else if (STATE.page === 'lineup') {
-    crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
-    crumbs.push(`<span class="sep">›</span>`);
-    crumbs.push(`<span class="crumb active">Choose ${STATE.team}'s lineup</span>`);
-    crumbs.push(`<span class="sep">·</span>${seasonSel}${typeSel}`);
-  } else if (STATE.page === 'edit') {
-    crumbs.push(`<span class="crumb" data-go="team">← Team</span>`);
-    crumbs.push(`<span class="sep">›</span>`);
-    crumbs.push(`<span class="crumb" data-go="lineup">${STATE.team} lineups</span>`);
-    crumbs.push(`<span class="sep">›</span>`);
-    crumbs.push(`<span class="crumb active">Swap &amp; project</span>`);
-  }
-  $('breadcrumb').innerHTML = crumbs.join('');
-
-  const seasonEl = $('seasonSelect');
-  if (seasonEl) {
-    seasonEl.addEventListener('change', (e) => {
-      STATE.season = e.target.value;
-      if (STATE.page === 'team') renderTeamPicker();
-      else if (STATE.page === 'lineup') renderLineupPicker();
-    });
-  }
-  const typeEl = $('typeSelect');
-  if (typeEl) {
-    typeEl.addEventListener('change', (e) => {
-      STATE.season_type = e.target.value;
-      if (STATE.page === 'team') renderTeamPicker();
-      else if (STATE.page === 'lineup') renderLineupPicker();
-    });
-  }
-  document.querySelectorAll('.breadcrumb .crumb[data-go]').forEach(el => {
-    el.addEventListener('click', () => {
-      STATE.page = el.dataset.go;
-      if (STATE.page === 'team') renderTeamPicker();
-      else if (STATE.page === 'lineup') renderLineupPicker();
-    });
-  });
 }
-
 function renderTeamPicker() {
-  STATE.page = 'team';
-  renderBreadcrumb();
-
   const teams = lineupsDb.exec(`
     SELECT TEAM_ABBREVIATION, COUNT(DISTINCT GROUP_ID) AS n_lineups
     FROM lineups_5man
@@ -561,7 +541,7 @@ function renderTeamPicker() {
     ORDER BY TEAM_ABBREVIATION
   `);
   if (!teams.length || !teams[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No ${seasonTypeLabel().toLowerCase()} lineup data for ${STATE.season}. Try another season or season type.</div>`;
+    $('teamContent').innerHTML = `<div class="empty-state">No lineup data for ${STATE.season}.</div>`;
     return;
   }
 
@@ -574,19 +554,31 @@ function renderTeamPicker() {
       <div class="team-tile" data-team="${abbr}">${logoHtml}${abbr}</div>
     `;
   }).join('');
-  $('content').innerHTML = `<div class="team-grid">${tiles}</div>`;
+  $('teamContent').innerHTML = `<div class="team-grid">${tiles}</div>`;
   document.querySelectorAll('.team-tile').forEach(t => {
     t.addEventListener('click', () => {
       STATE.team = t.dataset.team;
+      // New team → drop any in-progress lineup/swap state
+      STATE.originalLineup = null;
+      STATE.currentSlots = [null, null, null, null, null];
+      STATE.swappedFrom = [null, null, null, null, null];
+      hideSection('swapSection');
       renderLineupPicker();
     });
   });
 }
 
 async function renderLineupPicker() {
-  STATE.page = 'lineup';
-  renderBreadcrumb();
-  $('content').innerHTML = `<div class="empty-state">Loading lineups…</div>`;
+  // Render section header + show section
+  $('lineupHeader').innerHTML = buildSectionHeader([
+    { text: '← Team', scroll: 'teamSection' },
+    { text: `Choose ${STATE.team}'s lineup`, current: true },
+  ]);
+  wireSectionBackLinks($('lineupHeader'));
+  showSection('lineupSection');
+  scrollToSection('lineupSection');
+
+  $('lineupContent').innerHTML = `<div class="empty-state">Loading lineups…</div>`;
 
   // Yield so the loading state actually renders before we run up to 50 projections
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -619,7 +611,7 @@ async function renderLineupPicker() {
   `);
 
   if (!r.length || !r[0].values.length) {
-    $('content').innerHTML = `<div class="empty-state">No ${seasonTypeLabel().toLowerCase()} lineups for ${STATE.team} in ${STATE.season}.</div>`;
+    $('lineupContent').innerHTML = `<div class="empty-state">No ${seasonTypeLabel().toLowerCase()} lineups for ${STATE.team}.</div>`;
     return;
   }
 
@@ -676,9 +668,9 @@ async function renderLineupPicker() {
     `;
   }).join('');
 
-  $('content').innerHTML = `
+  $('lineupContent').innerHTML = `
     <div style="margin-bottom:0.85rem;font-size:0.78rem;color:var(--text2)">
-      ${STATE.team} 5-man lineups — ${seasonTypeLabel()} — top 50 by minutes played, NetRtg from projection model. Click any to start swapping.
+      ${STATE.team} 5-man lineups — NetRtg from projection model. Click any to start swapping.
     </div>
     <div class="lineup-list">${cards}</div>
   `;
@@ -762,8 +754,15 @@ function loadPlayer(playerId, preferredSeason) {
 }
 
 function renderEditView() {
-  STATE.page = 'edit';
-  renderBreadcrumb();
+  // Section header + show + scroll into view
+  $('swapHeader').innerHTML = buildSectionHeader([
+    { text: '← Team', scroll: 'teamSection' },
+    { text: `${STATE.team} lineups`, scroll: 'lineupSection' },
+    { text: 'Swap & project', current: true },
+  ]);
+  wireSectionBackLinks($('swapHeader'));
+  showSection('swapSection');
+  scrollToSection('swapSection');
 
   const orig = STATE.originalLineup;
   const projOrig = projectLineup(orig.players);
@@ -836,7 +835,7 @@ function renderEditView() {
     `;
   }).join('');
 
-  $('content').innerHTML = `
+  $('swapContent').innerHTML = `
     <div class="proj-panel">
       <div class="proj-row">
         <div class="proj-stat headline ${headlineCls}">
