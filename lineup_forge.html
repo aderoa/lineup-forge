@@ -432,6 +432,44 @@ function viabilityAdjustments(players) {
     notes.push({ label: 'Non-shooting frontcourt — no spacing', drtg: 0, ortg: 1.5 });
   }
 
+  // 7. Defender-stacked backcourt — when both PG and SG are filled by
+  //    low-offense role players (often defensive specialists), the
+  //    backcourt has no offensive engine. The frontcourt has to carry
+  //    all creation and scoring, and defenses can load up on the bigs
+  //    without fearing perimeter punishment. Real NBA pattern: one
+  //    perimeter creator paired with one defender almost always beats
+  //    two defenders or two scorers stacked together — complementary
+  //    skills > redundant ones.
+  //    Uses off_rat (rat365 minus estimated defensive contribution to
+  //    rat365) so a "great defender, mediocre offense" archetype gets
+  //    correctly flagged. Pure rat365 wouldn't distinguish them from
+  //    balanced players.
+  const isBackcourt = p => {
+    const pos = POSITIONS[p.name];
+    return pos === 'PG' || pos === 'SG';
+  };
+  const computeOffRat = p => {
+    if (!QUALITY || !QUALITY.players) return null;
+    const q = QUALITY.players[p.name];
+    if (!q) return null;
+    const d = DEFENSE[p.name];
+    const defAboveAvg = (d?.def_score ?? DEF_CALIB) - DEF_CALIB;
+    return q.rat365 - defAboveAvg * DEF_TO_RAT_FACTOR;
+  };
+  const backcourt = players.filter(isBackcourt);
+  if (backcourt.length === 2) {
+    const offRats = backcourt.map(computeOffRat);
+    if (offRats.every(r => r !== null)) {
+      const bcOffRat = offRats.reduce((s, r) => s + r, 0);
+      // Threshold 18 catches truly punchless pairs (~12 combined) while
+      // letting balanced two-way backcourts through (~22+ combined).
+      if (bcOffRat < 18) {
+        ortg_pen += 1.5;
+        notes.push({ label: 'Defender-stacked backcourt — no offensive engine', drtg: 0, ortg: 1.5 });
+      }
+    }
+  }
+
   return { ortg_pen, drtg_pen, notes };
 }
 
