@@ -283,6 +283,14 @@ function teamLogoURL(abbr) {
 // Two-axis quality model
 const OFF_CALIB = 12, OFF_SCALE = 0.25;   // (rat365 - 12) × 0.25 = offense contribution per player
 const DEF_CALIB = 10, DEF_SCALE = 0.18;   // (DEF_SCORE - 10) × 0.18 = defense contribution per player
+
+// rat365 is HoopsMatic Real Value — a TOTAL impact metric that bundles offense
+// and defense. For OFF Δ we want offense only, so we subtract an estimate of
+// the player's defensive contribution to rat365 (based on their DEF_SCORE).
+// Calibration: 0.5 means roughly half of above-average defensive value is
+// captured in the total rat365. Dial up if defenders feel undervalued
+// offensively, down if elite offensive players still get too much credit.
+const DEF_TO_RAT_FACTOR = 0.5;
 const LEAGUE_BASE = 115;                  // NBA-avg ORtg/DRtg anchor
 
 // Boost gate (gradual GP-based taper): only apply the asymmetric historical boost
@@ -398,13 +406,24 @@ function viabilityAdjustments(players) {
     notes.push({ label: 'Thin rim protection', drtg: 2.0, ortg: 0 });
   }
 
-  // 2. Aggregate size — total rebounding capacity across the 5
-  const sumReb = players.reduce((s, p) => s + (p.reb_pct || 0), 0);
-  if (sumReb < 0.35) {
+  // 2. Aggregate size — total rebounding across the NON-PG slots.
+  //    Small playmakers' size disadvantage is already captured in their
+  //    individual DEF_SCORE, so we don't double-count by also dinging the
+  //    lineup. The structural problem we're catching here is "undersized
+  //    wings/bigs" — fixable only by upgrading the frontcourt.
+  //    Thresholds proportionally adjusted: was 0.50 / 0.35 for 5 players,
+  //    now 0.40 / 0.28 for the ~4 non-PG slots.
+  const nonPgs = players.filter(p => POSITIONS[p.name] !== 'PG');
+  // If POSITIONS data is missing or no PG identified, fall back to all 5
+  // players with original thresholds — preserves prior behavior gracefully.
+  const sumReb = (nonPgs.length >= 3 ? nonPgs : players).reduce((s, p) => s + (p.reb_pct || 0), 0);
+  const tinyThresh = nonPgs.length >= 3 ? 0.28 : 0.35;
+  const smallThresh = nonPgs.length >= 3 ? 0.40 : 0.50;
+  if (sumReb < tinyThresh) {
     drtg_pen += 3.0;
     ortg_pen += 1.5;
     notes.push({ label: 'Tiny lineup', drtg: 3.0, ortg: 1.5 });
-  } else if (sumReb < 0.50) {
+  } else if (sumReb < smallThresh) {
     drtg_pen += 1.0;
     ortg_pen += 0.5;
     notes.push({ label: 'Undersized', drtg: 1.0, ortg: 0.5 });
@@ -1096,27 +1115,16 @@ function projectLineup(players) {
   const pace = mean(players.map(p => p.pace));
 
   // ── Layer 1: two-axis quality ──
-  // Offense per player:  (rat365 − 10) × 0.20
-  // Defense per player:  (DEF_SCORE − 8) × 0.15
+  // Offense per player:  (off_rat − OFF_CALIB) × OFF_SCALE   where off_rat = rat365 − DEF_TO_RAT × (DEF_SCORE − DEF_CALIB)
+  // Defense per player:  (DEF_SCORE − DEF_CALIB) × DEF_SCALE
   // Each uses asymmetric weighted historical (peak boost for injured players).
+  // DEF is computed first because OFF subtracts a DEF-derived term to isolate
+  // offensive value from the total rat365.
   const quality_per_player = players.map(p => {
     const q = getQuality(p.name, p.player_id);
     const d = getDefenseQuality(p.name, p.player_id);
 
-    // Offense contribution from rat365
-    let rat365 = null, rat365_current = null, off_blended = false, off_n_seasons = 0;
-    let off_contrib;
-    if (q) {
-      rat365 = q.rat365;
-      rat365_current = q.rat365_current;
-      off_blended = q.blended;
-      off_n_seasons = q.n_seasons;
-      off_contrib = (rat365 - OFF_CALIB) * OFF_SCALE;
-    } else {
-      off_contrib = (p.netrtg || 0) / 12;
-    }
-
-    // Defense contribution from DEF_SCORE
+    // Defense contribution from DEF_SCORE (computed first — OFF needs this)
     let def_score = null, def_current = null, def_blended = false, def_n_seasons = 0;
     let def_contrib = 0;
     if (d) {
@@ -1125,6 +1133,25 @@ function projectLineup(players) {
       def_blended = d.blended;
       def_n_seasons = d.n_seasons;
       def_contrib = (def_score - DEF_CALIB) * DEF_SCALE;
+    }
+
+    // Offense contribution from rat365, with estimated defensive value removed.
+    // Without this, an elite defender / mediocre scorer (e.g. Amen Thompson)
+    // gets the same OFF Δ as an elite scorer / mediocre defender (e.g. Maxey)
+    // when their rat365 is similar — because rat365 is total Real Value.
+    let rat365 = null, rat365_current = null, off_blended = false, off_n_seasons = 0;
+    let off_contrib;
+    if (q) {
+      rat365 = q.rat365;
+      rat365_current = q.rat365_current;
+      off_blended = q.blended;
+      off_n_seasons = q.n_seasons;
+      const def_above_avg = (def_score ?? DEF_CALIB) - DEF_CALIB;
+      const def_contrib_to_rat = def_above_avg * DEF_TO_RAT_FACTOR;
+      const off_rat = rat365 - def_contrib_to_rat;
+      off_contrib = (off_rat - OFF_CALIB) * OFF_SCALE;
+    } else {
+      off_contrib = (p.netrtg || 0) / 12;
     }
 
     return {
