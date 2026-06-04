@@ -480,18 +480,20 @@ function viabilityAdjustments(players) {
   //    packs the paint with no consequence. Either big alone is fine (a
   //    stretch four next to a rim runner, or a shooting center next to a
   //    finisher) — the problem is when neither can pull a help defender
-  //    beyond the arc. Position-based instead of stat-based: more robust
-  //    to small-sample shooting flukes (rookies getting "shooter" status
-  //    on tiny 3PA volume), and uses the actual roster role from the
-  //    HoopsMatic position dictionary rather than inferring from stats.
+  //    beyond the arc.
+  //    "Spacing threat" has two paths: efficient at meaningful volume
+  //    (35%+ on 2.0+ 3PA) OR high-volume stretch unicorn (3.0+ 3PA at any
+  //    %), since defenders close out on a player attempting 3+/game even
+  //    at 30% — Wembanyama-style threats earn respect through volume.
   const isFrontcourt = p => {
     const pos = POSITIONS[p.name];
     return pos === 'PF' || pos === 'C';
   };
-  const isShooter = p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA;
+  const isSpacingThreat = p =>
+    (p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA) || (p.fg3a >= 3.0);
   const bigs = players.filter(isFrontcourt);
-  const nonShootingBigs = bigs.filter(p => !isShooter(p));
-  if (bigs.length >= 2 && nonShootingBigs.length >= 2) {
+  const nonSpacingBigs = bigs.filter(p => !isSpacingThreat(p));
+  if (bigs.length >= 2 && nonSpacingBigs.length >= 2) {
     ortg_pen += 1.5;
     notes.push({ label: 'Non-shooting frontcourt — no spacing', drtg: 0, ortg: 1.5 });
   }
@@ -805,9 +807,19 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
       reasons.push(`<strong>${(rebGap * 100).toFixed(1)} pp more aggregate REB%</strong> — bigger frontcourt presence.`);
     }
     // Top defensive swap
+    // Top defensive swap — note when the user's player is also defensively
+    // valuable (defensive tradeoff) so the narrative doesn't oversimplify.
     const topDefSwap = [...swaps].sort((a, b) => b.defDelta - a.defDelta)[0];
     if (topDefSwap && topDefSwap.defDelta >= 0.4) {
-      reasons.push(`At <strong>${POSITION_LABELS[topDefSwap.position]}</strong>, <strong>${topDefSwap.optimal.name}</strong> is a far better defender than <strong>${topDefSwap.user.name}</strong> (+${topDefSwap.defDelta.toFixed(1)} DRtg contribution).`);
+      const u = topDefSwap.user, o = topDefSwap.optimal;
+      let sentence = `At <strong>${POSITION_LABELS[topDefSwap.position]}</strong>, <strong>${o.name}</strong> is a far better defender than <strong>${u.name}</strong> (+${topDefSwap.defDelta.toFixed(1)} DRtg contribution)`;
+      // If the optimal player gives back something on offense at this slot,
+      // mention it — keeps the narrative honest about the tradeoff.
+      const offTradeoff = (topDefSwap.user.fg3p || 0) * (topDefSwap.user.fg3a || 0)
+                          - (topDefSwap.optimal.fg3p || 0) * (topDefSwap.optimal.fg3a || 0);
+      if (offTradeoff >= 0.6) sentence += `, though ${u.name} is the better shooter`;
+      sentence += '.';
+      reasons.push(sentence);
     }
     // Viability differences (defense side)
     const userDefConcerns = userProj.viability.notes.filter(n => n.drtg > 0).map(n => n.label);
@@ -835,17 +847,51 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
       reasons.push(`<strong>Higher total offensive talent</strong> — Σ rat365 of ${optRatSum.toFixed(0)} vs your ${userRatSum.toFixed(0)}.`);
     }
     const shooterGap = optP.shooters.length - userP.shooters.length;
-    if (shooterGap >= 1) {
-      reasons.push(`<strong>${shooterGap} additional reliable shooter${shooterGap > 1 ? 's' : ''}</strong> — ${optP.shooters.length} vs ${userP.shooters.length} (35%+ on 2.0+ attempts).`);
+    // Use aggregate "expected made 3s per game" (Σ fg3p × fg3a) rather than
+    // raw shooter count. A 40%-on-8-attempts shooter contributes ~3x the
+    // spacing of a 35%-on-2.1-attempts shooter, but the binary count treats
+    // them as equal. The product captures actual spacing impact — Powell at
+    // 3.2 vs Butler at 0.8 means Powell is clearly the bigger threat even
+    // when both "qualify" as shooters by the threshold.
+    const userExpected3s = userLineup.reduce((s, p) => s + ((p.fg3p || 0) * (p.fg3a || 0)), 0);
+    const optExpected3s = optLineup.reduce((s, p) => s + ((p.fg3p || 0) * (p.fg3a || 0)), 0);
+    const spacingDiff = optExpected3s - userExpected3s;
+    if (spacingDiff >= 0.5) {
+      reasons.push(`<strong>Better floor spacing</strong> — ${optExpected3s.toFixed(1)} vs ${userExpected3s.toFixed(1)} expected made 3s/game (a +${spacingDiff.toFixed(1)} swing).`);
+    } else if (shooterGap >= 1 && spacingDiff > 0.1) {
+      // Edge case: optimal has more "qualifying shooters" but only marginally
+      // more spacing impact. Acknowledge both rather than overclaim.
+      reasons.push(`<strong>${shooterGap} additional reliable shooter${shooterGap > 1 ? 's' : ''}</strong> on paper, though aggregate spacing is similar (${optExpected3s.toFixed(1)} vs ${userExpected3s.toFixed(1)} expected made 3s/game).`);
     }
     const handlerGap = optP.handlers.length - userP.handlers.length;
     if (handlerGap >= 1) {
       reasons.push(`<strong>${handlerGap} more playmaker${handlerGap > 1 ? 's' : ''}</strong> — ${optP.handlers.length} vs ${userP.handlers.length} (AST% ≥ 20%).`);
     }
-    // Top offensive swap
+    // Top offensive swap — with reason for the gap (creation vs scoring vs
+    // efficiency). Helps the user understand WHY the model values one player
+    // over another at the same position, especially when intuition would say
+    // otherwise (e.g., "Powell shoots better than Butler" — true, but Butler's
+    // playmaking lifts his rat365 above Powell's).
     const topOffSwap = [...swaps].sort((a, b) => b.offDelta - a.offDelta)[0];
     if (topOffSwap && topOffSwap.offDelta >= 0.4) {
-      reasons.push(`At <strong>${POSITION_LABELS[topOffSwap.position]}</strong>, <strong>${topOffSwap.optimal.name}</strong> brings more offensive value than <strong>${topOffSwap.user.name}</strong> (+${topOffSwap.offDelta.toFixed(1)} ORtg contribution).`);
+      const u = topOffSwap.user, o = topOffSwap.optimal;
+      const reasonBits = [];
+      const astDiff = (o.ast_pct || 0) - (u.ast_pct || 0);
+      if (astDiff >= 0.06) reasonBits.push(`stronger playmaking (AST% ${(o.ast_pct*100).toFixed(0)} vs ${(u.ast_pct*100).toFixed(0)})`);
+      const tsDiff = (o.ts || 0) - (u.ts || 0);
+      if (tsDiff >= 0.02) reasonBits.push(`better scoring efficiency (TS% ${(o.ts*100).toFixed(0)} vs ${(u.ts*100).toFixed(0)})`);
+      const oMade3 = (o.fg3p || 0) * (o.fg3a || 0);
+      const uMade3 = (u.fg3p || 0) * (u.fg3a || 0);
+      if (oMade3 - uMade3 >= 0.5) reasonBits.push(`more shooting volume`);
+      const tradeoffs = [];
+      if (uMade3 - oMade3 >= 0.5) tradeoffs.push(`${u.name} is the better shooter (${uMade3.toFixed(1)} vs ${oMade3.toFixed(1)} expected made 3s)`);
+      if (astDiff <= -0.06) tradeoffs.push(`${u.name} is the better playmaker`);
+
+      let sentence = `At <strong>${POSITION_LABELS[topOffSwap.position]}</strong>, <strong>${o.name}</strong> brings more total offensive value than <strong>${u.name}</strong> (+${topOffSwap.offDelta.toFixed(1)} ORtg contribution)`;
+      if (reasonBits.length > 0) sentence += ` — driven by ${reasonBits.slice(0, 2).join(' and ')}`;
+      if (tradeoffs.length > 0) sentence += `, though ${tradeoffs.join(' and ')}`;
+      sentence += '.';
+      reasons.push(sentence);
     }
     // Viability differences (offense side)
     const userOffConcerns = userProj.viability.notes.filter(n => n.ortg > 0).map(n => n.label);
