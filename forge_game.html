@@ -154,10 +154,10 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 @media (max-width: 980px) { .pool-grid { grid-template-columns:repeat(3, 1fr); } }
 @media (max-width: 620px) { .pool-grid { grid-template-columns:repeat(2, 1fr); } }
 
-.player-card { background:var(--surface); border:2px solid var(--border); border-radius:8px; padding:0.6rem 0.6rem 0.65rem; cursor:pointer; transition:border-color .15s, background .15s, transform .1s; display:flex; flex-direction:column; gap:0.55rem; position:relative; }
-.player-card:hover:not(.locked):not(.selected) { border-color:var(--accent); background:var(--accent-dim); }
+.player-card { background: color-mix(in srgb, var(--team-color, transparent) 8%, var(--surface)); border:2px solid var(--border); border-radius:8px; padding:0.6rem 0.6rem 0.65rem; cursor:pointer; transition:border-color .15s, background .15s, transform .1s; display:flex; flex-direction:column; gap:0.55rem; position:relative; }
+.player-card:hover:not(.locked):not(.selected) { border-color:var(--accent); background: color-mix(in srgb, var(--team-color, transparent) 14%, var(--accent-dim)); }
 .player-card:active:not(.locked) { transform:translateY(1px); }
-.player-card.selected { border-color:var(--green); background:rgba(22,163,74,0.06); }
+.player-card.selected { border-color:var(--green); background: color-mix(in srgb, var(--team-color, transparent) 10%, rgba(22,163,74,0.10)); }
 .player-card.selected::after { content:'✓'; position:absolute; top:0.4rem; right:0.5rem; color:var(--green); font-weight:700; font-size:0.85rem; z-index:2; }
 .player-card.locked { opacity:0.45; cursor:not-allowed; }
 
@@ -172,6 +172,40 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 .player-card .stats-grid .stat-cell { display:flex; flex-direction:column; gap:0.05rem; align-items:flex-start; }
 .player-card .stats-grid .stat-cell .v { font-size:0.78rem; font-weight:700; color:var(--text1); line-height:1.1; }
 .player-card .stats-grid .stat-cell .l { font-size:0.55rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; line-height:1; }
+
+/* Sixth man — picker and results presentation */
+.sm-intro { text-align:center; max-width:680px; margin:0 auto 1.5rem; padding:0 1rem; }
+.sm-intro h2 { font-size:1.35rem; font-weight:700; margin-bottom:0.5rem; color:var(--text1); }
+.sm-intro p { font-size:0.85rem; color:var(--text2); line-height:1.5; }
+
+.player-card.sm-card .sm-pos-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); margin-bottom:0.1rem; }
+.player-card.sm-card.sm-empty { cursor:not-allowed; opacity:0.5; align-items:center; justify-content:center; min-height:180px; }
+.player-card.sm-card.sm-empty .sm-no-options { font-size:0.78rem; color:var(--muted); text-align:center; }
+
+.results-sixth-man { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.4rem; margin-bottom:1.25rem; }
+.results-sixth-man > h3 { font-size:0.74rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:0.85rem; }
+.results-sixth-man .sm-body { display:flex; gap:1.1rem; align-items:flex-start; flex-wrap:wrap; }
+.results-sixth-man .sm-headshot-wrap { display:flex; align-items:center; gap:0.7rem; }
+.results-sixth-man .sm-headshot { width:60px; height:44px; border-radius:6px; object-fit:cover; object-position:center top; background:var(--bg); }
+.results-sixth-man .sm-name { font-weight:700; font-size:1rem; line-height:1.2; }
+.results-sixth-man .sm-meta { font-size:0.72rem; color:var(--muted); margin-top:0.2rem; display:flex; align-items:center; gap:0.3rem; font-family:'JetBrains Mono',monospace; }
+.results-sixth-man .sm-meta img { width:14px; height:14px; }
+.results-sixth-man .sm-badges { display:flex; gap:0.45rem; margin-left:auto; flex-wrap:wrap; }
+.results-sixth-man .sm-badge { font-size:0.7rem; font-weight:600; padding:0.35rem 0.7rem; border-radius:999px; display:inline-flex; align-items:center; gap:0.3rem; }
+.results-sixth-man .sm-badge .lbl { font-size:0.55rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; font-weight:500; }
+.results-sixth-man .q-elite { background:rgba(22,163,74,0.10); color:var(--green); border:1px solid rgba(22,163,74,0.30); }
+.results-sixth-man .q-solid { background:rgba(59,130,246,0.10); color:#1d4ed8; border:1px solid rgba(59,130,246,0.30); }
+.results-sixth-man .q-role  { background:rgba(245,158,11,0.10); color:#b45309; border:1px solid rgba(245,158,11,0.30); }
+.results-sixth-man .q-deep  { background:var(--bg); color:var(--muted); border:1px solid var(--border); }
+.results-sixth-man .f-elite { background:rgba(22,163,74,0.10); color:var(--green); border:1px solid rgba(22,163,74,0.30); }
+.results-sixth-man .f-good  { background:rgba(59,130,246,0.10); color:#1d4ed8; border:1px solid rgba(59,130,246,0.30); }
+.results-sixth-man .f-meh   { background:rgba(245,158,11,0.10); color:#b45309; border:1px solid rgba(245,158,11,0.30); }
+.results-sixth-man .f-bad   { background:rgba(220,38,38,0.08); color:#b91c1c; border:1px solid rgba(220,38,38,0.30); }
+.results-sixth-man .sm-fits { margin-top:0.85rem; padding-top:0.85rem; border-top:1px solid var(--border); }
+.results-sixth-man .sm-fits ul { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.3rem; }
+.results-sixth-man .sm-fits li { font-size:0.82rem; color:var(--text2); line-height:1.4; padding-left:1.1rem; position:relative; }
+.results-sixth-man .sm-fits li::before { content:'•'; position:absolute; left:0.3rem; color:var(--accent); font-weight:700; }
+.results-sixth-man .sm-fits .sm-brings { font-size:0.82rem; color:var(--text2); line-height:1.5; }
 
 .results-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
 .results-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.4rem; }
@@ -601,6 +635,8 @@ const POSITION_LABELS = { pg: 'Point Guard', sg: 'Shooting Guard', sf: 'Small Fo
 const GAME = {
   pool: null,                                            // { pg: [], sg: [], sf: [], pf: [], c: [] }
   selected: { pg: null, sg: null, sf: null, pf: null, c: null },
+  sixth_man_pool: null,                                  // { pg: player, sg: player, ..., c: player }
+  selected_sixth_man: null,                              // a single picked player from the sixth-man pool
   optimal: null,                                         // { lineup, netrtg, projection }
   worst: null,
   loading_optimal: false,
@@ -661,6 +697,22 @@ const NBA_TEAM_IDS = {
   OKC:'1610612760', ORL:'1610612753', PHI:'1610612755', PHX:'1610612756',
   POR:'1610612757', SAC:'1610612758', SAS:'1610612759', TOR:'1610612761',
   UTA:'1610612762', WAS:'1610612764',
+};
+
+// NBA primary team colors — used as a low-opacity tint on player cards
+// to make team affiliation immediately recognizable. For teams with
+// strong dual identities (PHX purple/orange, CHA teal/purple), I picked
+// the color most associated with current branding and visually most
+// distinct from neighbors in this list.
+const NBA_TEAM_COLORS = {
+  ATL:'#E03A3E', BOS:'#007A33', BKN:'#000000', CHA:'#00788C',
+  CHI:'#CE1141', CLE:'#860038', DAL:'#00538C', DEN:'#0E2240',
+  DET:'#C8102E', GSW:'#1D428A', HOU:'#CE1141', IND:'#002D62',
+  LAC:'#C8102E', LAL:'#552583', MEM:'#5D76A9', MIA:'#98002E',
+  MIL:'#00471B', MIN:'#0C2340', NOP:'#0C2340', NYK:'#006BB6',
+  OKC:'#007AC1', ORL:'#0077C0', PHI:'#006BB6', PHX:'#E56020',
+  POR:'#E03A3E', SAC:'#5A2D81', SAS:'#000000', TOR:'#CE1141',
+  UTA:'#002B5C', WAS:'#002B5C',
 };
 
 // Fisher-Yates shuffle — the standard uniform random permutation.
@@ -777,6 +829,8 @@ function renderIntro() {
 async function startNewGame() {
   GAME.pool = generatePool();
   GAME.selected = { pg: null, sg: null, sf: null, pf: null, c: null };
+  GAME.sixth_man_pool = null;
+  GAME.selected_sixth_man = null;
   GAME.optimal = null;
   GAME.worst = null;
   GAME.loading_optimal = true;
@@ -818,7 +872,7 @@ function renderPool() {
   document.querySelectorAll('.player-card').forEach(card => {
     card.addEventListener('click', () => togglePlayer(card.dataset.bucket, +card.dataset.idx));
   });
-  if (valid) $('buildBtn').addEventListener('click', showResults);
+  if (valid) $('buildBtn').addEventListener('click', showSixthManPicker);
 }
 
 function renderCards(players, bucket) {
@@ -826,6 +880,7 @@ function renderCards(players, bucket) {
   return players.map((p, idx) => {
     const isSel = sel && sel.player_id === p.player_id;
     const teamId = NBA_TEAM_IDS[p.team];
+    const teamColor = NBA_TEAM_COLORS[p.team] || 'transparent';
     // NBA's headshot CDN — 260x190 is the standard small size, cached
     // forever, includes retired/historical players. onerror hides
     // gracefully if the player ID hasn't been processed yet.
@@ -837,7 +892,7 @@ function renderCards(players, bucket) {
     const eFg = (p.fga > 0) ? ((p.fgm + 0.5 * p.fg3m) / p.fga) * 100 : null;
     const defScore = DEFENSE[p.name]?.def_score;
     return `
-      <div class="player-card ${isSel ? 'selected' : ''}" data-bucket="${bucket}" data-idx="${idx}">
+      <div class="player-card ${isSel ? 'selected' : ''}" data-bucket="${bucket}" data-idx="${idx}" style="--team-color: ${teamColor}">
         <div class="card-head">
           <img class="headshot" src="${headshotUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"/>
           <div class="head-text">
@@ -871,6 +926,229 @@ function togglePlayer(bucket, idx) {
     GAME.selected[bucket] = player;
   }
   renderPool();
+}
+
+// ─── Sixth man ───────────────────────────────────────────────────────
+// Generate one candidate per position from the entire eligible league,
+// capped at the 2nd-best rat365 in THIS GAME's starting pool for that
+// position (not the league). That makes the sixth man feel relative to
+// the pool — a weak pool gives a weak bench cap; a strong pool gives a
+// strong bench cap — and prevents the obvious best-in-pool player from
+// quietly appearing as a bench option. Picks are NOT constrained by team
+// uniqueness from the starting five (real NBA bench players often share
+// a team with a starter).
+function generateSixthMan(startingFive) {
+  const allEligible = getAllEligiblePlayers();
+  const startingFiveIds = new Set(startingFive.map(p => p.player_id));
+
+  const byPosition = { PG: [], SG: [], SF: [], PF: [], C: [] };
+  for (const p of allEligible) {
+    const pos = classifyPosition(p);
+    if (pos) byPosition[pos].push(p);
+  }
+
+  // Cap is per-pool, per-position: sort the 5 starting-pool candidates
+  // at each position by rat365 desc, take the one at index 1 (2nd-best).
+  // Candidates with higher rat365 than that are excluded — even MVP-tier
+  // players who aren't in the pool can't sneak in off the bench. If the
+  // pool has fewer than 2 players at a position (shouldn't happen but
+  // safe-guard), use Infinity as the cap.
+  const caps = {};
+  for (const pos of POSITION_KEYS) {
+    const startingPool = GAME.pool?.[pos] || [];
+    if (startingPool.length < 2) {
+      caps[pos] = Infinity;
+      continue;
+    }
+    const sortedByRat = [...startingPool].sort((a, b) => {
+      const aRat = QUALITY?.players?.[a.name]?.rat365 ?? 0;
+      const bRat = QUALITY?.players?.[b.name]?.rat365 ?? 0;
+      return bRat - aRat;
+    });
+    caps[pos] = QUALITY?.players?.[sortedByRat[1].name]?.rat365 ?? Infinity;
+  }
+
+  const candidates = {};
+  for (const pos of POSITION_KEYS) {
+    const POS_UPPER = pos.toUpperCase();
+    const cap = caps[pos];
+    const valid = byPosition[POS_UPPER].filter(p => {
+      if (startingFiveIds.has(p.player_id)) return false;
+      const q = QUALITY?.players?.[p.name];
+      if (!q) return false;  // need rat365 data to apply the cap
+      return q.rat365 <= cap;
+    });
+    candidates[pos] = valid.length === 0 ? null : shuffle(valid)[0];
+  }
+  return candidates;
+}
+
+// Sixth-man picker UI — separate screen between the starter selection and
+// the final results. The user picks ONE candidate from up to 5 (one per
+// position). The 6th man doesn't affect the projection of the starting
+// five; it gets its own quality + fit assessment on the results screen.
+function showSixthManPicker() {
+  const userLineup = POSITION_KEYS.map(k => GAME.selected[k]);
+
+  // Generate once per game so re-renders don't shuffle the candidates
+  // under the user (would be confusing). Cleared by "Edit starters" or
+  // by startNewGame.
+  if (!GAME.sixth_man_pool) {
+    GAME.sixth_man_pool = generateSixthMan(userLineup);
+  }
+
+  const pool = GAME.sixth_man_pool;
+  const sel = GAME.selected_sixth_man;
+
+  const cards = POSITION_KEYS.map(pos => {
+    const p = pool[pos];
+    if (!p) {
+      return `
+        <div class="player-card sm-card sm-empty">
+          <div class="sm-pos-label">${POSITION_LABELS[pos]}</div>
+          <div class="sm-no-options">No eligible candidates</div>
+        </div>
+      `;
+    }
+    const isSel = sel && sel.player_id === p.player_id;
+    const teamId = NBA_TEAM_IDS[p.team];
+    const teamColor = NBA_TEAM_COLORS[p.team] || 'transparent';
+    const headshotUrl = `https://cdn.nba.com/headshots/nba/latest/260x190/${p.player_id}.png`;
+    const logoUrl = teamId ? `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg` : null;
+    const eFg = (p.fga > 0) ? ((p.fgm + 0.5 * p.fg3m) / p.fga) * 100 : null;
+    const defScore = DEFENSE[p.name]?.def_score;
+    return `
+      <div class="player-card sm-card ${isSel ? 'selected' : ''}" data-pos="${pos}" style="--team-color: ${teamColor}">
+        <div class="sm-pos-label">${POSITION_LABELS[pos]}</div>
+        <div class="card-head">
+          <img class="headshot" src="${headshotUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"/>
+          <div class="head-text">
+            <div class="name">${p.name}</div>
+            <div class="meta">
+              ${logoUrl ? `<img class="team-logo" src="${logoUrl}" alt="" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+              <span>${p.team || '—'}</span>
+            </div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-cell"><span class="v">${(p.pts ?? 0).toFixed(1)}</span><span class="l">PPG</span></div>
+          <div class="stat-cell"><span class="v">${(p.reb ?? 0).toFixed(1)}</span><span class="l">RPG</span></div>
+          <div class="stat-cell"><span class="v">${(p.ast ?? 0).toFixed(1)}</span><span class="l">APG</span></div>
+          <div class="stat-cell"><span class="v">${eFg !== null ? eFg.toFixed(1) : '—'}</span><span class="l">eFG%</span></div>
+          <div class="stat-cell"><span class="v">${(p.usg * 100).toFixed(1)}</span><span class="l">USG%</span></div>
+          <div class="stat-cell"><span class="v">${defScore !== undefined ? defScore.toFixed(1) : '—'}</span><span class="l">DEF</span></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  $('game').innerHTML = `
+    <div class="sm-intro">
+      <h2>Pick your sixth man</h2>
+      <p>One candidate per position, each capped at the 2nd-best player in your starting pool at that spot — keeps the bench tier-appropriate to the game's pool. The sixth man won't change your starting five's projected rating; they're evaluated separately on quality and fit with what you built.</p>
+    </div>
+    <div class="pool-section">
+      <div class="pool-section-header">Bench candidates</div>
+      <div class="pool-grid">${cards}</div>
+    </div>
+    <div style="display:flex; gap:0.6rem; justify-content:center; align-items:center; margin-top:1.5rem; flex-wrap:wrap">
+      <button class="btn" id="backStartersBtn" style="background:transparent; color:var(--muted); border:1px solid var(--border)">← Edit starters</button>
+      <button class="btn build-btn" id="showResultsBtn" ${sel ? '' : 'disabled style="opacity:0.4;cursor:not-allowed"'}>
+        Show me the results ${sel ? '→' : '(pick one)'}
+      </button>
+    </div>
+  `;
+
+  document.querySelectorAll('.sm-card').forEach(card => {
+    if (card.classList.contains('sm-empty')) return;
+    card.addEventListener('click', () => toggleSixthMan(card.dataset.pos));
+  });
+  $('backStartersBtn').addEventListener('click', () => {
+    // Clear the sixth-man pool so it regenerates if starters change.
+    // Keeps cached pool stale-proof.
+    GAME.sixth_man_pool = null;
+    GAME.selected_sixth_man = null;
+    renderPool();
+  });
+  if (sel) $('showResultsBtn').addEventListener('click', showResults);
+
+  // Scroll to top — same three-layer pattern as showResults so the user
+  // lands on the new screen from the top regardless of where they were.
+  try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (e) {}
+  try { if (window.parent !== window) window.parent.scrollTo({ top: 0, behavior: 'instant' }); } catch (e) {}
+  try { if (window.parent !== window) window.parent.postMessage({ type: 'forge:scroll-to-top' }, '*'); } catch (e) {}
+}
+
+function toggleSixthMan(pos) {
+  const player = GAME.sixth_man_pool[pos];
+  if (!player) return;
+  // Single-select across positions: picking a different position replaces
+  if (GAME.selected_sixth_man && GAME.selected_sixth_man.player_id === player.player_id) {
+    GAME.selected_sixth_man = null;
+  } else {
+    GAME.selected_sixth_man = player;
+  }
+  showSixthManPicker();
+}
+
+// Quality + fit assessment for the picked sixth man. Quality is the
+// player's absolute level (rat365 tier). Fit is whether they address
+// composition gaps in the starting five — adding shooting to a thin-
+// spacing lineup is worth more than adding shooting to a lineup that
+// already has four shooters.
+function evaluateSixthMan(sixthMan, startingFive) {
+  if (!sixthMan) return null;
+  const rat365 = QUALITY?.players?.[sixthMan.name]?.rat365 ?? 0;
+  const defScore = DEFENSE[sixthMan.name]?.def_score;
+
+  // Quality tiers — calibrated against rat365 distribution. The 2nd-best
+  // cap means even "Elite bench piece" stays below MVP tier (~25+).
+  let qualityTier, qualityClass;
+  if (rat365 >= 18)      { qualityTier = 'Elite bench piece';  qualityClass = 'q-elite'; }
+  else if (rat365 >= 14) { qualityTier = 'Solid contributor';  qualityClass = 'q-solid'; }
+  else if (rat365 >= 10) { qualityTier = 'Role player';         qualityClass = 'q-role'; }
+  else                   { qualityTier = 'Deep bench piece';    qualityClass = 'q-deep'; }
+
+  // Starting-five composition profile — what the lineup already has
+  const startingShooters       = startingFive.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA).length;
+  const startingHandlers       = startingFive.filter(p => (p.ast_pct || 0) >= AST_HIGH).length;
+  const startingBigs           = startingFive.filter(p => (p.reb_pct || 0) >= 0.13).length;
+  const startingRimProtectors  = startingFive.filter(p => (p.blk || 0) >= 1.0).length;
+
+  // What the sixth man brings, mapped to the same thresholds
+  const isShooter       = sixthMan.fg3p >= SHOOT_OK && sixthMan.fg3a >= SHOOT_MIN_3PA;
+  const isHandler       = (sixthMan.ast_pct || 0) >= AST_HIGH;
+  const isBigBody       = (sixthMan.reb_pct || 0) >= 0.13;
+  const isRimProtector  = (sixthMan.blk || 0) >= 1.0;
+  const isScorer        = (sixthMan.usg || 0) >= 0.25 && rat365 >= 12;
+
+  // Fits = strengths the sixth man brings that address starting-five gaps
+  const fits = [];
+  if (isShooter && startingShooters < 3) fits.push('Adds shooting to a thin-spacing unit');
+  if (isHandler && startingHandlers < 2) fits.push('Adds playmaking to relieve creation load');
+  if (isBigBody && startingBigs < 2) fits.push('Adds size/rebounding to an undersized lineup');
+  if (isRimProtector && startingRimProtectors === 0) fits.push('Adds rim protection where the starters have none');
+  if (isScorer && startingFive.filter(p => (QUALITY?.players?.[p.name]?.rat365 ?? 0) >= 18).length < 2) {
+    fits.push('Brings scoring punch to a lineup short on offensive engines');
+  }
+
+  // Always-true positives — what the sixth man brings regardless of gaps.
+  // Surfaced when no specific fit fires, so the user still sees something.
+  const brings = [];
+  if (isShooter)      brings.push('shooting');
+  if (isHandler)      brings.push('playmaking');
+  if (isBigBody)      brings.push('rebounding');
+  if (isRimProtector) brings.push('rim protection');
+  if (isScorer)       brings.push('scoring');
+
+  // Fit verdict — graded summary
+  let fitVerdict, fitClass;
+  if (fits.length >= 2)      { fitVerdict = 'Excellent fit — fills multiple gaps'; fitClass = 'f-elite'; }
+  else if (fits.length === 1){ fitVerdict = 'Good fit — fills a specific need';    fitClass = 'f-good'; }
+  else if (brings.length >= 1){ fitVerdict = 'Average fit — duplicates strengths the starters already have'; fitClass = 'f-meh'; }
+  else                       { fitVerdict = 'Weak fit — no standout role to play';                          fitClass = 'f-bad'; }
+
+  return { rat365, defScore, qualityTier, qualityClass, fits, brings, fitVerdict, fitClass };
 }
 
 // Narrative lineup comparison — explains WHY the optimal is better, in terms
@@ -1359,6 +1637,47 @@ async function showResults() {
   // Lineup comparison narrative — only meaningful when lineups differ
   const comparisonHtml = isOptimal ? '' : renderLineupComparison(userLineup, GAME.optimal.lineup, userProj, optProj);
 
+  // Sixth-man section — quality + fit assessment for the bench pick.
+  // Decoupled from the starting-five rating (Alberto's design choice):
+  // the sixth man tells you what your bench adds, not whether your
+  // starters were good.
+  const sm = GAME.selected_sixth_man;
+  const smEval = evaluateSixthMan(sm, userLineup);
+  let sixthManHtml = '';
+  if (sm && smEval) {
+    const teamId = NBA_TEAM_IDS[sm.team];
+    const teamColor = NBA_TEAM_COLORS[sm.team] || 'transparent';
+    const headshotUrl = `https://cdn.nba.com/headshots/nba/latest/260x190/${sm.player_id}.png`;
+    const logoUrl = teamId ? `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg` : null;
+    const fitsBlock = smEval.fits.length > 0
+      ? `<ul>${smEval.fits.map(f => `<li>${f}</li>`).join('')}</ul>`
+      : `<div class="sm-brings">${smEval.brings.length > 0
+          ? `Brings ${smEval.brings.join(', ')} — but the starting five already covers these areas.`
+          : 'No standout skills to plug into the starting five.'}</div>`;
+    sixthManHtml = `
+      <div class="results-sixth-man" style="--team-color: ${teamColor}">
+        <h3>Sixth Man</h3>
+        <div class="sm-body">
+          <div class="sm-headshot-wrap">
+            <img class="sm-headshot" src="${headshotUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"/>
+            <div>
+              <div class="sm-name">${sm.name}</div>
+              <div class="sm-meta">
+                ${logoUrl ? `<img src="${logoUrl}" alt="" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+                ${sm.team || ''} · ${POSITION_LABELS[POSITION_KEYS.find(k => GAME.sixth_man_pool[k]?.player_id === sm.player_id)] || ''}
+              </div>
+            </div>
+          </div>
+          <div class="sm-badges">
+            <span class="sm-badge ${smEval.qualityClass}"><span class="lbl">Quality</span>${smEval.qualityTier}</span>
+            <span class="sm-badge ${smEval.fitClass}"><span class="lbl">Fit</span>${smEval.fitVerdict.split(' — ')[0]}</span>
+          </div>
+        </div>
+        <div class="sm-fits">${fitsBlock}</div>
+      </div>
+    `;
+  }
+
   $('game').innerHTML = `
     <div class="score-display">
       <div class="verdict">${verdict}</div>
@@ -1399,6 +1718,8 @@ async function showResults() {
         ` : ''}
       </div>
     </div>
+
+    ${sixthManHtml}
 
     ${comparisonHtml}
 
