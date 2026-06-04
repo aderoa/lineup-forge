@@ -414,18 +414,20 @@ function viabilityAdjustments(players) {
   //    packs the paint with no consequence. Either big alone is fine (a
   //    stretch four next to a rim runner, or a shooting center next to a
   //    finisher) — the problem is when neither can pull a help defender
-  //    beyond the arc. Position-based instead of stat-based: more robust
-  //    to small-sample shooting flukes (rookies getting "shooter" status
-  //    on tiny 3PA volume), and uses the actual roster role from the
-  //    HoopsMatic position dictionary rather than inferring from stats.
+  //    beyond the arc.
+  //    "Spacing threat" has two paths: efficient at meaningful volume
+  //    (35%+ on 2.0+ 3PA) OR high-volume stretch unicorn (3.0+ 3PA at any
+  //    %), since defenders close out on a player attempting 3+/game even
+  //    at 30% — Wembanyama-style threats earn respect through volume.
   const isFrontcourt = p => {
     const pos = POSITIONS[p.name];
     return pos === 'PF' || pos === 'C';
   };
-  const isShooter = p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA;
+  const isSpacingThreat = p =>
+    (p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA) || (p.fg3a >= 3.0);
   const bigs = players.filter(isFrontcourt);
-  const nonShootingBigs = bigs.filter(p => !isShooter(p));
-  if (bigs.length >= 2 && nonShootingBigs.length >= 2) {
+  const nonSpacingBigs = bigs.filter(p => !isSpacingThreat(p));
+  if (bigs.length >= 2 && nonSpacingBigs.length >= 2) {
     ortg_pen += 1.5;
     notes.push({ label: 'Non-shooting frontcourt — no spacing', drtg: 0, ortg: 1.5 });
   }
