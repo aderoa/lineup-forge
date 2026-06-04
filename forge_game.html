@@ -993,14 +993,35 @@ function describeSwap(swap, userLineup, userProj) {
     const playerDelta = off + def;
     const structuralEffect = lineupDelta - playerDelta;
 
-    if (Math.abs(structuralEffect) >= 0.5) {
+    // Surface a lineup-level explanation in TWO cases:
+    //   1. Structural effect is meaningful in absolute terms (>= 0.5 NetRtg)
+    //      — the swap clearly changes something at the lineup level
+    //   2. The per-player numbers don't justify the optimal's pick
+    //      (playerDelta <= 0, meaning user's player is equal or better
+    //      individually) but the model still picked the optimal — the
+    //      user is most likely confused without an explanation
+    // Together these cover both "big lineup effect" and "tiny margin tipping
+    // a near-tie" — the cases where the per-player narrative alone leaves
+    // the reader asking "why was that picked?"
+    const isCloseCall = Math.abs(structuralEffect) < 0.5;
+    const surfacedNeeded = !isCloseCall || (playerDelta <= 0 && lineupDelta > 0);
+
+    if (surfacedNeeded) {
       const userPenalties = new Set(userProj.viability.notes.map(n => n.label));
       const swapPenalties = new Set(swapProj.viability.notes.map(n => n.label));
       const removed = [...userPenalties].filter(p => !swapPenalties.has(p));
       const added = [...swapPenalties].filter(p => !userPenalties.has(p));
 
       let structuralClause = '';
-      if (removed.length > 0 && structuralEffect > 0) {
+      if (isCloseCall) {
+        // Close call — small structural effect tips a near-tied per-player
+        // comparison. Be honest about the marginal nature.
+        if (removed.length > 0) {
+          structuralClause = ` Close call — this swap also removes the <em>"${removed[0]}"</em> penalty, just enough to tip the model toward ${o.name}.`;
+        } else {
+          structuralClause = ` Close call — fit factors give ${o.name} a marginal +${lineupDelta.toFixed(1)} NetRtg edge, essentially a coin-flip preference between two near-equivalent picks.`;
+        }
+      } else if (removed.length > 0 && structuralEffect > 0) {
         // Concrete: a viability penalty disappears
         structuralClause = ` Crucially, this swap removes your lineup's <em>"${removed[0]}"</em> penalty — a +${structuralEffect.toFixed(1)} NetRtg lineup-level boost that's why the model picks ${o.name} despite the individual numbers.`;
       } else if (added.length > 0 && structuralEffect < 0) {
