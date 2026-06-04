@@ -983,9 +983,21 @@ function togglePlayer(bucket, idx) {
 // quietly appearing as a bench option. Picks are NOT constrained by team
 // uniqueness from the starting five (real NBA bench players often share
 // a team with a starter).
+//
+// IMPORTANT: candidates exclude ALL 25 players the user already saw in
+// the starting pool, not just the 5 they picked. The bench should feel
+// like genuinely new options, not leftover passes from the pool.
 function generateSixthMan(startingFive) {
   const allEligible = getAllEligiblePlayers();
-  const startingFiveIds = new Set(startingFive.map(p => p.player_id));
+
+  // Build a set of every player_id in the 25-player starting pool —
+  // both selected and unselected. None of these may reappear as bench
+  // candidates.
+  const poolPlayerIds = new Set();
+  for (const pos of POSITION_KEYS) {
+    const poolAtPos = GAME.pool?.[pos] || [];
+    for (const p of poolAtPos) poolPlayerIds.add(p.player_id);
+  }
 
   const byPosition = { PG: [], SG: [], SF: [], PF: [], C: [] };
   for (const p of allEligible) {
@@ -1019,7 +1031,10 @@ function generateSixthMan(startingFive) {
     const POS_UPPER = pos.toUpperCase();
     const cap = caps[pos];
     const valid = byPosition[POS_UPPER].filter(p => {
-      if (startingFiveIds.has(p.player_id)) return false;
+      // Exclude every player who appeared anywhere in the starting pool —
+      // not just the picked five. The user has already seen all 25 and
+      // chose; the bench should be fresh options they haven't seen.
+      if (poolPlayerIds.has(p.player_id)) return false;
       const q = QUALITY?.players?.[p.name];
       if (!q) return false;  // need rat365 data to apply the cap
       return q.rat365 <= cap;
