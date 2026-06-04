@@ -150,18 +150,28 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 .pool-section-header { font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text1); margin-bottom:0.7rem; padding-bottom:0.4rem; border-bottom:1px solid var(--border); display:flex; align-items:baseline; gap:0.6rem; }
 .pool-section-header .needed { font-weight:500; font-size:0.7rem; color:var(--muted); text-transform:none; letter-spacing:0; }
 
-.pool-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:0.5rem; }
+.pool-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:0.55rem; }
+@media (max-width: 980px) { .pool-grid { grid-template-columns:repeat(3, 1fr); } }
+@media (max-width: 620px) { .pool-grid { grid-template-columns:repeat(2, 1fr); } }
 
-.player-card { background:var(--surface); border:2px solid var(--border); border-radius:8px; padding:0.7rem 0.65rem; cursor:pointer; transition:border-color .15s, background .15s, transform .1s; display:flex; flex-direction:column; gap:0.3rem; position:relative; }
+.player-card { background:var(--surface); border:2px solid var(--border); border-radius:8px; padding:0.6rem 0.6rem 0.65rem; cursor:pointer; transition:border-color .15s, background .15s, transform .1s; display:flex; flex-direction:column; gap:0.55rem; position:relative; }
 .player-card:hover:not(.locked):not(.selected) { border-color:var(--accent); background:var(--accent-dim); }
 .player-card:active:not(.locked) { transform:translateY(1px); }
 .player-card.selected { border-color:var(--green); background:rgba(22,163,74,0.06); }
-.player-card.selected::after { content:'✓'; position:absolute; top:0.4rem; right:0.5rem; color:var(--green); font-weight:700; font-size:0.85rem; }
+.player-card.selected::after { content:'✓'; position:absolute; top:0.4rem; right:0.5rem; color:var(--green); font-weight:700; font-size:0.85rem; z-index:2; }
 .player-card.locked { opacity:0.45; cursor:not-allowed; }
-.player-card .name { font-size:0.8rem; font-weight:700; line-height:1.2; }
-.player-card .meta { font-size:0.62rem; color:var(--muted); font-family:'JetBrains Mono',monospace; }
-.player-card .stats { font-size:0.62rem; color:var(--text2); font-family:'JetBrains Mono',monospace; line-height:1.5; }
-.player-card .stats .stat-label { color:var(--muted); }
+
+.player-card .card-head { display:flex; gap:0.55rem; align-items:center; min-width:0; }
+.player-card .headshot { width:44px; height:32px; border-radius:5px; object-fit:cover; object-position:center top; background:var(--bg); flex-shrink:0; }
+.player-card .head-text { display:flex; flex-direction:column; gap:0.15rem; min-width:0; flex:1; }
+.player-card .name { font-size:0.78rem; font-weight:700; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.player-card .meta { font-size:0.62rem; color:var(--muted); font-family:'JetBrains Mono',monospace; display:flex; align-items:center; gap:0.3rem; line-height:1; }
+.player-card .team-logo { width:14px; height:14px; object-fit:contain; }
+
+.player-card .stats-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:0.35rem 0.4rem; font-family:'JetBrains Mono',monospace; }
+.player-card .stats-grid .stat-cell { display:flex; flex-direction:column; gap:0.05rem; align-items:flex-start; }
+.player-card .stats-grid .stat-cell .v { font-size:0.78rem; font-weight:700; color:var(--text1); line-height:1.1; }
+.player-card .stats-grid .stat-cell .l { font-size:0.55rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; line-height:1; }
 
 .results-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
 .results-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.4rem; }
@@ -620,7 +630,8 @@ function getAllEligiblePlayers() {
     SELECT a.PLAYER_ID, a.PLAYER_NAME, a.TEAM_ABBREVIATION, a.SEASON,
            a.OFF_RATING, a.DEF_RATING, a.NET_RATING, a.USG_PCT, a.TS_PCT,
            a.AST_PCT, a.REB_PCT, a.PIE, a.PACE, a.MIN, a.GP,
-           b.FG3_PCT, b.FG3A, b.BLK
+           b.FG3_PCT, b.FG3A, b.BLK,
+           b.PTS, b.REB, b.AST, b.FGM, b.FGA, b.FG3M
     FROM player_advanced a
     LEFT JOIN player_base b ON a.PLAYER_ID = b.PLAYER_ID AND a.SEASON = b.SEASON AND a.SEASON_TYPE = b.SEASON_TYPE
     WHERE a.SEASON = '${STATE.season}'
@@ -634,12 +645,39 @@ function getAllEligiblePlayers() {
     ortg:+v[4], drtg:+v[5], netrtg:+v[6], usg:+v[7], ts:+v[8],
     ast_pct:+v[9], reb_pct:+v[10], pie:+v[11], pace:+v[12], min:+v[13], gp:+v[14],
     fg3p:+v[15], fg3a:+v[16], blk:+v[17],
+    pts:+v[18], reb:+v[19], ast:+v[20], fgm:+v[21], fga:+v[22], fg3m:+v[23],
   }));
 }
 
-function sampleN(arr, n) {
+// NBA team ID mapping — needed for cdn.nba.com logo URLs. Embedded here
+// rather than queried from the DB to avoid an additional join and to
+// guarantee logos work even for historical seasons.
+const NBA_TEAM_IDS = {
+  ATL:'1610612737', BOS:'1610612738', BKN:'1610612751', CHA:'1610612766',
+  CHI:'1610612741', CLE:'1610612739', DAL:'1610612742', DEN:'1610612743',
+  DET:'1610612765', GSW:'1610612744', HOU:'1610612745', IND:'1610612754',
+  LAC:'1610612746', LAL:'1610612747', MEM:'1610612763', MIA:'1610612748',
+  MIL:'1610612749', MIN:'1610612750', NOP:'1610612740', NYK:'1610612752',
+  OKC:'1610612760', ORL:'1610612753', PHI:'1610612755', PHX:'1610612756',
+  POR:'1610612757', SAC:'1610612758', SAS:'1610612759', TOR:'1610612761',
+  UTA:'1610612762', WAS:'1610612764',
+};
+
+// Sample n items from arr at random. If blockedTeams (a Set) is provided,
+// skip any item whose `team` is already in the set, and add each picked
+// item's team to the set. This is how the pool enforces one-player-per-
+// team uniqueness across all 25 slots.
+function sampleN(arr, n, blockedTeams) {
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, n);
+  if (!blockedTeams) return shuffled.slice(0, n);
+  const result = [];
+  for (const p of shuffled) {
+    if (result.length >= n) break;
+    if (p.team && blockedTeams.has(p.team)) continue;
+    result.push(p);
+    if (p.team) blockedTeams.add(p.team);
+  }
+  return result;
 }
 
 function generatePool() {
@@ -649,14 +687,19 @@ function generatePool() {
     const pos = classifyPosition(p);
     if (pos && buckets[pos]) buckets[pos].push(p);
   }
-  // 5 candidates per position → 5⁵ = 3,125 combinations to search exhaustively.
-  // If a position has fewer than 5 eligible players, sampleN returns the lot.
+  // Enforce one player per team across the entire 25-player pool. With 30
+  // NBA teams and 25 slots, greedy sampling has 5 teams of slack and works
+  // reliably. Randomize the order positions are filled so no single
+  // position is starved when many of its players come from already-claimed
+  // teams. 5 candidates per position → 5⁵ = 3,125 combinations to project.
+  const blockedTeams = new Set();
+  const order = ['PG', 'SG', 'SF', 'PF', 'C'].sort(() => Math.random() - 0.5);
+  const filled = {};
+  for (const pos of order) {
+    filled[pos] = sampleN(buckets[pos], 5, blockedTeams);
+  }
   return {
-    pg: sampleN(buckets.PG, 5),
-    sg: sampleN(buckets.SG, 5),
-    sf: sampleN(buckets.SF, 5),
-    pf: sampleN(buckets.PF, 5),
-    c:  sampleN(buckets.C,  5),
+    pg: filled.PG, sg: filled.SG, sf: filled.SF, pf: filled.PF, c: filled.C,
   };
 }
 
@@ -764,17 +807,36 @@ function renderCards(players, bucket) {
   const sel = GAME.selected[bucket];
   return players.map((p, idx) => {
     const isSel = sel && sel.player_id === p.player_id;
+    const teamId = NBA_TEAM_IDS[p.team];
+    // NBA's headshot CDN — 260x190 is the standard small size, cached
+    // forever, includes retired/historical players. onerror hides
+    // gracefully if the player ID hasn't been processed yet.
+    const headshotUrl = `https://cdn.nba.com/headshots/nba/latest/260x190/${p.player_id}.png`;
+    const logoUrl = teamId ? `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg` : null;
+    // Effective FG% = (FGM + 0.5 × FG3M) / FGA — the standard shooting
+    // efficiency metric that rewards 3PT scoring. Falls back to dash if
+    // shot data isn't available (extremely rare).
+    const eFg = (p.fga > 0) ? ((p.fgm + 0.5 * p.fg3m) / p.fga) * 100 : null;
+    const defScore = DEFENSE[p.name]?.def_score;
     return `
       <div class="player-card ${isSel ? 'selected' : ''}" data-bucket="${bucket}" data-idx="${idx}">
-        <div class="name">${p.name}</div>
-        <div class="meta">${p.team || '—'}</div>
-        <div class="stats">
-          <span class="stat-label">USG</span> ${(p.usg * 100).toFixed(1)}%
-          <span class="stat-label">PIE</span> ${(p.pie * 100).toFixed(1)}
-          <br>
-          <span class="stat-label">REB%</span> ${(p.reb_pct * 100).toFixed(1)}
-          <span class="stat-label">AST%</span> ${(p.ast_pct * 100).toFixed(1)}
-          <span class="stat-label">BLK</span> ${p.blk.toFixed(1)}
+        <div class="card-head">
+          <img class="headshot" src="${headshotUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"/>
+          <div class="head-text">
+            <div class="name">${p.name}</div>
+            <div class="meta">
+              ${logoUrl ? `<img class="team-logo" src="${logoUrl}" alt="" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+              <span>${p.team || '—'}</span>
+            </div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-cell"><span class="v">${(p.pts ?? 0).toFixed(1)}</span><span class="l">PPG</span></div>
+          <div class="stat-cell"><span class="v">${(p.reb ?? 0).toFixed(1)}</span><span class="l">RPG</span></div>
+          <div class="stat-cell"><span class="v">${(p.ast ?? 0).toFixed(1)}</span><span class="l">APG</span></div>
+          <div class="stat-cell"><span class="v">${eFg !== null ? eFg.toFixed(1) : '—'}</span><span class="l">eFG%</span></div>
+          <div class="stat-cell"><span class="v">${(p.usg * 100).toFixed(1)}</span><span class="l">USG%</span></div>
+          <div class="stat-cell"><span class="v">${defScore !== undefined ? defScore.toFixed(0) : '—'}</span><span class="l">DEF</span></div>
         </div>
       </div>
     `;
