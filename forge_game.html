@@ -499,34 +499,33 @@ const setStatus = (msg, cls = '') => {
 };
 
 // ─── Forge Five game state ───
+// One player per traditional position: PG, SG, SF, PF, C.
+const POSITION_KEYS = ['pg', 'sg', 'sf', 'pf', 'c'];
+const POSITION_LABELS = { pg: 'Point Guard', sg: 'Shooting Guard', sf: 'Small Forward', pf: 'Power Forward', c: 'Center' };
+
 const GAME = {
-  pool: null,           // { pgs: [], wings: [], bigs: [] }
-  selected: { pg: [], wing: [], big: [] },
-  optimal: null,        // { lineup, netrtg, projection } — best 1-PG/2-W/2-B from pool
-  worst: null,          // worst combination (for score scaling)
+  pool: null,                                            // { pg: [], sg: [], sf: [], pf: [], c: [] }
+  selected: { pg: null, sg: null, sf: null, pf: null, c: null },
+  optimal: null,                                         // { lineup, netrtg, projection }
+  worst: null,
   loading_optimal: false,
 };
 
-// Position classification: dictionary lookup first (from HoopsMatic's main sheet
-// Sheet2 col S=PLAYER / col AG=POSITION). Falls back to a stats heuristic if a
-// player isn't in the dictionary (e.g., new call-up not yet on the roster sheet).
-// The dictionary uses HoopsMatic naming, and player.name has already been run
-// through toDisplayName, so lookups are direct.
+// Position classification using the HoopsMatic main-sheet dictionary (Sheet2
+// cols S=PLAYER, AG=POSITION). Returns one of 'PG' | 'SG' | 'SF' | 'PF' | 'C',
+// or null if the player isn't in the dictionary. Generic 'G'/'F' values get
+// folded into the closest specific position. Players without a dictionary
+// entry are excluded from the pool entirely (rather than guessed at) — with
+// 1,155 active players covered, this only filters out rare obscure call-ups.
 function classifyPosition(p) {
-  const known = POSITIONS[p.name];
-  if (known) {
-    if (known === 'PG' || known === 'G')  return 'PG';
-    if (known === 'SG' || known === 'SF') return 'WING';
-    if (known === 'PF' || known === 'C')  return 'BIG';
-    // 'F' or any unexpected value → fall through to heuristic
-  }
-  // Heuristic fallback for players missing from the position sheet.
-  const ast = p.ast_pct || 0;
-  const reb = p.reb_pct || 0;
-  const blk = p.blk || 0;
-  if (reb >= 0.13 || blk >= 1.2) return 'BIG';
-  if (ast >= 0.24 && reb < 0.11) return 'PG';
-  return 'WING';
+  const raw = POSITIONS[p.name];
+  if (!raw) return null;
+  if (raw === 'PG' || raw === 'G')  return 'PG';
+  if (raw === 'SG')                 return 'SG';
+  if (raw === 'SF' || raw === 'F')  return 'SF';
+  if (raw === 'PF')                 return 'PF';
+  if (raw === 'C')                  return 'C';
+  return null;
 }
 
 // Fetch every eligible 2025-26 player with stats, then bucket and sample.
@@ -560,29 +559,35 @@ function sampleN(arr, n) {
 
 function generatePool() {
   const all = getAllEligiblePlayers();
-  const pgs = all.filter(p => classifyPosition(p) === 'PG');
-  const wings = all.filter(p => classifyPosition(p) === 'WING');
-  const bigs = all.filter(p => classifyPosition(p) === 'BIG');
+  const buckets = { PG: [], SG: [], SF: [], PF: [], C: [] };
+  for (const p of all) {
+    const pos = classifyPosition(p);
+    if (pos && buckets[pos]) buckets[pos].push(p);
+  }
+  // 5 candidates per position → 5⁵ = 3,125 combinations to search exhaustively.
+  // If a position has fewer than 5 eligible players, sampleN returns the lot.
   return {
-    pgs: sampleN(pgs, 5),
-    wings: sampleN(wings, 10),
-    bigs: sampleN(bigs, 10),
+    pg: sampleN(buckets.PG, 5),
+    sg: sampleN(buckets.SG, 5),
+    sf: sampleN(buckets.SF, 5),
+    pf: sampleN(buckets.PF, 5),
+    c:  sampleN(buckets.C,  5),
   };
 }
 
-// Exhaustively project every valid 1-PG / 2-W / 2-B combination from the pool,
-// track best and worst. With 5×45×45 = 10,125 combinations and cached per-player
-// quality lookups, this runs in ~2-3s. Yields to the UI every 200 iterations so
-// the page stays responsive.
+// Exhaustively project every valid 1-PG / 1-SG / 1-SF / 1-PF / 1-C combination
+// from the pool, tracking best and worst. With 5⁵ = 3,125 combinations and
+// cached per-player quality lookups, this runs in ~1-2s. Yields to the UI
+// every 200 iterations to keep the page responsive while user is selecting.
 async function findOptimalAndWorst(pool, onProgress) {
   let best = null, worst = null, count = 0;
-  const total = pool.pgs.length * (pool.wings.length * (pool.wings.length - 1) / 2) * (pool.bigs.length * (pool.bigs.length - 1) / 2);
-  for (const pg of pool.pgs) {
-    for (let i = 0; i < pool.wings.length - 1; i++) {
-      for (let j = i + 1; j < pool.wings.length; j++) {
-        for (let k = 0; k < pool.bigs.length - 1; k++) {
-          for (let l = k + 1; l < pool.bigs.length; l++) {
-            const lineup = [pg, pool.wings[i], pool.wings[j], pool.bigs[k], pool.bigs[l]];
+  const total = pool.pg.length * pool.sg.length * pool.sf.length * pool.pf.length * pool.c.length;
+  for (const pg of pool.pg) {
+    for (const sg of pool.sg) {
+      for (const sf of pool.sf) {
+        for (const pf of pool.pf) {
+          for (const c of pool.c) {
+            const lineup = [pg, sg, sf, pf, c];
             const proj = projectLineup(lineup);
             if (!best || proj.netrtg > best.netrtg) {
               best = { lineup, netrtg: proj.netrtg, projection: proj };
@@ -612,8 +617,8 @@ function renderIntro() {
       <p>Build the best 5-man starting lineup from a randomly drawn pool of NBA players.</p>
       <div class="rules">
         <strong>How it works:</strong><br>
-        • You'll get a pool of 5 PGs, 10 wings, and 10 bigs from 2025-26 rotations<br>
-        • Pick exactly <strong>1 PG</strong>, <strong>2 wings</strong>, and <strong>2 bigs</strong><br>
+        • You'll get 5 candidates at each position: PG, SG, SF, PF, and C<br>
+        • Pick exactly <strong>one player per position</strong><br>
         • The model projects your lineup's record over an 82-game season<br>
         • Then it reveals the best possible lineup from your pool — see how close you got
       </div>
@@ -625,7 +630,7 @@ function renderIntro() {
 
 async function startNewGame() {
   GAME.pool = generatePool();
-  GAME.selected = { pg: [], wing: [], big: [] };
+  GAME.selected = { pg: null, sg: null, sf: null, pf: null, c: null };
   GAME.optimal = null;
   GAME.worst = null;
   GAME.loading_optimal = true;
@@ -639,51 +644,43 @@ async function startNewGame() {
 }
 
 function renderPool() {
-  const needPG = 1 - GAME.selected.pg.length;
-  const needW = 2 - GAME.selected.wing.length;
-  const needB = 2 - GAME.selected.big.length;
-  const valid = needPG === 0 && needW === 0 && needB === 0;
-  const totalSel = GAME.selected.pg.length + GAME.selected.wing.length + GAME.selected.big.length;
+  const numSelected = POSITION_KEYS.filter(k => GAME.selected[k]).length;
+  const valid = numSelected === 5;
+
+  const counts = POSITION_KEYS.map(k => {
+    const filled = GAME.selected[k] !== null;
+    return `<div class="count ${filled ? 'ok' : ''}">${k.toUpperCase()}: <strong>${filled ? '✓' : '—'}</strong></div>`;
+  }).join('');
+
+  const sections = POSITION_KEYS.map(k => `
+    <div class="pool-section">
+      <div class="pool-section-header">${POSITION_LABELS[k]} <span class="needed">— pick 1 of ${GAME.pool[k].length}</span></div>
+      <div class="pool-grid">${renderCards(GAME.pool[k], k)}</div>
+    </div>
+  `).join('');
 
   $('game').innerHTML = `
     <div class="pool-status-bar">
-      <div class="count ${needPG === 0 ? 'ok' : ''}">PG: <strong>${GAME.selected.pg.length}/1</strong></div>
-      <div class="count ${needW === 0 ? 'ok' : (GAME.selected.wing.length > 2 ? 'over' : '')}">Wings: <strong>${GAME.selected.wing.length}/2</strong></div>
-      <div class="count ${needB === 0 ? 'ok' : (GAME.selected.big.length > 2 ? 'over' : '')}">Bigs: <strong>${GAME.selected.big.length}/2</strong></div>
+      ${counts}
       <button class="btn build-btn" id="buildBtn" ${valid ? '' : 'disabled style="opacity:0.4;cursor:not-allowed"'}>
-        Build my lineup ${valid ? '→' : `(${5 - totalSel} more)`}
+        Build my lineup ${valid ? '→' : `(${5 - numSelected} more)`}
       </button>
     </div>
-
-    <div class="pool-section">
-      <div class="pool-section-header">Point Guard <span class="needed">— pick 1 of 5</span></div>
-      <div class="pool-grid">${renderCards(GAME.pool.pgs, 'pg', 1)}</div>
-    </div>
-
-    <div class="pool-section">
-      <div class="pool-section-header">Wings <span class="needed">— pick 2 of 10</span></div>
-      <div class="pool-grid">${renderCards(GAME.pool.wings, 'wing', 2)}</div>
-    </div>
-
-    <div class="pool-section">
-      <div class="pool-section-header">Bigs <span class="needed">— pick 2 of 10</span></div>
-      <div class="pool-grid">${renderCards(GAME.pool.bigs, 'big', 2)}</div>
-    </div>
+    ${sections}
   `;
+
   document.querySelectorAll('.player-card').forEach(card => {
     card.addEventListener('click', () => togglePlayer(card.dataset.bucket, +card.dataset.idx));
   });
   if (valid) $('buildBtn').addEventListener('click', showResults);
 }
 
-function renderCards(players, bucket, max) {
+function renderCards(players, bucket) {
   const sel = GAME.selected[bucket];
-  const sectionFull = sel.length >= max;
   return players.map((p, idx) => {
-    const isSel = sel.some(s => s.player_id === p.player_id);
-    const locked = sectionFull && !isSel;
+    const isSel = sel && sel.player_id === p.player_id;
     return `
-      <div class="player-card ${isSel ? 'selected' : ''} ${locked ? 'locked' : ''}" data-bucket="${bucket}" data-idx="${idx}">
+      <div class="player-card ${isSel ? 'selected' : ''}" data-bucket="${bucket}" data-idx="${idx}">
         <div class="name">${p.name}</div>
         <div class="meta">${p.team || '—'}</div>
         <div class="stats">
@@ -700,20 +697,19 @@ function renderCards(players, bucket, max) {
 }
 
 function togglePlayer(bucket, idx) {
-  const player = GAME.pool[bucket + 's'][idx];
-  const sel = GAME.selected[bucket];
-  const max = bucket === 'pg' ? 1 : 2;
-  const existingIdx = sel.findIndex(p => p.player_id === player.player_id);
-  if (existingIdx >= 0) {
-    sel.splice(existingIdx, 1);
-  } else if (sel.length < max) {
-    sel.push(player);
+  const player = GAME.pool[bucket][idx];
+  // Single-select per position: clicking the same player deselects, clicking
+  // a different player in the same section replaces the current pick.
+  if (GAME.selected[bucket] && GAME.selected[bucket].player_id === player.player_id) {
+    GAME.selected[bucket] = null;
+  } else {
+    GAME.selected[bucket] = player;
   }
   renderPool();
 }
 
 async function showResults() {
-  const userLineup = [...GAME.selected.pg, ...GAME.selected.wing, ...GAME.selected.big];
+  const userLineup = POSITION_KEYS.map(k => GAME.selected[k]);
   const userProj = projectLineup(userLineup);
 
   // If background optimal hasn't finished yet, wait + show spinner
