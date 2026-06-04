@@ -863,7 +863,13 @@ function detectSynergies(lineup, quality_per_player) {
 // Also acknowledges the user's player's strengths when the model picked
 // against them ("Suggs is the better shooter," etc.) — keeps the narrative
 // honest about what's being traded away.
-function describeSwap(swap) {
+//
+// When the lineup-level effect of the swap differs meaningfully from the
+// per-player contribution (e.g., the swap removes a structural penalty
+// like "Thin spacing"), append a clause explaining the WHY — otherwise
+// users see "Avdija brings more offense" and can't reconcile why the
+// optimizer still picked Hart.
+function describeSwap(swap, userLineup, userProj) {
   const u = swap.user, o = swap.optimal;
   const off = swap.offDelta, def = swap.defDelta;
   const posLabel = POSITION_LABELS[swap.position];
@@ -910,6 +916,45 @@ function describeSwap(swap) {
   if (reasonBits.length > 0) sentence += ` — driven by ${reasonBits.slice(0, 2).join(' and ')}`;
   if (tradeoffs.length > 0) sentence += `, though ${tradeoffs.join(' and ')}`;
   sentence += '.';
+
+  // ── Lineup-level structural effect ──
+  // Project the user's lineup with just THIS one position swapped to
+  // optimal's pick. Compare to the user's full projection. If the lineup-
+  // level delta differs from the per-player delta by >= 0.5 NetRtg, that
+  // means structural effects (penalties, fit coefficients) are doing real
+  // work — explain why the model preferred this player despite individual-
+  // level numbers possibly disagreeing.
+  const positionIdx = POSITION_KEYS.indexOf(swap.position);
+  if (positionIdx !== -1 && userLineup && userProj) {
+    const swapLineup = userLineup.map((p, idx) => idx === positionIdx ? o : p);
+    const swapProj = projectLineup(swapLineup);
+    const lineupDelta = swapProj.netrtg - userProj.netrtg;
+    const playerDelta = off + def;
+    const structuralEffect = lineupDelta - playerDelta;
+
+    if (Math.abs(structuralEffect) >= 0.5) {
+      const userPenalties = new Set(userProj.viability.notes.map(n => n.label));
+      const swapPenalties = new Set(swapProj.viability.notes.map(n => n.label));
+      const removed = [...userPenalties].filter(p => !swapPenalties.has(p));
+      const added = [...swapPenalties].filter(p => !userPenalties.has(p));
+
+      let structuralClause = '';
+      if (removed.length > 0 && structuralEffect > 0) {
+        // Concrete: a viability penalty disappears
+        structuralClause = ` Crucially, this swap removes your lineup's <em>"${removed[0]}"</em> penalty — a +${structuralEffect.toFixed(1)} NetRtg lineup-level boost that's why the model picks ${o.name} despite the individual numbers.`;
+      } else if (added.length > 0 && structuralEffect < 0) {
+        // Less common — surface adds a penalty
+        structuralClause = ` Note that this swap adds a <em>"${added[0]}"</em> penalty (${structuralEffect.toFixed(1)} NetRtg cost).`;
+      } else if (structuralEffect > 0) {
+        // No penalty change identifiable — must be fit coefficient effect
+        // (shooter count, handler count, USG distribution, TS bonus)
+        structuralClause = ` Lineup-level fit favors ${o.name} by an extra +${structuralEffect.toFixed(1)} NetRtg beyond individual stats (better composition with the rest of the unit).`;
+      } else if (structuralEffect < 0) {
+        structuralClause = ` However, the swap creates ${structuralEffect.toFixed(1)} NetRtg of lineup-level friction with the rest of the unit.`;
+      }
+      sentence += structuralClause;
+    }
+  }
   return sentence;
 }
 
@@ -1058,7 +1103,7 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
   // when at least one swap exists (i.e. lineups differ).
   let positionsHtml = '';
   if (swaps.length > 0) {
-    const swapLines = swaps.map(s => `<li>${describeSwap(s)}</li>`).join('');
+    const swapLines = swaps.map(s => `<li>${describeSwap(s, userLineup, userProj)}</li>`).join('');
     positionsHtml = `
       <div class="comparison-block">
         <div class="cb-title">🔄 Position by position</div>
