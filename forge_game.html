@@ -1775,7 +1775,7 @@ async function showResults() {
           <div class="stat"><div class="lbl">Net Rtg</div><div class="val ${userProj.netrtg >= 7 ? 'green' : userProj.netrtg <= -3 ? 'red' : 'orange'}">${userProj.netrtg >= 0 ? '+' : ''}${userProj.netrtg.toFixed(1)}</div></div>
           <div class="stat"><div class="lbl">82-game record</div><div class="val accent">${userRec.wins}-${userRec.losses}</div></div>
         </div>
-        ${userProj.viability.notes.length > 0 ? `
+        ${(!isOptimal && userProj.viability.notes.length > 0) ? `
           <div style="margin-top:0.8rem;font-size:0.7rem;color:var(--orange);font-style:italic">
             ⚠ ${userProj.viability.notes.map(n => n.label).join(' · ')}
           </div>
@@ -1789,11 +1789,6 @@ async function showResults() {
           <div class="stat"><div class="lbl">Net Rtg</div><div class="val ${optProj.netrtg >= 7 ? 'green' : optProj.netrtg <= -3 ? 'red' : 'orange'}">${optProj.netrtg >= 0 ? '+' : ''}${optProj.netrtg.toFixed(1)}</div></div>
           <div class="stat"><div class="lbl">82-game record</div><div class="val accent">${optRec.wins}-${optRec.losses}</div></div>
         </div>
-        ${optProj.viability.notes.length > 0 ? `
-          <div style="margin-top:0.8rem;font-size:0.7rem;color:var(--orange);font-style:italic">
-            ⚠ ${optProj.viability.notes.map(n => n.label).join(' · ')}
-          </div>
-        ` : ''}
       </div>
     </div>
 
