@@ -536,6 +536,29 @@ function viabilityAdjustments(players) {
     }
   }
 
+  // 8. No offensive focal point — every successful lineup needs an elite
+  //    scorer who can be the primary offensive engine. A committee of
+  //    above-average role players can be efficient when sets work (high
+  //    TS, good ball movement), but hits a ceiling when defenses lock
+  //    in — no one can break out for a tough basket when the play
+  //    collapses. Threshold rat365 >= 20 catches roughly the top 30 NBA
+  //    players (the "primary scoring option" tier). Most NBA starting
+  //    lineups have at least one player at this level.
+  //    This fixes a model bias where the optimizer can prefer a
+  //    role-player committee over a star-anchored lineup if USG
+  //    distribution and fit coefficients tip the scale (e.g., picking
+  //    Julian Champagnie over Anthony Edwards because USG normalization
+  //    is less harsh).
+  const hasFocalPoint = players.some(p => {
+    if (!QUALITY || !QUALITY.players) return false;
+    const q = QUALITY.players[p.name];
+    return q && q.rat365 >= 20;
+  });
+  if (!hasFocalPoint) {
+    ortg_pen += 1.5;
+    notes.push({ label: 'No offensive focal point — committee offense lacks ceiling', drtg: 0, ortg: 1.5 });
+  }
+
   return { ortg_pen, drtg_pen, notes };
 }
 
