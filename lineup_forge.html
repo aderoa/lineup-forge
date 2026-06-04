@@ -358,27 +358,46 @@ function viabilityAdjustments(players) {
     notes.push({ label: 'Thin rim protection', drtg: 2.0, ortg: 0 });
   }
 
-  // 2. Aggregate size — total rebounding across the NON-PG slots.
+  // 2. Aggregate size — uses BOTH position data (true bigs) and REB%
+  //    (rebounding output). The old version used REB% as a proxy for
+  //    physical size, which was misleading — two players the same size
+  //    can have very different REB% based on role. New rule: count
+  //    POSITIONS-derived "true bigs" (PF or C). With 2+ bigs the lineup
+  //    has inherent physical size — "Undersized"/"Tiny" don't fire even
+  //    if REB% is mediocre. Only severely poor REB% (<0.28) fires a
+  //    separate "Limited rebounding" penalty. With <2 bigs the lineup
+  //    is genuinely small and the original Undersized/Tiny REB%
+  //    thresholds apply.
   //    Small playmakers' size disadvantage is already captured in their
-  //    individual DEF_SCORE, so we don't double-count by also dinging the
-  //    lineup. The structural problem we're catching here is "undersized
-  //    wings/bigs" — fixable only by upgrading the frontcourt.
-  //    Thresholds proportionally adjusted: was 0.50 / 0.35 for 5 players,
-  //    now 0.40 / 0.28 for the ~4 non-PG slots.
+  //    individual DEF_SCORE, so we don't double-count by also dinging
+  //    the lineup for them.
   const nonPgs = players.filter(p => POSITIONS[p.name] !== 'PG');
   // If POSITIONS data is missing or no PG identified, fall back to all 5
   // players with original thresholds — preserves prior behavior gracefully.
   const sumReb = (nonPgs.length >= 3 ? nonPgs : players).reduce((s, p) => s + (p.reb_pct || 0), 0);
-  const tinyThresh = nonPgs.length >= 3 ? 0.28 : 0.35;
-  const smallThresh = nonPgs.length >= 3 ? 0.40 : 0.50;
-  if (sumReb < tinyThresh) {
-    drtg_pen += 3.0;
-    ortg_pen += 1.5;
-    notes.push({ label: 'Tiny lineup', drtg: 3.0, ortg: 1.5 });
-  } else if (sumReb < smallThresh) {
-    drtg_pen += 1.0;
-    ortg_pen += 0.5;
-    notes.push({ label: 'Undersized', drtg: 1.0, ortg: 0.5 });
+  const trueBigs = players.filter(p => {
+    const pos = POSITIONS[p.name];
+    return pos === 'PF' || pos === 'C';
+  }).length;
+
+  if (trueBigs >= 2) {
+    if (sumReb < 0.28) {
+      drtg_pen += 1.0;
+      ortg_pen += 0.5;
+      notes.push({ label: 'Limited rebounding — bigs not crashing the glass', drtg: 1.0, ortg: 0.5 });
+    }
+  } else {
+    const tinyThresh = nonPgs.length >= 3 ? 0.28 : 0.35;
+    const smallThresh = nonPgs.length >= 3 ? 0.40 : 0.50;
+    if (sumReb < tinyThresh) {
+      drtg_pen += 3.0;
+      ortg_pen += 1.5;
+      notes.push({ label: 'Tiny lineup', drtg: 3.0, ortg: 1.5 });
+    } else if (sumReb < smallThresh) {
+      drtg_pen += 1.0;
+      ortg_pen += 0.5;
+      notes.push({ label: 'Undersized', drtg: 1.0, ortg: 0.5 });
+    }
   }
 
   // 3. Handler concentration — touches conflict when everyone wants the ball
