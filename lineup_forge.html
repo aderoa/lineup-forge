@@ -210,7 +210,7 @@ const DEF_URL        = `https://sheets.googleapis.com/v4/spreadsheets/${DEF_SHEE
 const POS_SHEET_ID = '11llk0icQqoi0JwJXat5KO8y2RQeBMN5rS9FhAY56Idc';
 const POS_URL = `https://sheets.googleapis.com/v4/spreadsheets/${POS_SHEET_ID}/values:batchGet?ranges=Sheet2!S:S&ranges=Sheet2!AG:AG&key=${DEF_API_KEY}`;
 
-const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 1.5;
+const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 2.0;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
 
 // NBA team-ID mapping for the official logo CDN. URL pattern:
@@ -410,20 +410,24 @@ function viabilityAdjustments(players) {
     notes.push({ label: 'Thin spacing', drtg: 0, ortg: 1.0 });
   }
 
-  // 6. Rim-anchor redundancy — two paint-bound non-shooters in the same
-  //    lineup clog spacing. The second rim anchor adds defense and rebounding
-  //    but no offensive diversity: both compete for the same paint touches
-  //    and neither can pull a help defender beyond the arc. The defense gets
-  //    to park its big in the paint with no consequence.
-  //    Signature: high BLK (real rim deterrence) + bigboy REB% + non-shooter.
-  const isRimAnchor = p =>
-    (p.blk || 0) >= 0.9 &&
-    (p.reb_pct || 0) >= 0.13 &&
-    !(p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA);
-  const rimAnchors = players.filter(isRimAnchor).length;
-  if (rimAnchors >= 2) {
+  // 6. Non-shooting frontcourt — when both PF and C can't space, the defense
+  //    packs the paint with no consequence. Either big alone is fine (a
+  //    stretch four next to a rim runner, or a shooting center next to a
+  //    finisher) — the problem is when neither can pull a help defender
+  //    beyond the arc. Position-based instead of stat-based: more robust
+  //    to small-sample shooting flukes (rookies getting "shooter" status
+  //    on tiny 3PA volume), and uses the actual roster role from the
+  //    HoopsMatic position dictionary rather than inferring from stats.
+  const isFrontcourt = p => {
+    const pos = POSITIONS[p.name];
+    return pos === 'PF' || pos === 'C';
+  };
+  const isShooter = p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA;
+  const bigs = players.filter(isFrontcourt);
+  const nonShootingBigs = bigs.filter(p => !isShooter(p));
+  if (bigs.length >= 2 && nonShootingBigs.length >= 2) {
     ortg_pen += 1.5;
-    notes.push({ label: 'Two rim anchors — clogged paint', drtg: 0, ortg: 1.5 });
+    notes.push({ label: 'Non-shooting frontcourt — no spacing', drtg: 0, ortg: 1.5 });
   }
 
   return { ortg_pen, drtg_pen, notes };
