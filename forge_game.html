@@ -736,6 +736,65 @@ function togglePlayer(bucket, idx) {
 // the user can interpret. Surfaces specific player-vs-player contrasts, key
 // composition differences (shooting, creation, size, rim protection), and
 // viability concerns each lineup carries. Shown only when lineups differ.
+// Generate a one-line description of a single position swap, choosing the
+// framing that best matches the swap's character. Handles four common shapes:
+//  • Better both ways (rare but happens when one player dominates)
+//  • Better on offense (often with playmaking/efficiency/shooting reasons)
+//  • Better on defense (with possible offensive tradeoff acknowledgment)
+//  • Tradeoff swap (one player better on each axis — call it explicitly)
+// Also acknowledges the user's player's strengths when the model picked
+// against them ("Suggs is the better shooter," etc.) — keeps the narrative
+// honest about what's being traded away.
+function describeSwap(swap) {
+  const u = swap.user, o = swap.optimal;
+  const off = swap.offDelta, def = swap.defDelta;
+  const posLabel = POSITION_LABELS[swap.position];
+
+  // Specific dimension stats for "why" and "tradeoff" clauses
+  const astDiff = (o.ast_pct || 0) - (u.ast_pct || 0);
+  const tsDiff = (o.ts || 0) - (u.ts || 0);
+  const oMade3 = (o.fg3p || 0) * (o.fg3a || 0);
+  const uMade3 = (u.fg3p || 0) * (u.fg3a || 0);
+  const made3Diff = oMade3 - uMade3;
+
+  // Lead clause — describes the basic shape of the swap
+  let lead;
+  if (off >= 0.3 && def >= 0.3) {
+    lead = `<strong>${o.name}</strong> is better than <strong>${u.name}</strong> on both ends (+${off.toFixed(1)} ORtg, +${def.toFixed(1)} DRtg)`;
+  } else if (off >= 0.3 && def > -0.3) {
+    lead = `<strong>${o.name}</strong> brings more offensive value than <strong>${u.name}</strong> (+${off.toFixed(1)} ORtg contribution)`;
+  } else if (def >= 0.3 && off > -0.3) {
+    lead = `<strong>${o.name}</strong> is a far better defender than <strong>${u.name}</strong> (+${def.toFixed(1)} DRtg contribution)`;
+  } else if (off >= 0.3 && def <= -0.3) {
+    lead = `<strong>${o.name}</strong> is offensively stronger (+${off.toFixed(1)} ORtg) but ${u.name} defends better (${(-def).toFixed(1)} DRtg)`;
+  } else if (def >= 0.3 && off <= -0.3) {
+    lead = `<strong>${o.name}</strong> is a better defender (+${def.toFixed(1)} DRtg) but ${u.name} brings more offense (${(-off).toFixed(1)} ORtg)`;
+  } else {
+    // Both axes within ±0.3 of zero — the swap is a fit choice, not a
+    // raw-talent upgrade. Most common for small same-archetype substitutions.
+    lead = `<strong>${o.name}</strong> is a marginally better lineup fit than <strong>${u.name}</strong>`;
+  }
+
+  // "Why" clauses — only added when optimal has an offensive edge
+  const reasonBits = [];
+  if (off >= 0.3) {
+    if (astDiff >= 0.06) reasonBits.push(`stronger playmaking (AST% ${(o.ast_pct*100).toFixed(0)} vs ${(u.ast_pct*100).toFixed(0)})`);
+    if (tsDiff >= 0.02) reasonBits.push(`better scoring efficiency (TS% ${(o.ts*100).toFixed(0)} vs ${(u.ts*100).toFixed(0)})`);
+    if (made3Diff >= 0.5) reasonBits.push(`more shooting volume`);
+  }
+
+  // Tradeoff clauses — note what the user's player still does better
+  const tradeoffs = [];
+  if (made3Diff <= -0.5) tradeoffs.push(`${u.name} is the better shooter (${uMade3.toFixed(1)} vs ${oMade3.toFixed(1)} expected made 3s)`);
+  if (astDiff <= -0.06 && off >= 0.3) tradeoffs.push(`${u.name} is the better playmaker`);
+
+  let sentence = `At <strong>${posLabel}</strong>, ${lead}`;
+  if (reasonBits.length > 0) sentence += ` — driven by ${reasonBits.slice(0, 2).join(' and ')}`;
+  if (tradeoffs.length > 0) sentence += `, though ${tradeoffs.join(' and ')}`;
+  sentence += '.';
+  return sentence;
+}
+
 function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
   // Composition profile builder — uses the same thresholds the engine uses
   const profile = (lineup) => ({
@@ -806,21 +865,9 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
     if (rebGap >= 0.04) {
       reasons.push(`<strong>${(rebGap * 100).toFixed(1)} pp more aggregate REB%</strong> — bigger frontcourt presence.`);
     }
-    // Top defensive swap
-    // Top defensive swap — note when the user's player is also defensively
-    // valuable (defensive tradeoff) so the narrative doesn't oversimplify.
-    const topDefSwap = [...swaps].sort((a, b) => b.defDelta - a.defDelta)[0];
-    if (topDefSwap && topDefSwap.defDelta >= 0.4) {
-      const u = topDefSwap.user, o = topDefSwap.optimal;
-      let sentence = `At <strong>${POSITION_LABELS[topDefSwap.position]}</strong>, <strong>${o.name}</strong> is a far better defender than <strong>${u.name}</strong> (+${topDefSwap.defDelta.toFixed(1)} DRtg contribution)`;
-      // If the optimal player gives back something on offense at this slot,
-      // mention it — keeps the narrative honest about the tradeoff.
-      const offTradeoff = (topDefSwap.user.fg3p || 0) * (topDefSwap.user.fg3a || 0)
-                          - (topDefSwap.optimal.fg3p || 0) * (topDefSwap.optimal.fg3a || 0);
-      if (offTradeoff >= 0.6) sentence += `, though ${u.name} is the better shooter`;
-      sentence += '.';
-      reasons.push(sentence);
-    }
+    // (Per-position swap details have moved to the dedicated "Position by
+    // position" section below — keeps composition reasons separated from
+    // player-vs-player comparisons.)
     // Viability differences (defense side)
     const userDefConcerns = userProj.viability.notes.filter(n => n.drtg > 0).map(n => n.label);
     const optDefConcerns = optProj.viability.notes.filter(n => n.drtg > 0).map(n => n.label);
@@ -867,32 +914,9 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
     if (handlerGap >= 1) {
       reasons.push(`<strong>${handlerGap} more playmaker${handlerGap > 1 ? 's' : ''}</strong> — ${optP.handlers.length} vs ${userP.handlers.length} (AST% ≥ 20%).`);
     }
-    // Top offensive swap — with reason for the gap (creation vs scoring vs
-    // efficiency). Helps the user understand WHY the model values one player
-    // over another at the same position, especially when intuition would say
-    // otherwise (e.g., "Powell shoots better than Butler" — true, but Butler's
-    // playmaking lifts his rat365 above Powell's).
-    const topOffSwap = [...swaps].sort((a, b) => b.offDelta - a.offDelta)[0];
-    if (topOffSwap && topOffSwap.offDelta >= 0.4) {
-      const u = topOffSwap.user, o = topOffSwap.optimal;
-      const reasonBits = [];
-      const astDiff = (o.ast_pct || 0) - (u.ast_pct || 0);
-      if (astDiff >= 0.06) reasonBits.push(`stronger playmaking (AST% ${(o.ast_pct*100).toFixed(0)} vs ${(u.ast_pct*100).toFixed(0)})`);
-      const tsDiff = (o.ts || 0) - (u.ts || 0);
-      if (tsDiff >= 0.02) reasonBits.push(`better scoring efficiency (TS% ${(o.ts*100).toFixed(0)} vs ${(u.ts*100).toFixed(0)})`);
-      const oMade3 = (o.fg3p || 0) * (o.fg3a || 0);
-      const uMade3 = (u.fg3p || 0) * (u.fg3a || 0);
-      if (oMade3 - uMade3 >= 0.5) reasonBits.push(`more shooting volume`);
-      const tradeoffs = [];
-      if (uMade3 - oMade3 >= 0.5) tradeoffs.push(`${u.name} is the better shooter (${uMade3.toFixed(1)} vs ${oMade3.toFixed(1)} expected made 3s)`);
-      if (astDiff <= -0.06) tradeoffs.push(`${u.name} is the better playmaker`);
-
-      let sentence = `At <strong>${POSITION_LABELS[topOffSwap.position]}</strong>, <strong>${o.name}</strong> brings more total offensive value than <strong>${u.name}</strong> (+${topOffSwap.offDelta.toFixed(1)} ORtg contribution)`;
-      if (reasonBits.length > 0) sentence += ` — driven by ${reasonBits.slice(0, 2).join(' and ')}`;
-      if (tradeoffs.length > 0) sentence += `, though ${tradeoffs.join(' and ')}`;
-      sentence += '.';
-      reasons.push(sentence);
-    }
+    // (Per-position swap details have moved to the dedicated "Position by
+    // position" section below — keeps composition reasons separated from
+    // player-vs-player comparisons.)
     // Viability differences (offense side)
     const userOffConcerns = userProj.viability.notes.filter(n => n.ortg > 0).map(n => n.label);
     const optOffConcerns = optProj.viability.notes.filter(n => n.ortg > 0).map(n => n.label);
@@ -908,6 +932,21 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
         </div>
       `;
     }
+  }
+
+  // ── Per-position differences ──
+  // Lists every position where user and optimal picked different players,
+  // with a one-line description of each swap's character. Always present
+  // when at least one swap exists (i.e. lineups differ).
+  let positionsHtml = '';
+  if (swaps.length > 0) {
+    const swapLines = swaps.map(s => `<li>${describeSwap(s)}</li>`).join('');
+    positionsHtml = `
+      <div class="comparison-block">
+        <div class="cb-title">🔄 Position by position</div>
+        <ul class="cb-list">${swapLines}</ul>
+      </div>
+    `;
   }
 
   // ── What the user got right ──
@@ -931,6 +970,7 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
       <div class="comparison-headline">${headline}</div>
       ${defenseHtml}
       ${offenseHtml}
+      ${positionsHtml}
       ${matchHtml}
     </div>
   `;
