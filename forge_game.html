@@ -736,6 +736,124 @@ function togglePlayer(bucket, idx) {
 // the user can interpret. Surfaces specific player-vs-player contrasts, key
 // composition differences (shooting, creation, size, rim protection), and
 // viability concerns each lineup carries. Shown only when lineups differ.
+// Detect lineup-level structural strengths — qualities of the WHOLE unit
+// that go beyond per-player ratings. These are what makes a lineup "more
+// than the sum of its parts": balance, complementary skills, no weak link.
+// Used by the comparison renderer to surface advantages the optimal has
+// that the user's lineup doesn't — helps users understand that vacuum
+// "best player" picks don't always assemble the best unit.
+function detectSynergies(lineup, quality_per_player) {
+  const synergies = [];
+  // Enrich each player with their quality data (rat365, def_score) for
+  // talent-level checks. Falls back to 0 if missing.
+  const players = lineup.map((p, i) => {
+    const q = quality_per_player[i] || {};
+    return {
+      ...p,
+      rat365: q.rat365 || 0,
+      def_score: q.def_score || 0,
+      expected_made_3s: (p.fg3p || 0) * (p.fg3a || 0),
+    };
+  });
+
+  // ── 1. Complete two-way unit ──
+  // Every player contributes on both ends. Defense can't pick someone to
+  // hunt; offense doesn't have to hide anyone in the corners.
+  const twoWay = players.filter(p => p.rat365 >= 11 && p.def_score >= 11);
+  if (twoWay.length === 5) {
+    synergies.push({
+      type: 'complete_two_way',
+      label: 'Complete two-way unit',
+      text: `Every player projects above average on both ends — no defensive liability for the offense to hunt, no offensive sink for the defense to ignore.`,
+    });
+  } else if (twoWay.length === 4) {
+    synergies.push({
+      type: 'two_way_balance',
+      label: 'Strong two-way balance',
+      text: `${twoWay.length} of 5 players project above average on both ends — only one slot to scheme around.`,
+    });
+  }
+
+  // ── 2. Defensive versatility ──
+  // Multiple plus defenders means the lineup can switch, double, and adapt
+  // to opponent personnel without being out-matched at any slot.
+  const plusDef = players.filter(p => p.def_score >= 13);
+  if (plusDef.length >= 3) {
+    const names = plusDef.slice(0, 3).map(p => p.name).join(', ');
+    synergies.push({
+      type: 'defensive_versatility',
+      label: 'Switchable defense',
+      text: `${plusDef.length} plus defenders (${names}) — the lineup can switch screens cleanly and disguise coverages.`,
+    });
+  }
+
+  // ── 3. Star with spacing ──
+  // High-usage primary creator surrounded by floor spacers — drives have
+  // ready kick-out targets, doubles get punished from beyond the arc.
+  const stars = players.filter(p => (p.usg || 0) >= 0.25 && p.rat365 >= 14);
+  const goodShooters = players.filter(p => p.fg3p >= 0.36 && p.fg3a >= 3.0);
+  if (stars.length >= 1 && goodShooters.length >= 2) {
+    const star = stars.sort((a, b) => b.usg - a.usg)[0];
+    const shootersAround = goodShooters.filter(p => p.player_id !== star.player_id);
+    if (shootersAround.length >= 2) {
+      const shooterNames = shootersAround.slice(0, 2).map(p => p.name).join(' and ');
+      synergies.push({
+        type: 'star_with_spacing',
+        label: 'Star + spacing',
+        text: `${star.name}'s creation is surrounded by shooters who punish help defense — ${shooterNames} both shoot 36%+ on real volume.`,
+      });
+    }
+  }
+
+  // ── 4. Multi-creator depth ──
+  // Two+ playmakers means the defense can't blitz one initiator and trust
+  // the other slots to stall — there's always a counter-handler available.
+  const handlers = players.filter(p => (p.ast_pct || 0) >= 0.22);
+  if (handlers.length >= 2) {
+    const names = handlers.slice(0, 2).map(p => p.name).join(' and ');
+    synergies.push({
+      type: 'multi_creator',
+      label: 'Multi-creator offense',
+      text: `Creation responsibility is split between ${names} — defenses can't blitz one without freeing the other.`,
+    });
+  }
+
+  // ── 5. Protected offensive load ──
+  // An offensively dominant but defensively limited player paired with a
+  // strong rim protector who covers for perimeter blow-bys.
+  const offStars = players.filter(p => p.rat365 >= 16 && p.def_score < 12);
+  const eliteRimProtectors = players.filter(p =>
+    (p.blk || 0) >= 1.3 && (p.reb_pct || 0) >= 0.13 && p.def_score >= 14
+  );
+  if (offStars.length >= 1 && eliteRimProtectors.length >= 1) {
+    const star = offStars[0];
+    const protector = eliteRimProtectors[0];
+    if (star.player_id !== protector.player_id) {
+      synergies.push({
+        type: 'protected_offense',
+        label: 'Protected offensive load',
+        text: `${star.name}'s offensive game is backed by ${protector.name}'s rim deterrence — perimeter mistakes don't compound into easy baskets.`,
+      });
+    }
+  }
+
+  // ── 6. No weak link ──
+  // Even the worst player in the lineup is competent on each end. Distinct
+  // from "complete two-way" which requires above-average — this is the more
+  // lenient "no obvious hole" check.
+  const minRat = players.length > 0 ? Math.min(...players.map(p => p.rat365)) : 0;
+  const minDef = players.length > 0 ? Math.min(...players.map(p => p.def_score)) : 0;
+  if (minRat >= 8 && minDef >= 9 && twoWay.length < 5) {
+    synergies.push({
+      type: 'no_weak_link',
+      label: 'No weak link',
+      text: `Even the lowest-rated player on the floor projects close to average on both ends — no easy target for the defense to hunt.`,
+    });
+  }
+
+  return synergies;
+}
+
 // Generate a one-line description of a single position swap, choosing the
 // framing that best matches the swap's character. Handles four common shapes:
 //  • Better both ways (rare but happens when one player dominates)
@@ -949,6 +1067,30 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
     `;
   }
 
+  // ── Lineup-level structural synergies ──
+  // Surface team-level advantages the optimal has that the user's lineup
+  // doesn't. Helps users understand why "best individual players" doesn't
+  // automatically build the best lineup — composition matters.
+  const optSynergies = detectSynergies(optLineup, optProj.quality_per_player);
+  const userSynergies = detectSynergies(userLineup, userProj.quality_per_player);
+  const userSynergyTypes = new Set(userSynergies.map(s => s.type));
+  const uniqueOptSynergies = optSynergies.filter(s => !userSynergyTypes.has(s.type));
+  let synergiesHtml = '';
+  if (uniqueOptSynergies.length > 0) {
+    // Cap at 3 to avoid wall-of-text; pick the most distinctive ones.
+    // (Synergies are listed in priority order from detectSynergies; cap by
+    // slicing.)
+    const items = uniqueOptSynergies.slice(0, 3).map(s =>
+      `<li><strong>${s.label}:</strong> ${s.text}</li>`
+    ).join('');
+    synergiesHtml = `
+      <div class="comparison-block">
+        <div class="cb-title">✨ What makes the optimal click as a unit</div>
+        <ul class="cb-list">${items}</ul>
+      </div>
+    `;
+  }
+
   // ── What the user got right ──
   let matchHtml = '';
   const matches = [];
@@ -971,6 +1113,7 @@ function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
       ${defenseHtml}
       ${offenseHtml}
       ${positionsHtml}
+      ${synergiesHtml}
       ${matchHtml}
     </div>
   `;
