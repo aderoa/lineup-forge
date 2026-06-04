@@ -1269,20 +1269,24 @@ function detectSynergies(lineup, quality_per_player) {
   });
 
   // ── 1. Complete two-way unit ──
-  // Every player contributes on both ends. Defense can't pick someone to
-  // hunt; offense doesn't have to hide anyone in the corners.
-  const twoWay = players.filter(p => p.rat365 >= 11 && p.def_score >= 11);
+  // Every player contributes meaningfully on BOTH ends — plus-level on
+  // rat365 AND def_score (>= 13 each). This is the bar for "no weak
+  // link": clearly above the ~10-12 league-average band, so defenders
+  // or scorers who are merely "not actively bad" don't qualify. Uses the
+  // same plus-defender threshold (>= 13) that the Switchable Defense
+  // detector uses, keeping the synergy claims internally consistent.
+  const twoWay = players.filter(p => p.rat365 >= 13 && p.def_score >= 13);
   if (twoWay.length === 5) {
     synergies.push({
       type: 'complete_two_way',
       label: 'Complete two-way unit',
-      text: `Every player projects above average on both ends — no defensive liability for the offense to hunt, no offensive sink for the defense to ignore.`,
+      text: `Every player projects as a clear plus on both ends — no defensive liability for the offense to hunt, no offensive sink for the defense to ignore.`,
     });
   } else if (twoWay.length === 4) {
     synergies.push({
       type: 'two_way_balance',
       label: 'Strong two-way balance',
-      text: `${twoWay.length} of 5 players project above average on both ends — only one slot to scheme around.`,
+      text: `${twoWay.length} of 5 players project as clear plusses on both ends — only one slot the opponent can target.`,
     });
   }
 
