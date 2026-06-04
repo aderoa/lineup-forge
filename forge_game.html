@@ -189,38 +189,23 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text1
 
 .computing { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:2rem 1rem; text-align:center; color:var(--muted); font-size:0.85rem; }
 
-/* ─── Gap analysis (shown when user didn't pick optimal) ─── */
-.gap-analysis { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.4rem 1.5rem; margin-bottom:1.25rem; }
-.gap-analysis h3 { font-size:0.74rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:1rem; }
+/* ─── Lineup comparison (shown after results when user didn't pick optimal) ─── */
+.comparison-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.4rem 1.5rem; margin-top:1.5rem; }
+.comparison-section h3 { font-size:0.74rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:1rem; }
+.comparison-headline { font-size:0.95rem; line-height:1.55; color:var(--text1); margin-bottom:1.2rem; padding-bottom:1.2rem; border-bottom:1px solid var(--border); }
+.comparison-headline strong { color:var(--accent); font-weight:700; }
 
-.slot-table { display:flex; flex-direction:column; gap:0.55rem; margin-bottom:1.2rem; }
-.slot-row { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:0.9rem; padding:0.65rem 0.9rem; border-radius:8px; background:var(--surface2); font-size:0.85rem; }
-.slot-row.same { background:transparent; color:var(--muted); padding-top:0.3rem; padding-bottom:0.3rem; }
-.slot-row.biggest { background:rgba(124,58,237,0.08); border:1px solid rgba(124,58,237,0.25); }
-.slot-row .position-label { font-family:'JetBrains Mono',monospace; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; font-weight:600; color:var(--text2); min-width:3rem; }
-.slot-row.biggest .position-label { color:var(--purple); }
-.slot-row .picks { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
-.slot-row .user-pick { color:var(--text1); font-weight:500; }
-.slot-row .arrow { color:var(--muted); }
-.slot-row .opt-pick { color:var(--green); font-weight:600; }
-.slot-row .delta { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.95rem; color:var(--green); }
-.slot-row .delta.minor { color:var(--text2); font-weight:500; font-size:0.85rem; }
-.slot-row.same .same-mark { font-size:0.75rem; }
-.biggest-tag { display:inline-block; background:var(--purple); color:#fff; font-size:0.55rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; padding:0.15rem 0.4rem; border-radius:3px; margin-left:0.4rem; vertical-align:middle; }
-
-.ortg-drtg-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding-top:1.1rem; border-top:1px solid var(--border); }
-.gap-metric { font-family:'JetBrains Mono',monospace; }
-.gap-metric .gm-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:0.3rem; }
-.gap-metric .gm-vals { font-size:0.95rem; color:var(--text1); }
-.gap-metric .gm-vals .vs { color:var(--muted); margin:0 0.3rem; }
-.gap-metric .gm-delta { font-size:0.72rem; color:var(--text2); margin-top:0.2rem; }
-.gap-metric .gm-delta.gain { color:var(--green); font-weight:600; }
-
-@media (max-width: 900px), (pointer: coarse) {
-  .ortg-drtg-row { grid-template-columns:1fr; }
-  .slot-row { grid-template-columns:1fr; gap:0.3rem; }
-  .slot-row .delta { justify-self:start; }
-}
+.comparison-block { margin-bottom:1.1rem; }
+.comparison-block:last-child { margin-bottom:0; }
+.comparison-block.muted { padding-top:1.1rem; border-top:1px solid var(--border); }
+.cb-title { font-size:0.78rem; font-weight:700; color:var(--text1); margin-bottom:0.55rem; }
+.cb-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.5rem; }
+.cb-list li { font-size:0.85rem; line-height:1.5; color:var(--text2); padding-left:1rem; position:relative; }
+.cb-list li::before { content:'•'; position:absolute; left:0.2rem; color:var(--muted); }
+.cb-list li strong { color:var(--text1); font-weight:600; }
+.cb-list li em { font-style:italic; color:var(--orange); }
+.cb-text { font-size:0.85rem; line-height:1.5; color:var(--text2); }
+.cb-text strong { color:var(--text1); font-weight:600; }
 
 @media (max-width: 900px), (pointer: coarse) {
   .pool-grid { grid-template-columns:repeat(3, 1fr); }
@@ -741,89 +726,162 @@ function togglePlayer(bucket, idx) {
   renderPool();
 }
 
-// Deeper post-game analysis when the user didn't pick optimal. For each slot,
-// compute the "isolated swap value" — if you changed ONLY that one position to
-// optimal's pick, how much NetRtg would you gain? This isolates per-slot impact
-// from interaction effects. Sum of slot deltas usually doesn't equal the total
-// gap (swaps reinforce each other), but it tells you which single change would
-// matter most. The biggest miss gets highlighted.
-function renderGapAnalysis(userLineup, optimalLineup, userProj, optProj) {
-  const slots = [];
+// Narrative lineup comparison — explains WHY the optimal is better, in terms
+// the user can interpret. Surfaces specific player-vs-player contrasts, key
+// composition differences (shooting, creation, size, rim protection), and
+// viability concerns each lineup carries. Shown only when lineups differ.
+function renderLineupComparison(userLineup, optLineup, userProj, optProj) {
+  // Composition profile builder — uses the same thresholds the engine uses
+  const profile = (lineup) => ({
+    shooters: lineup.filter(p => p.fg3p >= SHOOT_OK && p.fg3a >= SHOOT_MIN_3PA),
+    handlers: lineup.filter(p => (p.ast_pct || 0) >= AST_HIGH),
+    aggReb: lineup.reduce((s, p) => s + (p.reb_pct || 0), 0),
+    aggBlk: lineup.reduce((s, p) => s + (p.blk || 0), 0),
+  });
+  const userP = profile(userLineup);
+  const optP = profile(optLineup);
+
+  // Per-player quality contributions from each projection
+  const uq = userProj.quality_per_player;
+  const oq = optProj.quality_per_player;
+  const userRatSum = uq.reduce((s, q) => s + (q.rat365 || 0), 0);
+  const optRatSum = oq.reduce((s, q) => s + (q.rat365 || 0), 0);
+  const userDefSum = uq.reduce((s, q) => s + (q.def_score || 0), 0);
+  const optDefSum = oq.reduce((s, q) => s + (q.def_score || 0), 0);
+
+  // For each different position, compute the per-player offense + defense delta
+  // (NOT lineup-level — this is just per-player contribution, used to identify
+  // which single player swap moves the most on each axis).
+  const swaps = [];
   for (let i = 0; i < 5; i++) {
-    const same = userLineup[i].player_id === optimalLineup[i].player_id;
-    if (same) {
-      slots.push({ position: POSITION_KEYS[i], same: true, user: userLineup[i] });
-    } else {
-      const swapLineup = userLineup.map((p, idx) => idx === i ? optimalLineup[i] : p);
-      const swapProj = projectLineup(swapLineup);
-      slots.push({
+    if (userLineup[i].player_id !== optLineup[i].player_id) {
+      swaps.push({
         position: POSITION_KEYS[i],
-        same: false,
         user: userLineup[i],
-        optimal: optimalLineup[i],
-        isolatedDelta: swapProj.netrtg - userProj.netrtg,
+        optimal: optLineup[i],
+        offDelta: (oq[i]?.off_contrib || 0) - (uq[i]?.off_contrib || 0),
+        defDelta: (oq[i]?.def_contrib || 0) - (uq[i]?.def_contrib || 0),
       });
     }
   }
 
-  // Sort: different picks first (biggest gain first), same picks at bottom
-  slots.sort((a, b) => {
-    if (a.same !== b.same) return a.same ? 1 : -1;
-    if (a.same) return 0;
-    return b.isolatedDelta - a.isolatedDelta;
-  });
+  // ── Headline: where does the NetRtg gap live? ──
+  const ortgGap = optProj.ortg - userProj.ortg;
+  const drtgGap = userProj.drtg - optProj.drtg;  // positive = optimal has better (lower) DRtg
+  const netGap = optProj.netrtg - userProj.netrtg;
+  let headline;
+  if (ortgGap >= 0.3 && drtgGap >= 0.3) {
+    headline = `The optimal wins on <strong>both ends</strong> — projecting <strong>+${ortgGap.toFixed(1)} ORtg</strong> and <strong>+${drtgGap.toFixed(1)} DRtg</strong> better, for a +${netGap.toFixed(1)} NetRtg gap.`;
+  } else if (ortgGap >= 0.3 && drtgGap < 0.3 && drtgGap > -0.3) {
+    headline = `The gap is <strong>almost entirely offensive</strong> — the optimal projects <strong>+${ortgGap.toFixed(1)} ORtg</strong> with similar defense.`;
+  } else if (drtgGap >= 0.3 && ortgGap < 0.3 && ortgGap > -0.3) {
+    headline = `The gap is <strong>almost entirely defensive</strong> — the optimal projects <strong>+${drtgGap.toFixed(1)} DRtg</strong> with similar offense.`;
+  } else if (ortgGap >= 0.3 && drtgGap < -0.3) {
+    headline = `Your lineup is better on defense (<strong>${(-drtgGap).toFixed(1)} DRtg</strong>) but the optimal more than makes up for it on offense (<strong>+${ortgGap.toFixed(1)} ORtg</strong>).`;
+  } else if (drtgGap >= 0.3 && ortgGap < -0.3) {
+    headline = `Your lineup is better on offense (<strong>${(-ortgGap).toFixed(1)} ORtg</strong>) but the optimal more than makes up for it on defense (<strong>+${drtgGap.toFixed(1)} DRtg</strong>).`;
+  } else {
+    headline = `Both lineups project similar offense and defense — the optimal's edge comes from structural fit (composition penalties).`;
+  }
 
-  // Identify the single biggest miss (highest-impact different slot)
-  const biggest = slots.find(s => !s.same);
-
-  const rows = slots.map(s => {
-    if (s.same) {
-      return `
-        <div class="slot-row same">
-          <div class="position-label">${s.position.toUpperCase()}</div>
-          <div class="picks"><span>${s.user.name}</span></div>
-          <div class="same-mark">✓ same as optimal</div>
+  // ── Defense section: why the optimal defends better ──
+  let defenseHtml = '';
+  if (drtgGap >= 0.3) {
+    const reasons = [];
+    const defScoreGap = optDefSum - userDefSum;
+    if (defScoreGap >= 4) {
+      reasons.push(`<strong>Higher aggregate defensive rating</strong> — Σ DEF_SCORE of ${optDefSum.toFixed(0)} vs your ${userDefSum.toFixed(0)}.`);
+    }
+    const blkGap = optP.aggBlk - userP.aggBlk;
+    if (blkGap >= 0.6) {
+      reasons.push(`<strong>${blkGap.toFixed(1)} more blocks per game</strong> in aggregate rim protection (${optP.aggBlk.toFixed(1)} vs ${userP.aggBlk.toFixed(1)}).`);
+    }
+    const rebGap = optP.aggReb - userP.aggReb;
+    if (rebGap >= 0.04) {
+      reasons.push(`<strong>${(rebGap * 100).toFixed(1)} pp more aggregate REB%</strong> — bigger frontcourt presence.`);
+    }
+    // Top defensive swap
+    const topDefSwap = [...swaps].sort((a, b) => b.defDelta - a.defDelta)[0];
+    if (topDefSwap && topDefSwap.defDelta >= 0.4) {
+      reasons.push(`At <strong>${POSITION_LABELS[topDefSwap.position]}</strong>, <strong>${topDefSwap.optimal.name}</strong> is a far better defender than <strong>${topDefSwap.user.name}</strong> (+${topDefSwap.defDelta.toFixed(1)} DRtg contribution).`);
+    }
+    // Viability differences (defense side)
+    const userDefConcerns = userProj.viability.notes.filter(n => n.drtg > 0).map(n => n.label);
+    const optDefConcerns = optProj.viability.notes.filter(n => n.drtg > 0).map(n => n.label);
+    const onlyUser = userDefConcerns.filter(c => !optDefConcerns.includes(c));
+    if (onlyUser.length > 0) {
+      reasons.push(`Avoids your lineup's <em>"${onlyUser.join('", "')}"</em> structural penalty.`);
+    }
+    if (reasons.length > 0) {
+      defenseHtml = `
+        <div class="comparison-block">
+          <div class="cb-title">🛡 Defense</div>
+          <ul class="cb-list">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
         </div>
       `;
     }
-    const isBiggest = biggest && s.position === biggest.position;
-    const isMinor = s.isolatedDelta < 0.3;
-    return `
-      <div class="slot-row ${isBiggest ? 'biggest' : ''}">
-        <div class="position-label">${s.position.toUpperCase()}${isBiggest ? '<span class="biggest-tag">Biggest miss</span>' : ''}</div>
-        <div class="picks">
-          <span class="user-pick">${s.user.name}</span>
-          <span class="arrow">→</span>
-          <span class="opt-pick">${s.optimal.name}</span>
+  }
+
+  // ── Offense section: why the optimal scores better ──
+  let offenseHtml = '';
+  if (ortgGap >= 0.3) {
+    const reasons = [];
+    const ratGap = optRatSum - userRatSum;
+    if (ratGap >= 5) {
+      reasons.push(`<strong>Higher total offensive talent</strong> — Σ rat365 of ${optRatSum.toFixed(0)} vs your ${userRatSum.toFixed(0)}.`);
+    }
+    const shooterGap = optP.shooters.length - userP.shooters.length;
+    if (shooterGap >= 1) {
+      reasons.push(`<strong>${shooterGap} additional reliable shooter${shooterGap > 1 ? 's' : ''}</strong> — ${optP.shooters.length} vs ${userP.shooters.length} (35%+ on 1.5+ attempts).`);
+    }
+    const handlerGap = optP.handlers.length - userP.handlers.length;
+    if (handlerGap >= 1) {
+      reasons.push(`<strong>${handlerGap} more playmaker${handlerGap > 1 ? 's' : ''}</strong> — ${optP.handlers.length} vs ${userP.handlers.length} (AST% ≥ 20%).`);
+    }
+    // Top offensive swap
+    const topOffSwap = [...swaps].sort((a, b) => b.offDelta - a.offDelta)[0];
+    if (topOffSwap && topOffSwap.offDelta >= 0.4) {
+      reasons.push(`At <strong>${POSITION_LABELS[topOffSwap.position]}</strong>, <strong>${topOffSwap.optimal.name}</strong> brings more offensive value than <strong>${topOffSwap.user.name}</strong> (+${topOffSwap.offDelta.toFixed(1)} ORtg contribution).`);
+    }
+    // Viability differences (offense side)
+    const userOffConcerns = userProj.viability.notes.filter(n => n.ortg > 0).map(n => n.label);
+    const optOffConcerns = optProj.viability.notes.filter(n => n.ortg > 0).map(n => n.label);
+    const onlyUser = userOffConcerns.filter(c => !optOffConcerns.includes(c));
+    if (onlyUser.length > 0) {
+      reasons.push(`Avoids your lineup's <em>"${onlyUser.join('", "')}"</em> structural penalty.`);
+    }
+    if (reasons.length > 0) {
+      offenseHtml = `
+        <div class="comparison-block">
+          <div class="cb-title">🏀 Offense</div>
+          <ul class="cb-list">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
         </div>
-        <div class="delta ${isMinor ? 'minor' : ''}">+${s.isolatedDelta.toFixed(1)}</div>
+      `;
+    }
+  }
+
+  // ── What the user got right ──
+  let matchHtml = '';
+  const matches = [];
+  for (let i = 0; i < 5; i++) {
+    if (userLineup[i].player_id === optLineup[i].player_id) matches.push(userLineup[i]);
+  }
+  if (matches.length > 0 && matches.length < 5) {
+    matchHtml = `
+      <div class="comparison-block muted">
+        <div class="cb-title">✓ What you got right</div>
+        <div class="cb-text">You matched the optimal at ${matches.length} of 5 spot${matches.length > 1 ? 's' : ''}: ${matches.map(p => `<strong>${p.name}</strong>`).join(', ')}.</div>
       </div>
     `;
-  }).join('');
-
-  // Offense / Defense breakdown — uses the projected (post-fit, post-viability)
-  // ortg/drtg from each lineup. Δ shows how many points the swap would gain.
-  const ortgGain = optProj.ortg - userProj.ortg;
-  const drtgGain = userProj.drtg - optProj.drtg;  // lower DRtg = better, so user-opt
-  const ortgGainTxt = ortgGain >= 0 ? `+${ortgGain.toFixed(1)} ORtg gained` : `${ortgGain.toFixed(1)} ORtg`;
-  const drtgGainTxt = drtgGain >= 0 ? `+${drtgGain.toFixed(1)} DRtg gained` : `${drtgGain.toFixed(1)} DRtg`;
+  }
 
   return `
-    <div class="gap-analysis">
-      <h3>Where the gap came from</h3>
-      <div class="slot-table">${rows}</div>
-      <div class="ortg-drtg-row">
-        <div class="gap-metric">
-          <div class="gm-label">Offense</div>
-          <div class="gm-vals">${userProj.ortg.toFixed(1)}<span class="vs">→</span>${optProj.ortg.toFixed(1)}</div>
-          <div class="gm-delta ${ortgGain > 0.1 ? 'gain' : ''}">${ortgGainTxt}</div>
-        </div>
-        <div class="gap-metric">
-          <div class="gm-label">Defense</div>
-          <div class="gm-vals">${userProj.drtg.toFixed(1)}<span class="vs">→</span>${optProj.drtg.toFixed(1)}</div>
-          <div class="gm-delta ${drtgGain > 0.1 ? 'gain' : ''}">${drtgGainTxt}</div>
-        </div>
-      </div>
+    <div class="comparison-section">
+      <h3>Why the optimal was better</h3>
+      <div class="comparison-headline">${headline}</div>
+      ${defenseHtml}
+      ${offenseHtml}
+      ${matchHtml}
     </div>
   `;
 }
@@ -858,8 +916,8 @@ async function showResults() {
   else if (score >= 40) { scoreCls = 'meh'; verdict = '○ Decent — room to improve'; }
   else { scoreCls = 'bad'; verdict = '✗ Tough pick — much better lineup available'; }
 
-  // Per-slot gap analysis — only meaningful when lineups differ
-  const gapHtml = isOptimal ? '' : renderGapAnalysis(userLineup, GAME.optimal.lineup, userProj, optProj);
+  // Lineup comparison narrative — only meaningful when lineups differ
+  const comparisonHtml = isOptimal ? '' : renderLineupComparison(userLineup, GAME.optimal.lineup, userProj, optProj);
 
   $('game').innerHTML = `
     <div class="score-display">
@@ -871,8 +929,6 @@ async function showResults() {
         ${isOptimal ? '' : ` · You're ${optRec.wins - userRec.wins} win${optRec.wins - userRec.wins === 1 ? '' : 's'} behind`}
       </div>
     </div>
-
-    ${gapHtml}
 
     <div class="results-row">
       <div class="results-card user">
@@ -903,6 +959,8 @@ async function showResults() {
         ` : ''}
       </div>
     </div>
+
+    ${comparisonHtml}
 
     <div style="text-align:center; margin-top:1.5rem">
       <button class="btn" id="playAgainBtn">▶ Play again</button>
