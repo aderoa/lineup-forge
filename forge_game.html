@@ -836,7 +836,7 @@ function renderCards(players, bucket) {
           <div class="stat-cell"><span class="v">${(p.ast ?? 0).toFixed(1)}</span><span class="l">APG</span></div>
           <div class="stat-cell"><span class="v">${eFg !== null ? eFg.toFixed(1) : '—'}</span><span class="l">eFG%</span></div>
           <div class="stat-cell"><span class="v">${(p.usg * 100).toFixed(1)}</span><span class="l">USG%</span></div>
-          <div class="stat-cell"><span class="v">${defScore !== undefined ? defScore.toFixed(0) : '—'}</span><span class="l">DEF</span></div>
+          <div class="stat-cell"><span class="v">${defScore !== undefined ? defScore.toFixed(1) : '—'}</span><span class="l">DEF</span></div>
         </div>
       </div>
     `;
@@ -1389,6 +1389,18 @@ async function showResults() {
     </div>
   `;
   $('playAgainBtn').addEventListener('click', startNewGame);
+
+  // Reset viewport so the user lands on the score, not wherever they
+  // happened to scroll to while picking players (commonly the C section
+  // at the bottom of the pool). Three layers for the three deployment
+  // modes:
+  //   1. Standalone (forge.hoopsmatic.com directly) — window.scrollTo
+  //   2. Same-origin iframe — parent.scrollTo works
+  //   3. Cross-origin iframe (Presto embed) — postMessage so a listening
+  //      parent can scroll us into view
+  try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (e) {}
+  try { if (window.parent !== window) window.parent.scrollTo({ top: 0, behavior: 'instant' }); } catch (e) {}
+  try { if (window.parent !== window) window.parent.postMessage({ type: 'forge:scroll-to-top' }, '*'); } catch (e) {}
 }
 
 // ─── Boot ───
