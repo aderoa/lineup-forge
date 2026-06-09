@@ -144,6 +144,8 @@ body{background:linear-gradient(160deg,#1a1a3e 0%,#0a0a1a 55%,#050510 100%);back
 .sq-row .cost{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:var(--gold);text-align:right;min-width:62px}
 .sq-row .star{color:var(--gold)}
 .opt-note{font-size:11px;color:#b59a4a;letter-spacing:.5px;margin-top:10px;line-height:1.6}
+.opt-note b{color:#e8d27a}
+.opt-note .rtg-d{font-family:'JetBrains Mono',monospace;font-size:10px;color:#cfa84a;background:#2a230e;border:1px solid #5a4a1e;border-radius:4px;padding:1px 5px;white-space:nowrap}
 .sq-notes{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
 .note-chip{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.4;color:#d98a6a;background:#2a160f;border:1px solid #4a2418;border-radius:6px;padding:4px 9px;letter-spacing:.2px}
 .sq-notes.ok .note-chip{color:#6fcf97;background:#0e2018;border-color:#1d4030}
@@ -1261,6 +1263,28 @@ function squadRowsHTML(lineup,bestNames){
   }).join("");
 }
 
+// Explain WHY the best squad beat the user's — slot-by-slot, since both draw one
+// player from the same five team-seasons. Names the biggest talent swings and
+// flags any positional-fit tradeoff the user's lineup had.
+function bestSquadExplanation(yoursLineup,bestLineup,yoursRec,bestRec){
+  const byKey={}; yoursLineup.forEach(p=>byKey[p.key]=p);
+  const swaps=[];
+  bestLineup.forEach(bp=>{const yp=byKey[bp.key]; if(yp&&yp.name!==bp.name)
+    swaps.push({from:yp,to:bp,delta:(bp.rating||0)-(yp.rating||0),team:(bp.meta?bp.meta.name:bp.abbr),sy:bp.sy});});
+  if(!swaps.length) return null;
+  swaps.sort((a,b)=>b.delta-a.delta);
+  const moves=swaps.slice(0,2).map(s=>{
+    const d=(s.delta>=0?'+':'')+s.delta.toFixed(1);
+    return 'swapped in <b>'+escapeHtmlS(s.to.name)+'</b> (RTG '+s.to.rating.toFixed(1)+') for your <b>'+escapeHtmlS(s.from.name)+'</b> ('+s.from.rating.toFixed(1)+') at '+escapeHtmlS(s.team)+' '+formatSeasonYear(s.sy)+' <span class="rtg-d">'+d+' RTG</span>';
+  });
+  const recLine=(yoursRec&&bestRec)?('Projects to <b>'+bestRec.w+'–'+bestRec.l+'</b> against your '+yoursRec.w+'–'+yoursRec.l+'. '):'';
+  const yb=lineupBalance(yoursLineup), bb=lineupBalance(bestLineup);
+  const tradeoff = (yb>bb+0.004)
+    ? 'Your five had the cleaner positional fit, but the talent picked up at those spots more than paid for it.'
+    : 'Same idea as yours, just more talent where it counted.';
+  return '<div class="opt-note">'+recLine+'It '+moves.join(', and ')+'. '+tradeoff+'</div>';
+}
+
 function showResults(){
   if(spinning)return;
   if(roster.length<3){alert("Sign at least 3 players before simulating.");return}
@@ -1303,7 +1327,8 @@ function showResults(){
         squadRowsHTML(opt,null)+notesHTML(opt)+
         (samePicks
           ? '<div class="perfect">★ Nobody from your five team-seasons sims better — flawless drafting ★</div>'
-          : '<div class="opt-note">The best-performing lineup we found from the exact five team-seasons you drew, within '+fmtM(BUDGET)+'. We simulated your picks against many affordable alternatives over the same schedule — this one won the most. Position balance (rebounding, rim protection) often beats raw scoring.</div>')+
+          : (bestSquadExplanation(roster,opt,yours,optRec)
+             || '<div class="opt-note">The best-performing lineup we found from the exact five team-seasons you drew, within '+fmtM(BUDGET)+'. We simulated your picks against many affordable alternatives over the same schedule — this one won the most.</div>'))+
         '</div>';
     }
 
