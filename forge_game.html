@@ -668,6 +668,18 @@ function winPctFor(abbr,sy){const v=RECORDS[abbr+"|"+sy];return (v==null)?0.5:v}
 function winFactorFromPct(pct){return Math.max(1-WIN_STRENGTH,Math.min(1+WIN_STRENGTH,1+WIN_STRENGTH*(pct-0.5)*2))}
 function winFactor(abbr,sy){return winFactorFromPct(winPctFor(abbr,sy))}
 
+// === Talent-anchored scoring ===
+// The box-score sim is possession-equalized, so it rewards efficiency and
+// rebounding but barely rewards star scoring volume — left alone it lets a
+// rebound-heavy role-player five out-win an All-Star lineup. So each team's
+// game score is anchored mostly to its roster talent (sum of RTG = Game Score,
+// already win-adjusted), with the live sim blended in as the minority signal for
+// matchup texture and variance. This makes talent drive the record (a no-star
+// team is middling; stars win) while the sim still shades it.
+const LEAGUE_PPG=108, REF_RTG=55, TALENT_PTS=0.5, TALENT_ALPHA=0.88;
+function teamTalent(lineup){let s=0;for(const p of lineup)s+=(p.rating||0);return s}
+function teamTalentPts(rtgSum){return LEAGUE_PPG + TALENT_PTS*(rtgSum-REF_RTG)}
+
 function fmtM(d){return "$"+(d/1e6).toFixed(1)+"M"}
 function statTriple(p){return p.ppg.toFixed(1)+' <span>PPG</span> · '+p.rpg.toFixed(1)+' <span>RPG</span> · '+p.apg.toFixed(1)+' <span>APG</span> · '+p.fgpct.toFixed(1)+' <span>FG%</span>'}
 function escapeHtmlS(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
@@ -719,6 +731,15 @@ function seasonProfile(name,sy){
 let GROUPS=[];           // [{key, abbr, sy, players:[{name,sy,pct,salary,cost,rating,pos}], _meta}]
 let GROUP_BY_KEY={};
 let entriesByPos=[[],[],[],[],[]];  // opponent pool bucketed by position (for coherent gauntlet fives)
+let posCum=[null,null,null,null,null], posTot=[0,0,0,0,0]; // cumulative rating weights for quality-skewed opponent draws
+const OPP_WEIGHT_POW=1.5;           // opponents drawn skewed toward better players → a real starter-level benchmark
+function drawOpp(pos){
+  const arr=entriesByPos[pos]; if(!arr||!arr.length)return null;
+  const cum=posCum[pos], tot=posTot[pos];
+  let r=Math.random()*tot, lo=0, hi=arr.length-1;
+  while(lo<hi){const mid=(lo+hi)>>1; if(cum[mid]<r)lo=mid+1; else hi=mid;}
+  return arr[lo];
+}
 function buildGroups(){
   const byKey={};
   entriesByPos=[[],[],[],[],[]];
@@ -736,12 +757,19 @@ function buildGroups(){
       ppg: prof.ppg, rpg: prof.rpg, apg: prof.apg, fgpct: prof.fgpct,
       pos, winFactor: wf
     });
-    if(pos>=0&&pos<5)entriesByPos[pos].push({name,sy,pos,winFactor:wf});
+    if(pos>=0&&pos<5)entriesByPos[pos].push({name,sy,pos,winFactor:wf,rating:prof.rating*wf});
   }
   GROUPS=Object.values(byKey).filter(g=>g.players.length>=2); // need a real choice
   GROUP_BY_KEY={};GROUPS.forEach(g=>{GROUP_BY_KEY[g.key]=g});
   // precompute cost units for the optimizer
   GROUPS.forEach(g=>g.players.forEach(p=>{p.costUnit=Math.round(p.cost/1e5)}));
+  // precompute cumulative rating weights per position for the quality-skewed gauntlet
+  posCum=[null,null,null,null,null]; posTot=[0,0,0,0,0];
+  for(let pos=0;pos<5;pos++){
+    const arr=entriesByPos[pos], cum=new Float64Array(arr.length); let t=0;
+    for(let i=0;i<arr.length;i++){t+=Math.pow(Math.max(arr[i].rating,0.5),OPP_WEIGHT_POW);cum[i]=t;}
+    posCum[pos]=cum; posTot[pos]=t;
+  }
 }
 function resolveGroupMeta(group){
   if(group._meta)return group._meta;
@@ -977,18 +1005,17 @@ function buildReelIdle(){
    SIMULATION
    ============================================================ */
 function buildGauntlet(){
-  // 82 opponent fives, each a coherent PG-SG-SF-PF-C team drawn from the pool.
-  // Balanced opponents make a real benchmark — a clumped roster (e.g. three
-  // centers) can't pad wins against incoherent scrub lineups. The same gauntlet
-  // is reused for every candidate squad so the comparison stays fair.
+  // 82 opponent fives, each a coherent PG-SG-SF-PF-C team. Draws are skewed
+  // toward better players (drawOpp) so the gauntlet is a genuine starter-level
+  // benchmark, not random scrubs — beating it should require real talent. The
+  // same gauntlet is reused for every candidate squad so the comparison is fair.
   const g=[];
   for(let i=0;i<SEASON_GAMES;i++){
     const picks=[];
     for(let pos=0;pos<5;pos++){
-      const bucket=(entriesByPos[pos]&&entriesByPos[pos].length)?entriesByPos[pos]:null;
-      const e=bucket?bucket[Math.floor(Math.random()*bucket.length)]
-                    :salaryEntries[Math.floor(Math.random()*salaryEntries.length)];
-      picks.push({name:e[0]!==undefined?e[0]:e.name,sy:e[1]!==undefined?e[1]:e.sy,pos,winFactor:(e.winFactor!=null?e.winFactor:1)});
+      const e=drawOpp(pos);
+      if(e) picks.push({name:e.name,sy:e.sy,pos,winFactor:(e.winFactor!=null?e.winFactor:1),rating:(e.rating!=null?e.rating:REF_RTG/5)});
+      else { const f=salaryEntries[Math.floor(Math.random()*salaryEntries.length)]; picks.push({name:f[0],sy:f[1],pos,winFactor:1,rating:REF_RTG/5}); }
     }
     g.push(picks);
   }
@@ -1018,13 +1045,6 @@ function lineupBalance(lineup){
   if(ct[3]+ct[4]===0)  f-=0.02;    // no big men at all
   return Math.max(0.95,Math.min(1.04,f));
 }
-// Average of the lineup's per-player winning-% factors (1.0 if no records loaded).
-// Lets a roster of players from winning teams score a touch more, and vice versa.
-function lineupWinFactor(lineup){
-  if(!lineup.length)return 1;
-  let s=0;for(const p of lineup)s+=(p.winFactor!=null?p.winFactor:1);
-  return s/lineup.length;
-}
 function simOneGame(myLineup,oppLineup){
   const a=buildSimTeam(myLineup), b=buildSimTeam(oppLineup);
   if(a.length<3||b.length<3)return null;
@@ -1033,8 +1053,14 @@ function simOneGame(myLineup,oppLineup){
   let pA=0,pB=0;
   teams[0].forEach((_,i)=>{pA+=av(0,i,"PTS")});
   teams[1].forEach((_,i)=>{pB+=av(1,i,"PTS")});
-  pA*=lineupBalance(myLineup)*lineupWinFactor(myLineup);   // positional chemistry + team winning-% quality
-  pB*=lineupBalance(oppLineup)*lineupWinFactor(oppLineup);
+  pA*=lineupBalance(myLineup);     // positional chemistry (minor) on the live sim
+  pB*=lineupBalance(oppLineup);
+  // Anchor mostly to roster talent (RTG, which already folds in winning %), and
+  // blend the live box-score sim in as the minority signal. This is what makes
+  // the record track talent — a no-star five is middling, stars win — instead of
+  // letting the engine's rebounding over-reward crown role-player teams.
+  pA = TALENT_ALPHA*teamTalentPts(teamTalent(myLineup)) + (1-TALENT_ALPHA)*pA;
+  pB = TALENT_ALPHA*teamTalentPts(teamTalent(oppLineup)) + (1-TALENT_ALPHA)*pB;
   pA=Math.round(pA);pB=Math.round(pB);
   let ot=0;
   while(pA===pB&&ot<6){ot++;pA+=Math.round(8+Math.random()*7);pB+=Math.round(8+Math.random()*7)}
