@@ -655,6 +655,7 @@ let salaryByPlayer={}, salaryEntries=[], CAP_BY_SY={};
 let teams=[[],[]], adjusted=[[],[]], teamNames=["YOUR SQUAD","OPPONENT"];
 
 // --- tunable game constants (easy to tweak / move to a config later) ---
+const BUILD      = "v9 · talent-anchor + explanations · 2026-06-08";
 const CAP_2026   = 165_000_000;   // 2026-27 projected NBA salary cap ($165M, ESPN/Shams Mar 2026)
 const BUDGET     = 120_000_000;   // bankroll
 const SLOTS      = 5;             // signings
@@ -1345,6 +1346,7 @@ function reSim(){ showResults(); }
    BOOT / DATA LOADING (mirrors the salary variant's loader)
    ============================================================ */
 (async function(){
+  console.log("%c[ROULETTE BUILD] "+BUILD,"color:#ffd700;font-weight:bold");
   const fill=$("progressFill"),text=$("progressText"),label=$("progressLabel");
   try{
     const resp=await fetch("data.bin");
@@ -1417,7 +1419,7 @@ function reSim(){ showResults(); }
     setTimeout(()=>{
       $("loadScreen").style.display="none";
       $("introBudget").textContent=fmtM(BUDGET);
-      $("introFine").textContent="Pricing at the projected "+fmtM(CAP_2026)+" cap · "+GROUPS.length+" team-seasons (1990–2024) on the wheel";
+      $("introFine").textContent="Pricing at the projected "+fmtM(CAP_2026)+" cap · "+GROUPS.length+" team-seasons (1990–2024) on the wheel · "+BUILD;
       $("intro").classList.remove("hidden");
       $("startBtn").onclick=startGame;
     },350);
