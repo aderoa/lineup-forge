@@ -199,16 +199,33 @@ const COEFS_URL      = 'fit_coefficients.json';
 const NAMES_URL      = 'name_dictionary.json';
 const QUALITY_URL    = 'player_quality.json';
 
-// Defensive Rankings — fetched live from the same sheet Defense page uses
-const DEF_SHEET_ID   = '1JH2FUBIyQ1zEHzZBxgP8vHBZ7d8EtP5-fSVG3zMgCgg';
-const DEF_API_KEY    = 'AIzaSyB9g7c6llswswuZQ2I5y2MwGk6BzYEtHsY';
-const DEF_URL        = `https://sheets.googleapis.com/v4/spreadsheets/${DEF_SHEET_ID}/values/Defensive_Rankings?key=${DEF_API_KEY}`;
+// NO API KEY IN THIS PAGE.
+//
+// Both of these used to be direct sheets.googleapis.com calls carrying a
+// Google API key in public source -- one for the defense sheet, one for the
+// MAIN HoopsMatic spreadsheet. Restricting that key by referrer would have
+// left it readable and spoofable; the worker already holds it in
+// env.SHEETS_API_KEY, so the page does not need it at all.
+//
+// Absolute, because this page is served from aderoa.github.io as well as from
+// forge.hoopsmatic.com, and a relative /api path would reach neither there.
+const API_BASE = 'https://hoopsmatic.com';
 
-// Positions — fetched from the main HoopsMatic sheet, Sheet2 cols S (PLAYER) + AG (POSITION).
-// Used by viabilityAdjustments to exclude PGs from the lineup size check (small
-// playmakers' size disadvantage is already captured in their DEF_SCORE).
-const POS_SHEET_ID = '11llk0icQqoi0JwJXat5KO8y2RQeBMN5rS9FhAY56Idc';
-const POS_URL = `https://sheets.googleapis.com/v4/spreadsheets/${POS_SHEET_ID}/values:batchGet?ranges=Sheet2!S:S&ranges=Sheet2!AG:AG&key=${DEF_API_KEY}`;
+// Defensive Rankings — the worker's proxy of the same sheet the Defense page
+// reads, cached an hour. It returns the sheet's own body, so the reader below
+// is unchanged: still data.values.
+const DEF_URL = `${API_BASE}/api/defense`;
+
+// Positions — Sheet2!S:AG from the main HoopsMatic sheet, S being PLAYER and
+// AG being POSITION. Used by viabilityAdjustments to exclude PGs from the
+// lineup size check (small playmakers' size disadvantage is already captured
+// in their DEF_SCORE).
+//
+// This one answers in CSV rather than in the batchGet shape, which is why
+// loadPositionData reads rows instead of two parallel columns.
+const POS_URL = `${API_BASE}/api/rm-sl-bio`;
+const POS_COL_PLAYER = 0;    // column S, the first of the range
+const POS_COL_POSITION = 14; // column AG, the fifteenth
 
 const USG_HIGH = 0.25, SHOOT_OK = 0.35, SHOOT_MIN_3PA = 2.0;
 const AST_HIGH = 0.20, REB_HIGH = 0.10, BLK_HIGH = 1.0;
@@ -643,20 +660,49 @@ async function loadDefenseData() {
   return result;
 }
 
-// Fetches Sheet2 cols S (PLAYER) and AG (POSITION) from HoopsMatic's main sheet
-// via the batchGet endpoint — only the two columns we need, not the whole sheet.
+// A CSV reader, because this page did not have one and the positions feed is
+// now CSV. Splitting on commas would break on any quoted field -- and a roster
+// is exactly the kind of data that contains one.
+function parseForgeCSV(text) {
+  const rows = [];
+  let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') q = false;
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); cur = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else cur += c;
+  }
+  if (cur || row.length) {
+    row.push(cur);
+    if (row.length > 1 || row[0] !== '') rows.push(row);
+  }
+  return rows;
+}
+
+// Sheet2 cols S (PLAYER) and AG (POSITION) from HoopsMatic's main sheet,
+// through the worker so no key is needed here. The range is S:AG, so S is the
+// first column of each row and AG the fifteenth.
+//
+// The Sheets API omits trailing empty cells, so a player with no position
+// arrives as a SHORT row rather than one with a blank at the end. That is
+// skipped, exactly as the old code skipped an empty position.
 async function loadPositionData() {
   const res = await fetch(POS_URL);
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching positions sheet`);
-  const data = await res.json();
-  const ranges = data.valueRanges || [];
-  if (ranges.length !== 2) return {};
-  const players = ranges[0].values || [];
-  const positions = ranges[1].values || [];
+  const rows = parseForgeCSV(await res.text());
   const result = {};
-  for (let i = 1; i < players.length; i++) {
-    const name = (players[i]?.[0] || '').trim();
-    const pos = (positions[i]?.[0] || '').trim();
+  for (let i = 1; i < rows.length; i++) {
+    const name = (rows[i][POS_COL_PLAYER] || '').trim();
+    const pos = (rows[i][POS_COL_POSITION] || '').trim();
     if (!name || !pos) continue;
     result[name] = pos;
   }
